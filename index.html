@@ -95,7 +95,18 @@ button.petit{flex:0 0 auto;padding:8px 12px;font-size:12px;background:var(--soft
 .clk .track{flex:1;height:6px;border-radius:3px;background:var(--soft);overflow:hidden}
 .clk span{font-size:12px;color:var(--dim);min-width:34px;text-align:right}
 .clk.low i{background:var(--red)}.clk.low span{color:var(--red)}
-#cpanel{width:100%;max-width:480px;max-height:88vh;overflow:auto;padding:14px;border-radius:16px 16px 0 0}
+#cv #cpanel{position:absolute;left:50%;top:auto;bottom:10px;transform:translateX(-50%);
+  width:min(300px,calc(100vw - 20px));max-height:min(78vh,540px);overflow:auto;padding:0 12px 12px;
+  border-radius:16px;pointer-events:auto;box-shadow:0 18px 44px -14px #000000bf;touch-action:none}
+#cv #cpanel.pose{left:0;top:0;bottom:auto;transform:none}
+#ctete{display:flex;align-items:center;gap:8px;margin:0 -12px 10px;padding:11px 12px 9px;
+  border-bottom:1px solid var(--line);cursor:grab;touch-action:none;
+  position:sticky;top:0;background:inherit;border-radius:16px 16px 0 0;z-index:2}
+#ctete:active{cursor:grabbing}
+#ctete h2{flex:1;margin:0;font-size:15px}
+#ctete .poignee{flex:0 0 auto;width:26px;height:5px;border-radius:3px;background:var(--line)}
+#ctete button{flex:0 0 auto;padding:5px 10px;font-size:13px;font-weight:500;
+  background:var(--soft);color:var(--ink);border-radius:8px}
 #cdisp{background:var(--soft);border-radius:12px;padding:12px 14px;margin-bottom:10px;text-align:right}
 #cexpr{color:var(--dim);font-size:13px;min-height:17px}
 #cval{font-size:34px;font-weight:700;line-height:1.15;overflow:hidden;text-overflow:ellipsis}
@@ -110,7 +121,9 @@ button.f{background:var(--fold);color:var(--ink)}button.p{background:var(--gold)
 button[disabled]{opacity:.45;cursor:default}
 button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .rs{display:flex;gap:8px;width:100%;align-items:center}.rs input{flex:1}
-#ov,#intro,#hv,#cv,#rv,#fv,#iv{position:fixed;inset:0;background:#00000073;display:flex;align-items:flex-end;justify-content:center;z-index:12}
+#ov,#intro,#hv,#rv,#fv,#iv{position:fixed;inset:0;background:#00000073;display:flex;align-items:flex-end;justify-content:center;z-index:12}
+/* la calculette flotte au-dessus de la table : on garde la vue sur le jeu */
+#cv{position:fixed;inset:0;z-index:13;pointer-events:none;background:none}
 #intro{background:var(--bg);align-items:center;z-index:10;overflow:auto}
 /* ====== accueil : la page est une carte posee sur le tapis ====== */
 #sc-home{--ivoire:#f7f2e6;--nuit:#30080f;--trait:#ffffff1f}
@@ -667,10 +680,10 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <button class="p" onclick="$('rv').hidden=true" style="margin-top:10px">Fermer</button>
 </div></div>
 <div id="cv" hidden><div id="cpanel">
-<h2>Calculatrice</h2>
+<div id="ctete"><span class="poignee"></span><h2>Calculatrice</h2>
+ <button onclick="$('cv').hidden=true">Fermer</button></div>
 <div id="cdisp"><div id="cexpr"></div><div id="cval">0</div></div>
 <div id="cpad"></div>
-<button class="p" onclick="$('cv').hidden=true" style="margin-top:10px">Fermer</button>
 </div></div>
 <div id="ov" hidden><div id="panel">
 <h2>Réglages</h2>
@@ -771,7 +784,7 @@ const VOICE=[
  {o:["Relance.","Dans la range.","Standard."],f:["Fold.","Hors range.","Non."],
   a:["Tapis.","Shove."],w:["Attendu.","Équité respectée.","Noté."],
   l:["Variance.","Statistiquement normal.","Bien."],r:["Reçu.","…","Intéressant."],g:["Prêt."]}];
-const EMO=['👋','😎','😅','😤','🔥','👏','🤔','🍀','❤️','💩','😂','😭','🤡','🙄','🤯','💀','🧊','🍺','🎉','🤝'];
+const EMO=['👋','😎','😅','😤','🔥','👏','🤔','🍀','❤️','💩','😂','😭','🤡','🙄','🤯','💀','🧊','🍺','🎉','🤝','🧸'];
 const $=id=>document.getElementById(id);
 const live=p=>!p.fold,canAct=p=>!p.fold&&!p.allin;
 const pot=()=>P.reduce((a,p)=>a+p.tot,0);
@@ -1265,12 +1278,43 @@ const CKEYS=[['C','x'],['±','s'],['%','p'],['÷','/'],
              ['4','4'],['5','5'],['6','6'],['−','-'],
              ['1','1'],['2','2'],['3','3'],['+','+'],
              ['0','0'],[',','.'],['⌫','b'],['=','=']];
+/* ---- deplacement de la calculette ---- */
+let calcPose=null;   /* position choisie, gardee le temps de la session */
+function placerCalc(x,y){
+  const e=$('cpanel'),r=e.getBoundingClientRect();
+  const maxX=Math.max(0,innerWidth-r.width),maxY=Math.max(0,innerHeight-r.height);
+  calcPose={x:Math.min(maxX,Math.max(0,x)),y:Math.min(maxY,Math.max(0,y))};
+  e.classList.add('pose');
+  e.style.left=calcPose.x+'px';e.style.top=calcPose.y+'px';
+}
+(function glisser(){
+  let dx=0,dy=0,actif=false;
+  const tete=()=>$('ctete');
+  document.addEventListener('pointerdown',e=>{
+    const t=tete();if(!t||!t.contains(e.target))return;
+    if(e.target.tagName==='BUTTON')return;        /* le bouton Fermer reste cliquable */
+    const r=$('cpanel').getBoundingClientRect();
+    dx=e.clientX-r.left;dy=e.clientY-r.top;actif=true;
+    try{t.setPointerCapture(e.pointerId)}catch(x){}
+    e.preventDefault();
+  });
+  document.addEventListener('pointermove',e=>{
+    if(!actif)return;
+    placerCalc(e.clientX-dx,e.clientY-dy);
+    e.preventDefault();
+  });
+  const fin=()=>{actif=false};
+  document.addEventListener('pointerup',fin);
+  document.addEventListener('pointercancel',fin);
+  addEventListener('resize',()=>{if(calcPose)placerCalc(calcPose.x,calcPose.y)});
+})();
 function openC(){
   if(!$('cpad').childElementCount)
     $('cpad').innerHTML=CKEYS.map(k=>'<button class="ck'+('/*-+='.indexOf(k[1])>=0?' op':'')
       +(k[1]==='='?' eq':'')+(k[1]==='x'||k[1]==='s'||k[1]==='p'||k[1]==='b'?' fn':'')
       +'" onclick="ckey(\''+k[1]+'\')">'+k[0]+'</button>').join('');
   cdraw();$('cv').hidden=false;
+  if(calcPose)placerCalc(calcPose.x,calcPose.y);   /* on la retrouve ou on l'avait laissee */
 }
 function cnum(x){
   if(!isFinite(x))return 'Erreur';
@@ -2206,13 +2250,13 @@ const RANGS=[
 ];
 /* ---- installation sur le telephone ---- */
 const PAS={
- ios:["Ouvre ce lien dans <b>Safari</b> (l\u2019ajout \u00e0 l\u2019\u00e9cran d\u2019accueil ne marche pas depuis une autre appli).",
+ ios:["<b>Ouvre ce lien dans Safari.</b> Depuis WhatsApp, Instagram ou un SMS \u00e7a ne marche pas : touche <b>\u22ef</b> puis <b>Ouvrir dans Safari</b>.",
       "Touche le bouton <b>Partager</b> en bas de l\u2019\u00e9cran : le carr\u00e9 avec une fl\u00e8che vers le haut.",
       "Fais d\u00e9filer la liste et choisis <b>Sur l\u2019\u00e9cran d\u2019accueil</b>.",
       "Valide avec <b>Ajouter</b>. L\u2019ic\u00f4ne appara\u00eet avec tes autres applis."],
- android:["Ouvre ce lien dans <b>Chrome</b>.",
-      "Touche le menu <b>\u22ee</b> en haut \u00e0 droite.",
-      "Choisis <b>Ajouter \u00e0 l\u2019\u00e9cran d\u2019accueil</b> (parfois \u00e9crit <b>Installer l\u2019application</b>).",
+ android:["<b>Assure-toi d\u2019\u00eatre dans Chrome.</b> Si tu as cliqu\u00e9 le lien depuis WhatsApp, Instagram ou un SMS, tu es dans le navigateur de cette appli-l\u00e0, qui n\u2019a pas l\u2019option : menu <b>\u22ee</b> puis <b>Ouvrir dans Chrome</b>.",
+      "Dans Chrome, touche le menu <b>\u22ee</b> en haut \u00e0 droite.",
+      "Cherche <b>Installer l\u2019application</b>. Selon la version c\u2019est \u00e9crit <b>Ajouter \u00e0 l\u2019\u00e9cran d\u2019accueil</b>. Sur Samsung Internet : <b>Ajouter la page \u00e0</b> puis <b>\u00c9cran d\u2019accueil</b>.",
       "Valide. L\u2019ic\u00f4ne appara\u00eet avec tes autres applis."],
  pc:["Dans la barre d\u2019adresse, cherche l\u2019ic\u00f4ne d\u2019installation \u00e0 droite.",
       "Sinon : menu <b>\u22ee</b> du navigateur, puis <b>Installer</b> ou <b>Cr\u00e9er un raccourci</b>.",
@@ -2233,8 +2277,9 @@ function openI(){
   $('ietapes').innerHTML=listePas(k);
   $('iautres').innerHTML=Object.keys(PAS).filter(x=>x!==k).map(x=>
     '<details><summary>Sur '+NOMPAS[x]+'</summary><div class="corps">'+listePas(x)+'</div></details>').join('');
-  $('inote').innerHTML='Chaque pote doit pouvoir <b>ouvrir le lien</b> de son c\u00f4t\u00e9 : '
-    +'c\u2019est ce lien qui donne acc\u00e8s \u00e0 l\u2019appli et aux tables entre amis.';
+  $('inote').innerHTML='Tu ne trouves l\u2019option nulle part ? C\u2019est presque toujours que tu n\u2019es pas '
+    +'dans Chrome ou Safari, mais dans le navigateur int\u00e9gr\u00e9 \u00e0 l\u2019appli de messagerie. '
+    +'Copie l\u2019adresse et colle-la dans ton navigateur.';
   $('ipartage').textContent=navigator.share?'Envoyer le lien \u00e0 un pote':'Copier le lien';
   $('iv').hidden=false;
 }
