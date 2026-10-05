@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cotes et équité au poker</title>
+<style>
+:root{--bg:#efe9db;--ink:#1b2a22;--dim:#5d6b60;--panel:#f8f4ea;--soft:#0000000f;--line:#00000022;
+      --gold:#9a6c1e;--red:#b3261e;--blue:#1763b8;--green:#15774a;--ok:#2e7d4f;--btn:#1b2a22;--btnink:#f8f4ea}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.35 Georgia,'Times New Roman',serif}
+.wrap{max-width:520px;margin:0 auto;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+h1{font-size:21px;margin:0 0 2px}
+.lead{color:var(--dim);font-size:13px;margin:0 0 16px}
+h2{font-size:15px;margin:20px 0 8px;font-weight:700}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px}
+.slot{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:9px}
+.slot .lbl{flex:0 0 100%;color:var(--dim);font-size:13px;margin-bottom:3px}
+.cd{width:42px;height:58px;border-radius:7px;background:#fbf8ee;border:1px solid var(--line);display:flex;
+    flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:18px;line-height:1;cursor:pointer;padding:0}
+.cd.empty{background:var(--soft);border-style:dashed;color:var(--dim);font-size:13px;font-weight:400}
+.cd.sel{outline:3px solid var(--gold);outline-offset:1px}
+.cd span{font-size:15px}
+.s0{color:#16130f}.s1{color:var(--red)}.s2{color:var(--blue)}.s3{color:var(--green)}
+#grid{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;margin-top:10px}
+#grid button{padding:7px 0;font:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:5px;background:#fbf8ee;cursor:pointer}
+#grid button:disabled{opacity:.25;cursor:default}
+#suits{display:flex;gap:7px;margin:10px 0 4px}
+#suits button{flex:1;padding:9px 0;font-size:19px;border:1px solid var(--line);border-radius:9px;background:#fbf8ee;cursor:pointer;font-family:inherit}
+#suits button[aria-pressed=true]{outline:3px solid var(--gold);outline-offset:-1px}
+.row{display:flex;gap:9px;align-items:center;margin-bottom:9px}
+.row label{flex:1;font-size:14px;color:var(--dim)}
+.row input{width:112px;padding:9px;border-radius:9px;border:1px solid var(--line);background:#fbf8ee;color:var(--ink);font:inherit;text-align:right}
+.out{background:var(--soft);border-radius:11px;padding:10px 12px;margin:9px 0}
+.line{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:3px 0}
+.line b{color:var(--gold);white-space:nowrap}
+button.go{width:100%;padding:13px;border:0;border-radius:11px;background:var(--btn);color:var(--btnink);font:inherit;font-weight:700;font-size:15px;cursor:pointer}
+button.ghost{background:var(--soft);color:var(--ink)}
+.verdict{font-size:14px;font-weight:700;padding:10px 12px;border-radius:10px;margin-top:9px;text-align:center}
+.verdict.ok{background:#86d79b38;color:var(--ok)}
+.verdict.no{background:#e39a9a38;color:#a8443c}
+.bar{height:9px;border-radius:5px;background:var(--soft);overflow:hidden;display:flex;margin:7px 0 3px}
+.bar i{display:block;height:100%}
+.bar .w{background:var(--ok)}.bar .t{background:var(--gold)}.bar .l{background:#c98b8b}
+.foot{color:var(--dim);font-size:12px;margin-top:22px;line-height:1.5}
+@media (prefers-color-scheme:dark){
+ :root{--bg:#141a17;--ink:#eae4d6;--dim:#95a69b;--panel:#1b2420;--soft:#ffffff12;--line:#ffffff24;
+       --gold:#e3b95c;--red:#e2615a;--blue:#6fa8dc;--green:#6cc295;--ok:#86d79b;--btn:#eae4d6;--btnink:#141a17}
+ .cd,#grid button,#suits button,.row input{background:#2a332e}
+ .s0{color:#eae4d6}
+}
+</style></head><body><div class="wrap">
+<h1>Cotes et équité</h1>
+<p class="lead">Outil à garder ouvert à côté d'une partie. Aucune donnée n'en sort.</p>
+
+<h2>Ta main et le tableau</h2>
+<div class="card">
+ <div class="slot" id="sl-me"><span class="lbl">Tes deux cartes</span></div>
+ <div class="slot" id="sl-bd"><span class="lbl">Le tableau (0 à 5 cartes)</span></div>
+ <div id="suits"></div>
+ <div id="grid"></div>
+ <div class="row" style="margin-top:12px"><label for="opp">Adversaires encore en jeu</label>
+   <input id="opp" type="number" min="1" max="8" step="1" value="1" inputmode="numeric"></div>
+ <button class="go" id="run" onclick="run()">Calculer mon équité</button>
+ <div class="out" id="eq" hidden></div>
+ <button class="go ghost" style="margin-top:8px" onclick="reset()">Tout effacer</button>
+</div>
+
+<h2>Cote du pot</h2>
+<div class="card">
+ <div class="row"><label for="pot">Pot avant ton call</label><input id="pot" type="number" min="0" step="10" value="100" inputmode="numeric" oninput="odds()"></div>
+ <div class="row"><label for="call">Montant à suivre</label><input id="call" type="number" min="0" step="10" value="25" inputmode="numeric" oninput="odds()"></div>
+ <div class="out" id="po"></div>
+ <div id="verdict"></div>
+</div>
+
+<h2>Compter ses outs</h2>
+<div class="card">
+ <div class="row"><label for="outs">Nombre d'outs</label><input id="outs" type="number" min="0" max="25" step="1" value="9" inputmode="numeric" oninput="outsCalc()"></div>
+ <div class="out" id="oz"></div>
+ <p class="foot" style="margin-top:4px">Tirage couleur après le flop : 9 outs. Quinte bilatérale : 8. Quinte par le ventre : 4. Deux surcartes : 6.</p>
+</div>
+
+<p class="foot">L'équité est estimée par tirage aléatoire (quelques milliers de mains simulées), face à des adversaires qui prennent n'importe quelles cartes — c'est une borne de référence, pas une lecture de leur range réelle. Marge d'environ un point.<br>Jetons fictifs, aucun argent en jeu.</p>
+</div>
+<script>
+const RK=['2','3','4','5','6','7','8','9','10','J','Q','K','A'],SU=['♠','♥','♦','♣'];
+let suit=0,me=[],bd=[],target='me';
+const $=i=>document.getElementById(i);
+const key=c=>c.r*4+c.s;
+function used(){const u={};me.concat(bd).forEach(c=>u[key(c)]=1);return u}
+function cardHtml(c,where,idx){
+  return'<button class="cd s'+c.s+'" onclick="drop(\''+where+'\','+idx+')" title="Retirer">'+RK[c.r-2]+'<span>'+SU[c.s]+'</span></button>';
+}
+function paint(){
+  let h='<span class="lbl">Tes deux cartes</span>';
+  me.forEach((c,i)=>h+=cardHtml(c,'me',i));
+  for(let i=me.length;i<2;i++)h+='<button class="cd empty" onclick="aim(\'me\')">+</button>';
+  $('sl-me').innerHTML=h;
+  h='<span class="lbl">Le tableau (0 à 5 cartes)</span>';
+  bd.forEach((c,i)=>h+=cardHtml(c,'bd',i));
+  for(let i=bd.length;i<5;i++)h+='<button class="cd empty" onclick="aim(\'bd\')">+</button>';
+  $('sl-bd').innerHTML=h;
+  $('suits').innerHTML=SU.map((s,i)=>'<button class="s'+i+'" aria-pressed="'+(suit===i)+'" onclick="setSuit('+i+')">'+s+'</button>').join('');
+  const u=used();
+  $('grid').innerHTML=RK.map((r,i)=>{
+    const c={r:i+2,s:suit},dis=u[key(c)]||(target==='me'?me.length>=2:bd.length>=5);
+    return'<button class="s'+suit+'" '+(dis?'disabled':'')+' onclick="add('+(i+2)+')">'+r+'</button>';
+  }).join('');
+  $('run').disabled=me.length<2;
+  $('run').textContent=me.length<2?'Choisis tes deux cartes':'Calculer mon équité';
+}
+function aim(t){target=t;paint()}
+function setSuit(i){suit=i;paint()}
+function add(r){
+  const c={r:r,s:suit};
+  if(used()[key(c)])return;
+  if(target==='me'){if(me.length<2)me.push(c);if(me.length>=2)target='bd'}
+  else if(bd.length<5)bd.push(c);
+  $('eq').hidden=true;paint();
+}
+function drop(w,i){(w==='me'?me:bd).splice(i,1);target=w;$('eq').hidden=true;paint()}
+function reset(){me=[];bd=[];target='me';$('eq').hidden=true;$('verdict').innerHTML='';lastEq=null;paint();odds()}
+/* ---- evaluation ---- */
+function e5(h){
+  const r=h.map(c=>c.r).sort((a,b)=>b-a),fl=h.every(c=>c.s===h[0].s);
+  let st=new Set(r).size===5&&r[0]-r[4]===4,k=r;
+  if(!st&&r.join()==='14,5,4,3,2'){st=true;k=[5,4,3,2,1]}
+  const cnt={};r.forEach(x=>cnt[x]=(cnt[x]||0)+1);
+  const g=Object.keys(cnt).map(x=>[cnt[x],+x]).sort((a,b)=>b[0]-a[0]||b[1]-a[1]);
+  const kk=st?k:g.reduce((a,e)=>a.concat(Array(e[0]).fill(e[1])),[]);
+  const c=st&&fl?8:g[0][0]===4?7:g[0][0]===3&&g[1]&&g[1][0]===2?6:fl?5:st?4:g[0][0]===3?3:g[0][0]===2?(g[1][0]===2?2:1):0;
+  return c*759375+kk.reduce((a,x)=>a*15+x,0);
+}
+function best(c){let m=0;const n=c.length;
+  (function rec(i,pk){if(pk.length===5){const v=e5(pk);if(v>m)m=v;return}if(i>=n||pk.length+n-i<5)return;rec(i+1,pk.concat([c[i]]));rec(i+1,pk)})(0,[]);
+  return m}
+const HN=['carte haute','paire','double paire','brelan','quinte','couleur','full','carré','quinte flush'];
+let lastEq=null;
+function run(){
+  if(me.length<2)return;
+  const opp=Math.max(1,Math.min(8,+$('opp').value||1));
+  $('eq').hidden=false;$('eq').innerHTML='<div class="line"><span>Simulation en cours…</span><b></b></div>';
+  setTimeout(()=>{
+    const u=used(),rest=[];
+    for(let s=0;s<4;s++)for(let r=2;r<=14;r++)if(!u[r*4+s])rest.push({r:r,s:s});
+    const need=5-bd.length,N=opp>3?1200:2500;
+    let w=0,t=0;
+    for(let k=0;k<N;k++){
+      const pool=rest.slice();
+      const draw=n=>{const a=[];for(let i=0;i<n;i++)a.push(pool.splice(Math.random()*pool.length|0,1)[0]);return a};
+      const b=need>0?bd.concat(draw(need)):bd;
+      const mine=best(me.concat(b));
+      let mx=-1;
+      for(let o=0;o<opp;o++){const sc=best(draw(2).concat(b));if(sc>mx)mx=sc}
+      if(mine>mx)w++;else if(mine===mx)t++;
+    }
+    const win=w/N,tie=t/N,lose=1-win-tie;
+    lastEq=win+tie/2;
+    $('eq').innerHTML=
+      '<div class="bar"><i class="w" style="width:'+(win*100)+'%"></i><i class="t" style="width:'+(tie*100)+'%"></i><i class="l" style="width:'+(lose*100)+'%"></i></div>'
+     +'<div class="line"><span>Gagne</span><b>'+(win*100).toFixed(1)+' %</b></div>'
+     +'<div class="line"><span>Partage</span><b>'+(tie*100).toFixed(1)+' %</b></div>'
+     +'<div class="line"><span>Perd</span><b>'+(lose*100).toFixed(1)+' %</b></div>'
+     +'<div class="line"><span>Équité retenue</span><b>'+(lastEq*100).toFixed(1)+' %</b></div>'
+     +(bd.length?'<div class="line"><span>Ta main actuelle</span><b>'+HN[Math.floor(best(me.concat(bd))/759375)]+'</b></div>':'')
+     +'<div class="line"><span>Face à</span><b>'+opp+' adversaire'+(opp>1?'s':'')+'</b></div>';
+    odds();
+  },30);
+}
+function odds(){
+  const pt=Math.max(0,+$('pot').value||0),cl=Math.max(0,+$('call').value||0);
+  const need=cl>0?cl/(pt+cl):0;
+  $('po').innerHTML=
+    '<div class="line"><span>Cote du pot</span><b>'+(cl>0?(pt/cl).toFixed(2)+' contre 1':'—')+'</b></div>'
+   +'<div class="line"><span>Équité nécessaire</span><b>'+(cl>0?(need*100).toFixed(1)+' %':'—')+'</b></div>'
+   +'<div class="line"><span>Pot après ton call</span><b>'+(pt+cl)+'</b></div>';
+  const v=$('verdict');
+  if(lastEq==null||cl<=0){v.innerHTML='';return}
+  const ok=lastEq>=need,ev=lastEq*(pt+cl)-cl;
+  v.innerHTML='<div class="verdict '+(ok?'ok':'no')+'">'+(ok?'Suivre est rentable':'Suivre perd sur la durée')
+    +' · '+(lastEq*100).toFixed(1)+' % contre '+(need*100).toFixed(1)+' % nécessaires<br>'
+    +'gain moyen attendu '+(ev>0?'+':'')+ev.toFixed(0)+' par call</div>';
+}
+function outsCalc(){
+  const o=Math.max(0,Math.min(25,+$('outs').value||0));
+  const one=o/47,two=1-((47-o)/47)*((46-o)/46);
+  $('oz').innerHTML=
+    '<div class="line"><span>Règle rapide, une carte (×2)</span><b>'+(o*2)+' %</b></div>'
+   +'<div class="line"><span>Calcul exact, une carte</span><b>'+(one*100).toFixed(1)+' %</b></div>'
+   +'<div class="line"><span>Règle rapide, deux cartes (×4)</span><b>'+Math.min(99,o*4)+' %</b></div>'
+   +'<div class="line"><span>Calcul exact, deux cartes</span><b>'+(two*100).toFixed(1)+' %</b></div>';
+}
+paint();odds();outsCalc();
+</script></body></html>
