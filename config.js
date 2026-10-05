@@ -13,8 +13,7 @@
    solo, entrainement, regles, statistiques. Seules les tables entre
    amis restent grisees.
 ------------------------------------------------------------------ */
-
 window.CONFIG_POKER = {
-  url: "",
-  cle: ""
+  url: "https://sqhghukmufehexjqdfzf.supabase.co",
+  cle: "sb_publishable_ANegbyOsmzKuQ_UBiZgFJg_aCY4T-2J"
 };
