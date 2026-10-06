@@ -16,50 +16,118 @@
 <style>
 :root{--felt:#12452c;--rail:#5a3a1e;--gold:#e3b95c;--red:#b3261e;--face:#fbf8ee;--back:#7a1f2b;
  --bg:#efe9db;--ink:#1b2a22;--dim:#5d6b60;--panel:#f8f4ea;--soft:#0000000f;--line:#00000022;--btn:#1b2a22;--btnink:#f8f4ea;--fold:#e0cfc8;--veil:#efe9dbf2}
-[data-theme=dark]{--bg:#0a2418;--ink:#f3eedd;--dim:#9db8a6;--panel:#0f1f18;--soft:#ffffff14;--line:#ffffff26;--btn:#f3eedd;--btnink:#16130f;--fold:#3b2a2a;--veil:#06130de8}
+[data-theme=dark]{--bg:#0b0a0c;--ink:#f1ece0;--dim:#948f88;--panel:#161316;--soft:#ffffff12;
+ --line:#ffffff1f;--btn:#efe8d9;--btnink:#17130f;--fold:#2e2426;--veil:#0b0a0cf2}
+/* la salle : un halo de lampe au-dessus de la table, le reste dans le noir */
+[data-theme=dark] body{background:
+  radial-gradient(120% 62% at 50% -8%,#241b1c 0%,#140f12 42%,#0b0a0c 78%) fixed,var(--bg)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);min-height:100vh;
  font:15px/1.35 'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
 h1,h2,.titrage{font-family:Fraunces,Georgia,serif;font-variation-settings:'SOFT' 20,'WONK' 1}
 #app{max-width:480px;margin:0 auto;padding:10px;padding-top:calc(10px + env(safe-area-inset-top,0px));padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
-h1{font-size:17px;margin:4px 0 2px;font-weight:700;display:flex;gap:6px;align-items:center}
-h1 span{flex:1}
+h1{font-size:17px;margin:4px 0 2px;font-weight:700;display:flex;gap:6px;align-items:center;
+  flex-wrap:wrap}
+h1>span{flex:1 1 0;min-width:0}
+h1 button i{display:none;font-style:normal}
+h1 button u{text-decoration:none}
+/* ecrans etroits : les boutons deviennent des icones, sinon ils sortent de l'ecran */
+@media (max-width:430px){h1{font-size:16px}h1 button{padding:7px 10px;font-size:15px}
+  h1 button i{display:inline}h1 button u{display:none}}
 .sub{color:var(--dim);font-size:12px;margin:0 0 6px}
 h1 button{flex:0 0 auto;padding:7px 9px;font-size:12px;background:var(--soft);color:var(--ink)}
 h1 button.warn{background:var(--gold);color:#16130f;font-weight:700}
-.felt{position:relative;height:min(480px,52vh);margin:8px 0}
+.felt{position:relative;height:min(500px,54vh);min-height:300px;margin:8px 0}
 /* ecrans courts : la table se resserre pour que les boutons restent a l'ecran */
 @media (max-height:800px){#log{max-height:36px;overflow:hidden}
   .felt{margin:4px 0}#talk{margin:2px 0 5px}#app{padding-top:6px}}
 @media (max-height:700px){.felt{height:45vh}#log{max-height:18px}
   h1{font-size:16px;margin:2px 0 1px}.sub{margin:0 0 3px}#talk button{padding:4px 0;font-size:16px}
-  .seat{width:76px;padding:3px 2px;font-size:12px}.seat.big{width:136px}.oval{inset:80px 6px}}
-.oval{position:absolute;inset:96px 6px;background:var(--felt);background-image:radial-gradient(ellipse at 50% 42%,#ffffff14,transparent 70%);border-radius:50%;border:7px solid var(--rail);box-shadow:inset 0 0 22px #00000059}
-.mid{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center}
-.seat{position:absolute;transform:translate(-50%,-50%);width:84px;background:#07150ff2;border-radius:10px;padding:5px 3px;text-align:center;font-size:13px;border:2px solid #ffffff1f}
-.seat.big{width:152px}.seat.act{border-color:var(--gold);box-shadow:0 0 0 3px #e3b95c33;animation:act 1.6s ease-in-out infinite}
-.seat.fold{background:#07150f87;border-color:transparent}.seat.fold b,.seat.fold .chips,.seat.fold .bet{opacity:.5}.seat.fold .cards{opacity:.32}.seat.free{opacity:.32;border-style:dashed}
+  .seat{width:84px;font-size:11.5px}.seat.big{width:118px}}
+/* le bois : un tour de table en noyer, lustre sur le dessus */
+.oval{position:absolute;inset:30px 1px;border-radius:999px;
+  background:
+    linear-gradient(176deg,#8a6038 0%,#5d3c1f 26%,#3a2410 60%,#53371c 88%,#2a1a0b 100%);
+  box-shadow:0 26px 58px -26px #000000e6,0 3px 0 #00000080,
+             inset 0 2px 0 #ffffff2e,inset 0 -4px 9px #00000087}
+.oval::after{   /* le lisere clair sur l'arete du bois */
+  content:'';position:absolute;inset:3px;border-radius:999px;
+  border:1px solid #ffffff1f;pointer-events:none}
+/* le feutre : laine eclairee par le haut, grain fin, ligne de mise */
+.feutre{position:absolute;inset:13px;border-radius:999px;background:var(--felt);
+  background-image:
+    repeating-linear-gradient(48deg,#ffffff07 0 1px,transparent 1px 3px),
+    repeating-linear-gradient(-48deg,#00000012 0 1px,transparent 1px 3px),
+    radial-gradient(64% 70% at 50% 26%,#ffffff2b 0%,#ffffff0d 38%,transparent 72%),
+    radial-gradient(130% 120% at 50% 42%,transparent 52%,#00000066 100%);
+  box-shadow:inset 0 9px 22px -8px #0000008c,inset 0 0 0 2px #0000005e}
+.feutre::after{content:'';position:absolute;inset:34px 26px;border-radius:999px;
+  border:1px solid #ffffff14;pointer-events:none}
+@media (max-height:760px){#board .c{width:34px;height:49px;font-size:15px}
+  .big .c{width:38px;height:54px;font-size:17px}}
+@media (max-height:700px){.oval{inset:24px 1px}}
+.mid{position:absolute;left:0;right:0;top:43%;transform:translateY(-50%);text-align:center}
+.seat{position:absolute;transform:translate(-50%,-50%);width:90px;text-align:center;
+  font-size:11.5px;background:none;border:0;padding:0;line-height:1.2}
+.seat.big{width:120px;font-size:13px}
+.seat.bas,.seat.haut{transform:translate(-50%,0)}
+/* la plaque de nom, comme sur une vraie table */
+.seat>b{display:flex;align-items:center;gap:4px;justify-content:center;
+  background:linear-gradient(180deg,#221d1ff2,#100d0ff5);
+  border:1px solid #ffffff1f;border-top-color:#ffffff33;
+  border-radius:999px;padding:2px 8px 2px 3px;font-weight:600;
+  box-shadow:0 3px 10px -3px #000000b3;white-space:nowrap;overflow:hidden;color:#f1ece0}
+.seat>b .av{flex:0 0 auto;font-size:12.5px;line-height:1}
+.seat>b .nom{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
+.seat .chips{display:block;margin-top:1px;font-weight:700;font-size:11.5px;
+  text-shadow:0 1px 3px #000c}
+.seat.big>b{padding:4px 11px 4px 5px}.seat.big>b .av{font-size:16px}.seat.act>b{border-color:var(--gold);box-shadow:0 0 0 3px #e3b95c2b,0 3px 10px -3px #000c;
+  animation:act 1.6s ease-in-out infinite}
+.seat.fold>b,.seat.fold .chips{opacity:.45}.seat.fold .cards{opacity:.28}
+.seat.free{opacity:.3}.seat.free>b{border-style:dashed}
 .seat.abs{opacity:.5}
 .seat .pause{color:var(--dim);font-size:11px;display:block}
-.seat .eq{color:var(--gold);font-size:11px;line-height:1.3}.seat .eq b{display:block;font-size:13px}.seat .eq u{display:block;color:var(--dim);text-decoration:none;font-size:11px}
-.seat b{display:block}.seat .d{display:inline-block;width:16px;height:16px;line-height:15px;border-radius:50%;background:var(--ink);color:#16130f;font-size:11px;vertical-align:1px;margin-left:4px}
+.seat .eq{display:block;color:var(--gold);font-size:10.5px;line-height:1.3;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px #000}
+.seat .eq b{font-size:11.5px}
+.seat .eq u{color:#cfc8bc;text-decoration:none}
+.seat.big .eq{font-size:11.5px}.seat.big .eq b{font-size:13px}
+/* le bouton du donneur : un vrai jeton blanc */
+.seat .d{flex:0 0 auto;display:inline-block;width:17px;height:17px;line-height:16px;
+  border-radius:50%;background:radial-gradient(circle at 36% 30%,#fff,#d8d2c4);
+  color:#16130f;font-size:10px;font-weight:900;
+  box-shadow:0 1px 3px #000c,inset 0 0 0 1.5px #0000001f}
 .seat .bl{position:absolute;left:-8px;top:-8px;width:23px;height:23px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;
   letter-spacing:-.03em;border:2px dotted #ffffff99;box-shadow:0 2px 6px #000000a6;z-index:2}
 .seat .bl.sb{background:#ddd5c6;color:#1a1410}
 .seat .bl.bb{background:var(--gold);color:#16130f}
 .seat.fold .bl{opacity:.45}
-.seat .lv{display:inline-block;width:15px;height:15px;line-height:14px;border-radius:4px;background:#ffffff1f;color:var(--dim);font-size:10px;margin-left:4px;vertical-align:1px}
-.chips{color:var(--gold)}.bet{color:var(--dim);font-size:12px;min-height:16px}
-.bet .jet{display:inline-flex;align-items:center;gap:4px;padding:1px 7px 1px 4px;border-radius:999px;
-  background:#ffffff14;border:1px solid #ffffff2b;color:var(--ink);font-weight:700;font-size:11.5px}
-.bet .jet::before{content:'';width:9px;height:9px;border-radius:50%;background:var(--gold);
-  box-shadow:0 0 0 1.5px #16130f inset}
-.cards{display:flex;gap:4px;justify-content:center;margin-top:3px}
+.seat .lv{flex:0 0 auto;display:inline-block;width:14px;height:14px;line-height:13px;
+  border-radius:4px;background:#ffffff1f;color:#b5afa6;font-size:9.5px}
+.chips{color:var(--gold)}.bet{color:var(--dim);font-size:11.5px;min-height:0}
+/* ------- les jetons, sur la table et en decor ------- */
+.jeton{display:inline-block;width:var(--t,18px);height:var(--t,18px);border-radius:50%;
+  background:
+    radial-gradient(circle at 36% 28%,#ffffff3d,transparent 52%),
+    radial-gradient(circle,var(--j,#b3261e) 0 54%,#00000033 54% 57%,transparent 57%),
+    repeating-conic-gradient(from 14deg,#f3eddf 0 11deg,var(--j,#b3261e) 0 45deg);
+  box-shadow:0 2px 4px -1px #000000a6,inset 0 0 0 1.5px #ffffff3d}
+.j-blanc{--j:#d9d3c4}.j-rouge{--j:#b3261e}.j-vert{--j:#1d7a4c}
+.j-noir{--j:#211c1e}.j-mauve{--j:#5e3a86}.j-or{--j:#c79b35}
+#mises{position:absolute;inset:0;pointer-events:none;z-index:3}
+.mise{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:5px;
+  font-size:11.5px;font-weight:700;color:#f6f1e4;text-shadow:0 1px 3px #000}
+.mise .pile{position:relative;width:18px;height:18px;flex:0 0 auto}
+.mise .pile .jeton{position:absolute;left:0}
+.mise .pile .jeton:nth-child(1){bottom:0}
+.mise .pile .jeton:nth-child(2){bottom:3px}
+.mise .pile .jeton:nth-child(3){bottom:6px}
+.cards{display:flex;gap:4px;justify-content:center;margin-top:2px}
 .c{position:relative;width:40px;height:58px;background:var(--face);color:#16130f;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:17px;line-height:1;box-shadow:0 1px 3px #0008;overflow:hidden}
 .c i{font-style:normal}
-.sm .c{width:25px;height:35px;font-size:11px}
-.big .c{width:46px;height:66px;font-size:20px}
+.sm .c{width:23px;height:32px;font-size:10px}
+.big .c{width:43px;height:61px;font-size:19px}
 [data-cs=classic] .c b{font-size:.85em;margin-top:.1em}
 [data-cs=corner] .c{align-items:flex-start;justify-content:flex-start;padding:2px 3px}
 [data-cs=corner] .c i{font-size:.85em}
@@ -76,13 +144,18 @@ h1 button.warn{background:var(--gold);color:#16130f;font-weight:700}
 .c.e{background:#0003;box-shadow:none;border:1px dashed #ffffff30}
 .c.e i,.c.e b{display:none}
 .pot{margin:0 0 8px;font-size:16px}.pot b{color:var(--gold)}
-.comb{margin-top:9px;font-size:13px;color:var(--gold);min-height:17px;text-shadow:0 1px 3px #000}
-.comb .lesouts{display:block;margin-top:4px;font-size:12px;letter-spacing:.04em}
+/* la combinaison a sa propre barre sous la table : elle ne peut plus etre
+   recouverte par les cartes, et elle reste lisible quand il y a des outs */
+.comb{margin:7px 0 2px;min-height:0;font-size:13px;color:var(--gold);
+  background:linear-gradient(90deg,#e3b95c1f,#e3b95c08 60%,transparent);
+  border-left:3px solid var(--gold);border-radius:4px 10px 10px 4px;
+  padding:7px 11px;line-height:1.35}
+.comb:empty{display:none}
+.comb .lesouts{display:block;margin-top:5px;font-size:12px;letter-spacing:.04em}
 .comb .lesouts span{background:var(--face);border-radius:3px;padding:1px 3px;margin-right:2px;
   display:inline-block;text-shadow:none;font-weight:700}
 .comb .mene{font-style:normal;color:#8fe0a8;margin-left:5px;font-weight:700}
-.seat .outs{display:block;font-style:normal;font-size:10.5px;color:var(--gold);
-  font-weight:700;margin-top:1px}
+.seat .outs{font-style:normal;font-weight:700;color:#8fe0a8}
 #log{min-height:62px;font-size:13px;color:var(--dim);margin:6px 2px}
 #ctl{display:flex;gap:8px;flex-wrap:wrap;min-height:48px}
 .wait{width:100%;text-align:center;color:var(--dim);font-size:13px;padding:10px 0}
@@ -131,7 +204,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 #ibox{--ink:#f4efe3;--dim:#a2938c;--soft:#ffffff12;--line:#ffffff2e;--panel:#1a1211;
   color:var(--ink)}   /* sans ceci, la couleur calculee sur body est heritee telle quelle */
 #sc-home .tapis{
-  position:relative;margin:0 -20px 22px;padding:34px 22px 30px;overflow:hidden;
+  position:relative;isolation:isolate;   /* le decor reste dans le tapis, derriere le texte */
+  margin:0 -20px 22px;padding:34px 22px 30px;overflow:hidden;
   min-height:clamp(320px,44vh,430px);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   border-radius:0 0 26px 26px;box-shadow:0 16px 34px -16px #3a0b12bf;
@@ -144,6 +218,18 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 #sc-home .tapis::before{   /* la lumiere de la lampe */
   content:'';position:absolute;left:50%;top:-110px;width:360px;height:260px;transform:translateX(-50%);
   background:radial-gradient(50% 50% at 50% 50%,#ffe3b359,#ffe3b300 72%);pointer-events:none}
+/* quelques jetons poses sur le tapis de l'accueil */
+#sc-home .deco{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+#sc-home .deco .jeton{position:absolute;filter:drop-shadow(0 7px 12px #0000008c)}
+#sc-home .deco .p-a{--t:46px;left:-10px;bottom:-12px}
+#sc-home .deco .p-b{--t:34px;left:26px;bottom:6px;opacity:.95}
+#sc-home .deco .p-c{--t:28px;left:56px;bottom:-8px;opacity:.9}
+#sc-home .deco .p-d{--t:42px;right:-8px;bottom:-10px}
+#sc-home .deco .p-e{--t:30px;right:32px;bottom:4px;opacity:.92}
+#sc-home .deco .p-f{--t:22px;right:14px;top:18px;opacity:.38}
+#sc-home .deco .p-g{--t:19px;left:16px;top:26px;opacity:.34}
+@media (max-width:360px){#sc-home .deco .p-c,#sc-home .deco .p-e{display:none}
+  .seat{width:84px;font-size:11px}.seat .lv{display:none}}
 #sc-home .pip{position:absolute;font-size:17px;color:#ffffff33;line-height:1;pointer-events:none}
 #sc-home .pip-nw{top:11px;left:13px}#sc-home .pip-ne{top:11px;right:13px}
 #sc-home .pip-sw{bottom:11px;left:13px;transform:rotate(180deg)}
@@ -212,6 +298,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 #sc-home .avp[hidden]{display:none}
 #ibox #sc-home .note{text-align:center;margin-top:4px}
 body.accueil h1,body.accueil #sub{visibility:hidden}
+/* l'accueil occupe tout l'ecran : la colonne de droite n'a rien a y faire */
+body.accueil #tchat,body.accueil #tcfond,body.accueil #cote,body.accueil #log{display:none!important}
 body.toile #intro{align-items:flex-start}
 #intro{background:#0a0708}
 body.toile #ibox{padding-top:0}
@@ -361,7 +449,7 @@ body.toile #ibox{padding-top:0}
 .sw{width:36px;height:36px;border-radius:9px;border:2px solid var(--line);flex:0 0 auto;padding:0}
 .sw[aria-pressed=true]{border-color:var(--gold)}
 #fx{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:4}
-.bub{position:absolute;max-width:124px;padding:6px 9px;border-radius:12px;background:#fbf8eef2;color:#16130f;font-size:12px;line-height:1.25;
+.bub{position:absolute;max-width:110px;padding:5px 8px;border-radius:12px;z-index:5;background:#fbf8eef2;color:#16130f;font-size:12px;line-height:1.25;
  box-shadow:0 3px 10px #0007;transform:translate(-50%,-50%);transform-origin:50% 100%;animation:bub .22s ease-out;border-left:3px solid var(--who,#999)}
 .bub.l{transform:translate(0,-50%);animation-name:bubl}
 .bub.r{left:auto;transform:translate(0,-50%);text-align:right;animation-name:bubr}
@@ -428,48 +516,62 @@ body.toile #ibox{padding-top:0}
 @media (min-width:900px){
   #app{max-width:1240px;padding:18px 22px;display:grid;column-gap:22px;
     grid-template-columns:minmax(0,1fr) 340px;
-    grid-template-rows:auto auto minmax(300px,1fr) auto auto;
+    grid-template-rows:auto auto minmax(300px,1fr) auto auto auto;
     min-height:100vh}
   h1{grid-column:1/-1;grid-row:1;font-size:25px;gap:8px}
   h1 button{padding:9px 14px;font-size:13px}
   .sub{grid-column:1/-1;grid-row:2;font-size:13.5px;margin:0 0 12px}
   .felt{grid-column:1;grid-row:3;height:100%;min-height:0;
     max-width:min(820px,calc((100vh - 250px) * 1.32));margin:0 auto;width:100%}
-  .oval{inset:118px 96px}
-  #talk{grid-column:1;grid-row:4;max-width:840px;margin:12px auto 10px;width:100%;align-self:end}
-  #ctl{grid-column:1;grid-row:5;max-width:840px;margin:0 auto;width:100%;align-self:start}
+  .oval{inset:34px 26px}
+  .comb{grid-column:1;grid-row:4;max-width:840px;margin:10px auto 0;width:100%;align-self:end}
+  #talk{grid-column:1;grid-row:5;max-width:840px;margin:10px auto 8px;width:100%;align-self:end}
+  #ctl{grid-column:1;grid-row:6;max-width:840px;margin:0 auto;width:100%;align-self:start}
   #emos button{flex:0 0 38px;font-size:19px}
   #outils button{flex:0 0 44px}
   /* colonne de droite */
-  #cote{display:flex;flex-direction:column;gap:14px;grid-column:2;grid-row:3/6;min-height:0}
+  #cote{display:flex;flex-direction:column;gap:14px;grid-column:2;grid-row:3/7;
+    min-height:0;overflow:hidden}   /* sans overflow, le chat gonflerait la page */
   #log{flex:0 0 auto;max-height:34%;min-height:0;overflow:auto;
     background:var(--soft);border:1px solid var(--line);border-radius:14px;
     padding:12px 14px;font-size:13px;line-height:1.7}
   #tcfond{display:none}
   #tchat,#tchat[hidden]{display:flex;flex-direction:column;position:static;
-    flex:1;min-height:0;margin:0;max-width:none;width:auto;
+    flex:1 1 0;min-height:0;overflow:hidden;margin:0;max-width:none;width:auto;
     border:1px solid var(--line);border-radius:14px;animation:none;box-shadow:none;padding-bottom:0}
-  #tclog{height:auto;flex:1;min-height:0}
+  #tclog{height:auto;flex:1 1 0;min-height:0;overflow-y:auto}
   #emos{-webkit-mask-image:none;mask-image:none;justify-content:flex-start}
   #tctete button{display:none}   /* dans la colonne, il n'y a rien a fermer */
   #tctete{padding:12px 14px 8px}#tcbar{padding:10px 12px 12px}#tclog{padding:4px 14px 8px}
   /* la table respire : sieges et cartes plus grands */
-  .seat{width:108px;font-size:14px;padding:7px 5px}
-  .seat.big{width:196px}
-  .seat.sm .c{width:32px;height:45px;font-size:13px}
-  .seat.big .c{width:54px;height:77px;font-size:24px}
+  .seat{width:104px;font-size:13px}
+  .seat.big{width:150px;font-size:14.5px}
+  .seat.sm .c{width:30px;height:43px;font-size:12px}
+  .seat.big .c{width:52px;height:74px;font-size:23px}
   .seat .d{width:19px;height:19px;line-height:18px;font-size:12px}
   .seat .bl{width:27px;height:27px;font-size:11px;left:-10px;top:-10px}
-  .pot{font-size:19px}.comb{font-size:15px;margin-top:12px}
+  .pot{font-size:19px}.comb{font-size:14.5px}
   #board .c{width:52px;height:75px;font-size:22px}
   #ctl button{padding:15px 16px;font-size:16px}
-  .bub{max-width:170px;font-size:13px}
+  .bub{max-width:168px;font-size:13px}
+}
+/* portable peu haut : la table se resserre au lieu de se chevaucher */
+@media (min-width:900px) and (max-height:840px){
+  #app{grid-template-rows:auto auto minmax(330px,1fr) auto auto auto}
+  .oval{inset:26px 22px}
+  .seat{width:92px;font-size:12px}.seat.big{width:116px}
+  .seat.sm .c{width:26px;height:37px;font-size:11px}
+  .seat.big .c{width:38px;height:54px;font-size:17px}
+  #board .c{width:42px;height:61px;font-size:18px}
+  #ctl button{padding:12px 14px;font-size:15px}
+  .comb{margin-top:6px;padding:6px 10px;font-size:13.5px}
 }
 @media (prefers-reduced-motion:reduce){.c.in,.seat.act,.street,.pop,.bub{animation:none}.fly{transition:none}}
 </style></head><body><div id="app">
-<h1>Hold'em <span></span><button id="bhome" onclick="accueil()">Accueil</button><button onclick="openH()">Historique</button><button onclick="openP()">Réglages</button></h1>
+<h1>Hold'em <span></span><button id="bhome" onclick="accueil()" aria-label="Accueil"><i>⌂</i><u>Accueil</u></button><button onclick="openH()" aria-label="Historique"><i>◷</i><u>Historique</u></button><button onclick="openP()" aria-label="Réglages"><i>⚙</i><u>Réglages</u></button></h1>
 <div class="sub" id="sub">Jetons fictifs · blinds 10/20</div>
-<div class="felt"><div class="oval"></div><div class="mid"><div class="pot" id="pot"></div><div class="cards" id="board"></div><div class="comb" id="comb"></div></div><div id="seats"></div><div id="fx"></div></div>
+<div class="felt"><div class="oval"><span class="feutre"></span></div><div class="mid"><div class="pot" id="pot"></div><div class="cards" id="board"></div></div><div id="mises"></div><div id="seats"></div><div id="fx"></div></div>
+<div class="comb" id="comb"></div>
 <div id="cote"><div id="log"></div><div id="pause" hidden></div>
 <div id="tcfond" hidden onclick="fermerTchat()"></div>
 <div id="tchat" hidden role="dialog" aria-label="Chat de la table">
@@ -488,6 +590,12 @@ body.toile #ibox{padding-top:0}
 <div id="intro"><div id="ibox">
  <div id="sc-home">
   <div class="tapis">
+   <div class="deco" aria-hidden="true">
+    <i class="jeton j-rouge p-a"></i><i class="jeton j-noir p-b"></i>
+    <i class="jeton j-blanc p-c"></i><i class="jeton j-vert p-d"></i>
+    <i class="jeton j-or p-e"></i><i class="jeton j-mauve p-f"></i>
+    <i class="jeton j-rouge p-g"></i>
+   </div>
    <span class="pip pip-nw">♠</span><span class="pip pip-ne">♥</span>
    <span class="pip pip-sw">♦</span><span class="pip pip-se">♣</span>
    <div class="eventail" aria-hidden="true">
@@ -743,11 +851,11 @@ function nomMain(sc){
   return HN[cat]||'';
 }
 const BOTS=['Léa','Max','Nina','Tom','Sam'];
-const LAY={2:[[50,88],[50,13]],
-           3:[[50,88],[14,36],[86,36]],
-           4:[[50,88],[11,54],[50,13],[89,54]],
-           5:[[50,88],[11,63],[24,19],[76,19],[89,63]],
-           6:[[50,88],[13,70],[13,31],[50,13],[87,31],[87,70]]};
+const LAY={2:[[50,86],[50,12]],
+           3:[[50,86],[15,30],[85,30]],
+           4:[[50,86],[13,50],[50,12],[87,50]],
+           5:[[50,86],[14,68],[24,17],[76,17],[86,68]],
+           6:[[50,86],[15,71],[15,25],[50,12],[85,25],[85,71]]};
 const NSEAT=6;
 const PALIERS=[[10,20],[15,30],[25,50],[40,80],[60,120],[100,200],[150,300],[250,500],[400,800],[600,1200]];
 const RYTHMES=[[0,'Fixes'],[12,'Lente'],[8,'Moyenne'],[5,'Rapide']];
@@ -759,7 +867,8 @@ let sortis=[],classement=null;  /* ordre d'elimination, puis classement final */
 let P,deck,board=[],dealer,stage,cur,curBet,minR,L=[],nf,nf2,pend=false;
 let dernMain=-1,finEnregistree=false,absent=false,absents={};
 let MODE='solo',mySeat=0,isHost=true,room=null,db=null,table=null,tcode='',hostPeer=null,myPeer=null,seatPeer=[],botFill=true,phase='home',lastHeard=0,actTimer=null,syncT=null,watch=null,ended=false;
-const U={felt:'#12452c',rail:'#5a3a1e',back:'#7a1f2b',bk:'stripe',cs:'classic',dk:'four',bb:false,name:'Toi',av:'🙂',th:'light',clock:30,vibr:true,son:true};
+let dernierEnvoi=0,spectateur=false;   /* battement de l'hote ; invite non assis */
+const U={felt:'#12452c',rail:'#5a3a1e',back:'#7a1f2b',bk:'stripe',cs:'classic',dk:'four',bb:false,name:'Toi',av:'🙂',th:'dark',clock:30,vibr:true,son:true};
 const LV=[{n:'Débutant',k:'D',f:.10,r:.86,a:.22,z:.34,bl:0},
           {n:'Normal',k:'N',f:.22,r:.76,a:.50,z:.20,bl:.06},
           {n:'Expert',k:'E',f:.32,r:.68,a:.72,z:.09,bl:.16}];
@@ -916,6 +1025,7 @@ function nextStage(){
   cur=nxt(dealer,canAct);render();sync();setTimeout(step,runout?1700:800);
 }
 function act(p,t,to){
+  if(etatFini||!P)return;              /* la main est close : plus rien n'est accepte */
   if(!p.bot&&P[cur]!==p)return;
   clearTimeout(actTimer);
   const i=P.indexOf(p),need=curBet-p.bet;
@@ -944,6 +1054,7 @@ function noterMoi(t){
   }
 }
 function myAct(t,to){
+  if(etatFini||spectateur)return;      /* le coup est deja termine */
   stopClock();noterMoi(t);
   if(net()&&!isHost){if(table)table.emit('act',{a:t,to:to||0});pend=false;$('ctl').innerHTML='<div class="wait">Action envoyée…</div>';return}
   if(P&&P[mySeat])act(P[mySeat],t,to);
@@ -1198,15 +1309,21 @@ function vpos(i){const n=nSeat();return(LAY[n]||LAY[6])[vi(i)]||LAY[6][0]}
 function xy(i){const f=$('fx'),v=vpos(i);return[f.clientWidth*v[0]/100,f.clientHeight*v[1]/100]}
 function mid(){const f=$('fx');return[f.clientWidth/2,f.clientHeight/2]}
 function say(i,txt){
-  if(!txt||!$('fx'))return;
+  const fx=$('fx');
+  if(!txt||!fx)return;
   const now=Date.now();if(now-lastSay[i]<1400)return;lastSay[i]=now;
-  const v=vpos(i),d=document.createElement('div'),x=v[0],y=v[1],up=y>50;
+  const v=vpos(i),d=document.createElement('div'),x=v[0],y=v[1];
   d.className='bub'+(x<30?' l':x>70?' r':'');
   d.style.setProperty('--who',MOODS[i]);
-  if(x>70)d.style.right='4%';else d.style.left=(x<30?4:x)+'%';
-  d.style.top='calc('+y+'% '+(up?'- ':'+ ')+(vi(i)===0?84:72)+'px)';
-  d.textContent=txt;$('fx').appendChild(d);
-  setTimeout(()=>{d.classList.add('out');setTimeout(()=>d.remove(),360)},2500);
+  if(x>70)d.style.right='3%';else d.style.left=(x<30?3:x)+'%';
+  /* la bulle s'ecarte du centre : sinon elle vient se poser sur le board */
+  const H=fx.clientHeight||400,moi=vi(i)===0,demi=moi?66:46,sommet=!moi&&y<22;
+  if(sommet)d.style.left='57%';             /* le siege du haut : a cote, pas sous le pot */
+  d.textContent=txt;fx.appendChild(d);
+  const ht=d.offsetHeight||34,mh=ht/2;   /* la bulle est centree sur son 'top' */
+  let t=sommet?mh+3:H*y/100+(moi||y>=50?demi+10+mh:-(demi+10+mh));
+  d.style.top=Math.max(mh+3,Math.min(H-mh-3,t))+'px';
+  setTimeout(()=>{d.classList.add('out');setTimeout(()=>d.remove(),360)},2300);
 }
 function pick1(a){return a[Math.random()*a.length|0]}
 /* ---- sons de synthese : aucun fichier a charger ---- */
@@ -1370,6 +1487,7 @@ function basculerTchat(){
 }
 function peindreTchat(){
   const l=$('tclog');if(!l)return;
+  purgerTchat();
   l.textContent='';
   if(!TC.length){
     const v=document.createElement('p');v.className='vide';
@@ -1385,10 +1503,15 @@ function peindreTchat(){
   });
   l.scrollTop=l.scrollHeight;
 }
+const TC_MAX=25,TC_AGE=12*60*1000;   /* on garde les 25 derniers, et rien de plus vieux que 12 min */
+function purgerTchat(){
+  const lim=Date.now()-TC_AGE;
+  while(TC.length&&(TC.length>TC_MAX||TC[0].q<lim))TC.shift();
+}
 function noterTchat(i,txt,moi){
   const nom=(P&&P[i]?P[i].n:'?'),av=(P&&P[i]?P[i].av:'');
-  TC.push({n:(av?av+' ':'')+nom,t:txt,moi:!!moi,couleur:MOODS[i]});
-  if(TC.length>40)TC.shift();
+  TC.push({n:(av?av+' ':'')+nom,t:txt,moi:!!moi,couleur:MOODS[i],q:Date.now()});
+  purgerTchat();
   if(tchatOuvert||grandEcran())peindreTchat();
   if(!tchatOuvert&&!grandEcran()){tcNonLus=Math.min(99,tcNonLus+1);paint()}
 }
@@ -1629,31 +1752,63 @@ function recaver(){
   sortis=sortis.filter(x=>x.i!==mySeat);classement=null;   /* il revient : il n'est plus sorti */
   log(P[mySeat].n+' recave');startHand();
 }
+/* la couleur du jeton suit sa valeur, comme dans un vrai casino */
+function couleurJeton(v){
+  const b=v/BB;
+  return b<1?'blanc':b<3?'rouge':b<10?'vert':b<30?'noir':b<100?'mauve':'or';
+}
+function pileJetons(v){
+  const n=v<=0?0:Math.min(3,1+(v>=8*BB?1:0)+(v>=30*BB?1:0));
+  let h='';for(let k=0;k<n;k++)h+='<i class="jeton j-'+couleurJeton(v)+'"></i>';
+  return'<span class="pile">'+h+'</span>';
+}
+/* les mises posees sur le tapis, entre le joueur et le pot */
+function mises(){
+  if(!P)return'';
+  return P.map((p,i)=>{
+    if(!p.bet||p.empty)return'';
+    const v=vpos(i),x=50+(v[0]-50)*.47,y=50+(v[1]-50)*.46;
+    return'<div class="mise" style="left:'+x+'%;top:'+y+'%">'+pileJetons(p.bet)
+      +'<span>'+fmt(p.bet)+'</span></div>';
+  }).join('');
+}
 function card(c,fresh){return'<div class="c s'+c.s+(fresh?' in':'')+'"><i>'+R[c.r-2]+'</i><b>'+S[c.s]+'</b></div>'}
-function hand(p,i){if(!p.h.length)return'';return p.h.map(c=>(i===mySeat||p.show)?card(c):'<div class="c b"></div>').join('')}
+function hand(p,i){if(!p.h.length)return'';
+  return p.h.map(c=>((i===mySeat&&!spectateur)||p.show)?card(c):'<div class="c b"></div>').join('')}
+function ancrage(v){
+  /* colles au bord haut ou bas : sinon, sur un ecran peu haut, ils en sortent */
+  if(v[1]>=80)return['left:'+v[0]+'%;bottom:0','bas '];
+  if(v[1]<=20)return['left:'+v[0]+'%;top:0','haut '];
+  return['left:'+v[0]+'%;top:'+v[1]+'%',''];
+}
 function seat(p,i){
-  const v=vpos(i),sm=i!==mySeat;
-  if(p.empty)return'<div style="left:'+v[0]+'%;top:'+v[1]+'%" class="seat free '+(sm?'sm':'big')+'"><b>Libre</b><span class="chips">—</span><div class="bet"></div></div>';
+  const v=vpos(i),sm=i!==mySeat,an=ancrage(v),pos=an[0];
+  if(p.empty)return'<div style="'+pos+'" class="seat '+an[1]+'free '+(sm?'sm':'big')
+    +'"><b><span class="nom">Libre</span></b><span class="chips">—</span></div>';
   const lvl=LV[p.lv]||LV[1];
-  return'<div style="left:'+v[0]+'%;top:'+v[1]+'%" class="seat '+(sm?'sm ':'big ')+(i==cur&&!p.fold?'act ':'')+(absents[i]?'abs ':'')+(p.fold?'fold':'')+'">'
-   +'<b><span class="av">'+p.av+'</span>'+p.n+(i==dealer?'<span class="d">D</span>':'')+(p.bot?'<span class="lv" title="'+lvl.n+'">'+lvl.k+'</span>':'')+'</b>'
+  return'<div style="'+pos+'" class="seat '+an[1]+(sm?'sm ':'big ')+(i==cur&&!p.fold?'act ':'')+(absents[i]?'abs ':'')+(p.fold?'fold':'')+'">'
+   +'<b><span class="av">'+p.av+'</span><span class="nom">'+p.n+'</span>'
+     +(i==dealer?'<span class="d">D</span>':'')
+     +(p.bot?'<span class="lv" title="'+lvl.n+'">'+lvl.k+'</span>':'')+'</b>'
    +(i===bbSeat?'<span class="bl bb" title="Grosse blinde">BB</span>'
       :i===sbSeat?'<span class="bl sb" title="Petite blinde">SB</span>':'')
    +(absents[i]?'<span class="pause">absent</span>':'')
    +'<span class="chips">'+(p.chips<=0&&!p.h.length?'éliminé':p.allin&&p.chips<=0?'tapis':fmt(p.chips))+'</span>'
-   +'<div class="bet">'+(runout&&p.eq!=null?'<span class="eq"><b>'+(p.eq*100).toFixed(eqExact&&p.eq<.995&&p.eq>.005?1:0)+' %</b>'
-     +(board.length>=3?'<u>'+HN[Math.floor(best(p.h.concat(board))/759375)]+'</u>':'')
-     +(p.outs?'<em class="outs">'+p.outs+' out'+(p.outs>1?'s':'')+'</em>':'')+'</span>':(p.bet?'<span class="jet">'+fmt(p.bet)+'</span>':''))+'</div>'
+   +(runout&&p.eq!=null?'<div class="bet"><span class="eq"><b>'+(p.eq*100).toFixed(eqExact&&p.eq<.995&&p.eq>.005?1:0)+' %</b>'
+     +(board.length>=3&&!sm?' \u00b7 <u>'+HN[Math.floor(best(p.h.concat(board))/759375)]+'</u>':'')
+     +(p.outs?' \u00b7 <em class="outs">'+p.outs+' out'+(p.outs>1?'s':'')+'</em>':'')+'</span></div>':'')
    +'<div class="cards">'+hand(p,i)+'</div></div>';
 }
 function render(){
   if(!P)return;
   const order=P.map((p,i)=>i).sort((a,b)=>vi(a)-vi(b));
   $('seats').innerHTML=order.map(i=>seat(P[i],i)).join('');
+  $('mises').innerHTML=mises();
   let b='';for(let i=0;i<5;i++)b+=board[i]?card(board[i],i>=shownFrom):'<div class="c e"></div>';
   shownFrom=board.length;
   $('board').innerHTML=b;$('pot').innerHTML='Pot : <b>'+fmt(pot())+'</b>';
-  const m=P[mySeat];
+  const m=P[mySeat]||{h:[],fold:true};
+  if(spectateur){$('comb').textContent='';return}
   if(moi&&board.length>=3&&m.h.length&&!m.fold)moi.flop=true;
   if(runout&&m.outs!=null&&!m.fold&&m.h.length){
     if(m.outs===0)
@@ -1732,11 +1887,13 @@ function snapshot(){
 }
 function sync(){
   if(!net()||!isHost||!table||!P)return;
-  clearTimeout(syncT);syncT=setTimeout(()=>{try{table.emit('st',snapshot())}catch(e){}},40);
+  clearTimeout(syncT);syncT=setTimeout(()=>{dernierEnvoi=Date.now();
+    try{table.emit('st',snapshot())}catch(e){}},40);
 }
 function applyState(s){
   if(!s||!s.p)return;
   lastHeard=Date.now();
+  etatFini=!!s.fin;                    /* ferme les boutons des que la main est close */
   if(phase!=='play'){phase='play';voile(false);MODE='net'}
   if(typeof s.ck==='number'&&s.ck!==U.clock){U.clock=s.ck;paint()}
   if(typeof s.sb==='number'){SB=s.sb;BB=s.bb;niveau=s.nv||0;mainsNiveau=s.mn||0;G.rythme=s.ry||0}
@@ -1749,7 +1906,7 @@ function applyState(s){
   if(!isHost&&typeof s.hn==='number'){
     handNo=s.hn;            /* sinon l'invite compte 0 main jouee */
     if(s.hn!==dernMain){dernMain=s.hn;neufMoi((s.po||[])[mySeat]||'');finEnregistree=false}
-    if(s.fin&&!finEnregistree&&s.dl){
+    if(s.fin&&!finEnregistree&&s.dl&&!spectateur){
       finEnregistree=true;
       HIST.push({n:s.hn,me:(s.p[mySeat][7]||[]).map(dec),bd:(s.b||[]).map(dec),
                  d:s.dl[mySeat]||0,res:(s.res||[]).slice(),lg:(s.lg||[]).slice(),
@@ -1758,7 +1915,9 @@ function applyState(s){
     }
   }
   seatPeer=s.sp||[];
-  const k=seatPeer.indexOf(myPeer);if(k>=0)mySeat=k;
+  const k=seatPeer.indexOf(myPeer);
+  /* arrive apres le depart de la partie : on regarde, on ne prend pas le siege d'un autre */
+  spectateur=k<0;if(k>=0)mySeat=k;
   const prev=board?board.length:0;
   P=s.p.map(a=>({n:a[0],av:a[1],lv:a[2],chips:a[3],bet:a[4],tot:a[5],
     fold:!!(a[6]&1),allin:!!(a[6]&2),show:!!(a[6]&4),empty:!!(a[6]&8),bot:!!(a[6]&16),
@@ -1771,6 +1930,10 @@ function applyState(s){
   else if(board.length>prev&&prev>0){street(board.length===4?'Turn':'River');son('carte')}
   render();
   if(s.en){showNew('Partie terminée',null);return}
+  if(spectateur){stopClock();pend=false;
+    $('ctl').innerHTML=attente('Tu regardes la partie — tu joueras à la prochaine.');return}
+  if(etatFini){stopClock();pend=false;
+    $('ctl').innerHTML=attente('Main suivante dans un instant…');return}
   if(cur!=null&&P[cur]&&cur===mySeat&&!P[cur].bot&&!runout)controls();
   else{stopClock();pend=false;$('ctl').innerHTML=attente((cur!=null&&P[cur])?'Au tour de '+P[cur].n+'…':'…')}
 }
@@ -1788,14 +1951,14 @@ function roomList(){
 }
 let confirmeQuitter=null;
 function accueil(){
-  const b=$('bhome');
+  const b=$('bhome'),dire=(ic,tx)=>{b.innerHTML='<i>'+ic+'</i><u>'+tx+'</u>'};
   if(P&&phase==='play'&&!ended&&!confirmeQuitter){
-    b.textContent='Quitter ?';b.classList.add('warn');
-    confirmeQuitter=setTimeout(()=>{b.textContent='Accueil';b.classList.remove('warn');confirmeQuitter=null},3500);
+    dire('✕','Quitter ?');b.classList.add('warn');
+    confirmeQuitter=setTimeout(()=>{dire('⌂','Accueil');b.classList.remove('warn');confirmeQuitter=null},3500);
     return;
   }
   clearTimeout(confirmeQuitter);confirmeQuitter=null;
-  b.textContent='Accueil';b.classList.remove('warn');
+  dire('⌂','Accueil');b.classList.remove('warn');
   quitterPartie();
 }
 function quitterPartie(){
@@ -1803,6 +1966,7 @@ function quitterPartie(){
   if(table){try{table.leave()}catch(e){}}
   table=null;hostPeer=null;myPeer=null;seatPeer=[];tcode='';
   MODE='solo';isHost=true;absent=false;absents={};dernMain=-1;finEnregistree=false;
+  spectateur=false;etatFini=false;dernierEnvoi=0;
   P=null;board=[];L=[];ended=false;cur=null;
   $('log').innerHTML='';$('ctl').innerHTML='';$('seats').innerHTML='';
   $('board').innerHTML='';$('pot').innerHTML='';$('comb').textContent='';
@@ -2050,6 +2214,7 @@ async function openTable(c,asHost){
       if(asHost&&!hostPeer)hostPeer=myPeer;
       if(phase==='room')roomList();
       if(isHost&&P)sync();
+      else if(!isHost&&table)try{table.emit('hello',{})}catch(e){}
     });
     table.on('st',m=>{
       if(m.isMe&&m.sameTab)return;
@@ -2087,7 +2252,8 @@ async function openTable(c,asHost){
       if(isHost&&P)sync();
       if(absent&&table)try{table.emit('abs',{v:true})}catch(e){}
     });
-    if(!asHost)setTimeout(()=>{try{table.emit('hello',{})}catch(e){}},300);
+    if(!asHost){[200,900,2000].forEach(d=>setTimeout(()=>{
+      if(table&&phase!=='play')try{table.emit('hello',{})}catch(e){}},d))}
     watchHost();
     return true;
   }catch(e){
@@ -2098,13 +2264,27 @@ async function openTable(c,asHost){
     return false;
   }
 }
+/* Un message perdu ne doit jamais bloquer quelqu'un : l'hote repete l'etat
+   en continu, et l'invite qui n'entend rien le redemande. */
 function watchHost(){
   clearInterval(watch);
-  watch=setInterval(()=>{
-    if(!net()||isHost||phase!=='play')return;
-    if(lastHeard&&Date.now()-lastHeard>25000)
-      $('ctl').innerHTML='<div class="wait">Plus de nouvelles de l\'hôte. Demande-lui de relancer la table.</div>';
-  },5000);
+  watch=setInterval(battement,2200);
+}
+function battement(){
+  if(!net()||!table)return;
+  const t=Date.now();
+  if(isHost){
+    if(P&&phase==='play'&&t-dernierEnvoi>2600){
+      dernierEnvoi=t;try{table.emit('st',snapshot())}catch(e){}
+    }
+    return;
+  }
+  /* invite : au salon on reclame l'etat, en partie on le reclame si ca se tait */
+  if(phase==='room'||(phase==='play'&&t-lastHeard>5000)){
+    try{table.emit('hello',{})}catch(e){}
+  }
+  if(phase==='play'&&lastHeard&&t-lastHeard>16000&&!pend)
+    $('ctl').innerHTML='<div class="wait">Plus de nouvelles de l\'hôte… on réessaie.</div>';
 }
 async function createTable(){
   rename($('nm').value);
