@@ -334,6 +334,21 @@ body.toile #ibox{padding-top:0}
 #tr-ctx span{background:var(--soft);border:1px solid var(--line);border-radius:9px;
   padding:5px 9px;font-size:11px;color:var(--dim);line-height:1.35;text-align:center}
 #tr-ctx b{display:block;color:var(--ink);font-size:13px}
+#tr-plus{margin:0 0 14px}
+#tr-plus .lig{margin-bottom:9px}
+#tr-plus .lbl{display:block;color:var(--dim);font-size:12px;margin-bottom:4px;letter-spacing:.02em}
+#tr-plus .cards{margin:0}
+#tr-plus .c{width:40px;height:56px;font-size:17px}
+#tr-theme{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;justify-content:flex-start;
+  -webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent);
+  mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent)}
+#tr-theme::-webkit-scrollbar{display:none}
+#tr-theme button{flex:0 0 auto;padding:7px 10px;font-size:12.5px;scroll-snap-align:start}
+/* quatre nombres tiennent sur une ligne, pas quatre */
+#tr-btns.nb{flex-direction:row;gap:8px}
+#tr-btns.nb button{flex:1;padding:14px 0;font-size:17px}
+#tr-btns button{font-size:15px}
 #tr-fb{min-height:86px;margin-top:4px}
 .fb{border-radius:11px;padding:11px 12px;font-size:14px;text-align:left}
 .fb.ok{background:#86d79b2e}.fb.no{background:#e39a9a2e}
@@ -674,7 +689,8 @@ body.toile #ibox{padding-top:0}
  <div class="opts" id="tr-theme" style="justify-content:center;margin-bottom:14px"></div>
  <div id="tr-ctx"></div>
  <p id="tr-cons" style="margin:0"></p>
- <div class="cards" id="tr-cards" style="margin:12px 0 16px"></div>
+ <div class="cards" id="tr-cards" style="margin:12px 0 10px"></div>
+ <div id="tr-plus"></div>
  <div class="modes" id="tr-btns"></div>
  <div id="tr-fb"></div>
  <div class="modes" style="margin-top:14px">
@@ -816,6 +832,9 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <div class="grp"><span>Style des cartes</span><div class="opts" id="g-cs"></div></div>
 <div class="grp"><span>Couleurs des enseignes</span><div class="opts" id="g-dk"></div></div>
 <div class="grp"><span>Jetons affichés en</span><div class="opts" id="g-bb"></div></div>
+<div class="grp"><span>Mes données</span>
+  <p class="hint" id="memo-info" style="margin-top:0"></p>
+  <div class="opts"><button class="back" id="memo-eff" onclick="effacerDonnees()">Tout effacer</button></div></div>
 <button onclick="closeP();openR()" style="margin-top:4px;background:var(--soft);color:var(--ink)">Règles du poker</button><button class="p" onclick="closeP()">Fermer</button>
 </div></div>
 <script src="supabase.js"></script>
@@ -909,6 +928,68 @@ function fmt(n){return U.bb?(Math.round(n/BB*10)/10)+' BB':''+n}
 function clean(v){return String(v==null?'':v).replace(/[<>&"'\\\\]/g,'').slice(0,14)}
 function log(t){L.push(t);if(L.length>4)L.shift();$('log').innerHTML=L.join('<br>')}
 
+/* ===================== memoire de l'appareil =====================
+   Tout est garde en local, sur le telephone : rien ne part ailleurs.
+   Si le navigateur refuse le stockage (navigation privee, reglage strict),
+   l'appli marche exactement comme avant, elle oublie simplement en fermant. */
+const CLE='poker.v1';
+const memoOK=(()=>{try{localStorage.setItem(CLE+'.t','1');localStorage.removeItem(CLE+'.t');return true}
+                   catch(e){return false}})();
+let sauveT=null;
+function aGarder(n){
+  return{v:1,u:U,g:G,lv:lvAll,fill:botFill,
+         tr:trScore,trs:trStats,trn:trNiv,trt:trTheme,
+         hist:HIST.slice(-(n||60)),wins:WINS.slice(-(n||60))};
+}
+function ecrire(){
+  if(!memoOK)return;
+  try{localStorage.setItem(CLE,JSON.stringify(aGarder()))}
+  catch(e){
+    /* plus de place : on ne garde que l'essentiel plutot que de tout perdre */
+    try{localStorage.setItem(CLE,JSON.stringify(aGarder(12)))}catch(x){}
+  }
+}
+function sauver(){clearTimeout(sauveT);sauveT=setTimeout(ecrire,400)}
+function charger(){
+  if(!memoOK)return;
+  let d=null;
+  try{d=JSON.parse(localStorage.getItem(CLE)||'null')}catch(e){d=null}
+  if(!d||d.v!==1)return;
+  /* on ne reprend que les cles qu'on connait : une vieille sauvegarde ne casse rien */
+  if(d.u)Object.keys(U).forEach(k=>{if(d.u[k]!==undefined&&typeof d.u[k]===typeof U[k])U[k]=d.u[k]});
+  if(d.g)Object.keys(G).forEach(k=>{if(typeof d.g[k]==='number')G[k]=d.g[k]});
+  if(typeof d.lv==='number'&&LV[d.lv])lvAll=d.lv;
+  if(typeof d.fill==='boolean')botFill=d.fill;
+  if(d.tr&&typeof d.tr.total==='number')trScore=d.tr;
+  if(d.trs&&typeof d.trs==='object')trStats=d.trs;
+  if(typeof d.trn==='number'&&NIVS[d.trn])trNiv=d.trn;
+  if(typeof d.trt==='number'&&THEMES[d.trt])trTheme=d.trt;
+  if(Array.isArray(d.hist))HIST=d.hist.filter(h=>h&&typeof h==='object');
+  if(Array.isArray(d.wins))WINS=d.wins.filter(w=>w&&w.at&&w.winner);
+}
+let effaceArme=null;
+function effacerDonnees(){
+  const b=$('memo-eff');if(!b)return;
+  if(!effaceArme){           /* deux temps : on n'efface pas une saison par megarde */
+    b.textContent='Confirmer l\u2019effacement';b.classList.add('p');
+    effaceArme=setTimeout(()=>{b.textContent='Tout effacer';b.classList.remove('p');effaceArme=null},4000);
+    return;
+  }
+  clearTimeout(effaceArme);effaceArme=null;
+  clearTimeout(sauveT);
+  try{localStorage.removeItem(CLE)}catch(e){}
+  HIST=[];WINS=[];
+  b.textContent='Effac\u00e9';b.classList.remove('p');
+  setTimeout(()=>{b.textContent='Tout effacer'},1800);
+  paint();
+}
+function memoTexte(){
+  if(!memoOK)return'La sauvegarde n\u2019est pas possible dans cette page : tout repart \u00e0 z\u00e9ro en fermant.';
+  const m=HIST.filter(h=>!h.sep).length,p=WINS.length;
+  return'Gard\u00e9s sur cet appareil : ton nom, ton avatar, tes r\u00e9glages, '
+    +m+' main'+(m>1?'s':'')+' et '+p+' partie'+(p>1?'s':'')
+    +'. Rien n\u2019est envoy\u00e9 ailleurs.';
+}
 /* ===================== moteur ===================== */
 function mkPlayer(o){
   return{n:o.name,av:o.av,bot:!!o.bot,empty:!!o.empty,lv:lvAll,chips:o.empty?0:G.cave,
@@ -1303,6 +1384,7 @@ function end(){
   HIST.push({n:handNo,me:P[mySeat].h.slice(),bd:board.slice(),d:P[mySeat].chips-hStart,
              res:res.slice(),lg:L.slice(),st:moi?Object.assign({},moi):null,fl:marques()});
   if(HIST.length>100)HIST.shift();
+  sauver();
   render();
   if(net()){$('ctl').innerHTML='<div class="wait">Main suivante dans un instant…</div>';pend=false;sync();
     if(isHost)setTimeout(startHand,4500)}
@@ -1744,7 +1826,7 @@ function rejouerDepuisPodium(){
   else if(lastSeats)newGame(lastSeats);
 }
 function recordWin(g){
-  WINS.push(g);
+  WINS.push(g);if(WINS.length>120)WINS.shift();sauver();
   if(db&&(!net()||isHost)){try{db.collection('games').add(g)}catch(e){}}
 }
 function showNew(l,f,l2,f2){
@@ -1918,6 +2000,7 @@ function applyState(s){
                  d:s.dl[mySeat]||0,res:(s.res||[]).slice(),lg:(s.lg||[]).slice(),
                  st:moi?Object.assign({},moi):null});
       if(HIST.length>100)HIST.shift();
+  sauver();
     }
   }
   seatPeer=s.sp||[];
@@ -2037,10 +2120,20 @@ const SITUS=[['D\u00e9but de tournoi',1.0,'les jetons valent leur valeur, on jou
 const TAILLES=[9,6,3,2];
 const POSTAB={9:['UTG','HJ','CO','BTN','SB'],6:['HJ','CO','BTN','SB'],3:['BTN','SB'],2:['SB']};
 const NIVS=['Facile','Moyen','Expert'];
-const THEMES=['Tout','Ouverture','Tapis ou coucher','Payer un tapis'];
-let trNiv=0,trTheme=0,trQ=null,trScore={bon:0,total:0,serie:0,record:0};
+/* 0 = tout ; les autres sont les identifiants de theme utilises partout */
+const THEMES=['Tout','Ouverture','Tapis ou coucher','Payer un tapis',
+              'Défense de blinde','Face au 3bet','Mise au flop','Compter les outs'];
+const TH_NIV={0:[1,4,7],1:[1,2,4,5,6,7],2:[1,2,3,4,5,6,7]};   /* ce que « Tout » pioche */
+let trNiv=0,trTheme=0,trQ=null,trScore={bon:0,total:0,serie:0,record:0},trStats={};
+function statTheme(th){
+  return trStats[th]||(trStats[th]={bon:0,total:0,serie:0,record:0});
+}
 function setNiv(i){trNiv=i;majSel();question()}
-function setTheme(i){trTheme=i;majSel();question()}
+function setTheme(i){
+  trTheme=i;majSel();question();
+  const b=$('tr-theme').children[i];
+  if(b&&b.scrollIntoView)try{b.scrollIntoView({block:'nearest',inline:'center'})}catch(e){}
+}
 function majSel(){
   $('tr-niv').innerHTML=NIVS.map((n,i)=>'<button aria-pressed="'+(trNiv===i)+'" onclick="setNiv('+i+')">'+n+'</button>').join('');
   $('tr-theme').innerHTML=THEMES.map((n,i)=>'<button aria-pressed="'+(trTheme===i)+'" onclick="setTheme('+i+')">'+n+'</button>').join('');
@@ -2061,20 +2154,85 @@ function tirerDansRange(set,mortes){
   return null;
 }
 function equiteContre(main,set,essais){
-  let pts=0,n=0;
+  return equiteSurBoard(main,set,[],essais);
+}
+/* equite de ta main contre une range, sur un tableau deja partiellement connu.
+   Le paquet restant est calcule une seule fois : tout le reste n'est que du tirage. */
+function equiteSurBoard(main,set,brd,essais){
+  const libre=pioche(main.concat(brd)),L=libre.length,reste=5-brd.length;
+  if(L<reste+2)return 0;
+  const pris=[];let pts=0,n=0;
   for(let t=0;t<essais;t++){
-    const vil=tirerDansRange(set,main);if(!vil)break;
-    const d=pioche(main.concat(vil)),brd=[];
-    for(let k=0;k<5;k++)brd.push(d.splice(Math.random()*d.length|0,1)[0]);
-    const a=best(main.concat(brd)),b=best(vil.concat(brd));
-    if(a>b)pts++;else if(a===b)pts+=.5;
+    let i=0,j=0,ok=false;
+    for(let k=0;k<300&&!ok;k++){
+      i=Math.random()*L|0;j=Math.random()*L|0;
+      if(i!==j&&set.has(hcode([libre[i],libre[j]])))ok=true;
+    }
+    if(!ok)break;
+    pris.length=0;pris.push(i,j);
+    const b=brd.slice();
+    while(b.length<5){
+      const k=Math.random()*L|0;
+      if(pris.indexOf(k)>=0)continue;
+      pris.push(k);b.push(libre[k]);
+    }
+    const a=best(main.concat(b)),c=best([libre[i],libre[j]].concat(b));
+    if(a>c)pts++;else if(a===c)pts+=.5;
     n++;
   }
   return n?pts/n:0;
 }
+/* sous-ensemble le plus fort d'une range, ramene a un pourcentage de mains */
+function resserrer(set,f){
+  if(f>=1)return set;
+  const cible=topPct(largeur(set)*f);
+  const out=new Set();set.forEach(c=>{if(cible.has(c))out.add(c)});
+  return out.size?out:cible;
+}
+function ouvre(nv){            /* positions qui peuvent ouvrir devant toi */
+  return nv===0?['CO','BTN']:(nv===1?['HJ','CO','BTN']:['UTG','HJ','CO','BTN','SB']);
+}
 function openTrain(){scr('train');majSel();question()}
+
+/* ===================== fabrication des questions ===================== */
 function question(){
-  const nv=trNiv;let th=trTheme;
+  const nv=trNiv;
+  let th=trTheme;
+  if(!th){const l=TH_NIV[nv];th=l[Math.random()*l.length|0]}
+  $('tr-plus').innerHTML='';
+  if(th===4)return qDefense(nv);
+  if(th===5)return q3bet(nv);
+  if(th===6)return qFlop(nv);
+  if(th===7)return qOuts(nv);
+  return qPreflop(nv,th);
+}
+function finQuestion(){
+  const s=statTheme(trQ.th);
+  $('tr-fb').innerHTML='<p class="score">'+(s.total
+    ?THEMES[trQ.th]+' : '+s.bon+' sur '+s.total+' · série de '+s.serie
+      +(s.record>1?' · record '+s.record:'')
+      +(trScore.total>s.total?'<br>En tout : '+trScore.bon+' sur '+trScore.total:'')
+    :'Première main sur ce thème.')+'</p>';
+}
+function mainTiree(mortes){
+  const d=pioche(mortes||[]),h=[];
+  for(let k=0;k<2;k++)h.push(d.splice(Math.random()*d.length|0,1)[0]);
+  return h;
+}
+function ligneCartes(titre,cartes){
+  return'<div class="lig"><span class="lbl">'+titre+'</span><div class="cards">'
+    +cartes.map(c=>card(c)).join('')+'</div></div>';
+}
+function boutonsL(l,nombres){
+  const z=$('tr-btns');
+  z.innerHTML=l.map(b=>'<button class="'+(b.c||'')+'" onclick="repondre(\''+b.v+'\')">'+b.t+'</button>').join('');
+  z.classList.toggle('nb',!!nombres);
+  z.style.display='';
+}
+function boutons(oui,non){boutonsL([{t:oui,v:'oui',c:'p'},{t:non,v:'non',c:'f'}])}
+
+/* ---------- 1, 2, 3 : les themes d'origine ---------- */
+function qPreflop(nv,th){
   let profs=nv===0?[40]:(nv===1?[10,15,20,40]:[5,10,15,20,40]);
   if(th===1)profs=[40];
   if(th===2||th===3){const c=profs.filter(x=>x<=20);profs=c.length?c:[10,15,20]}
@@ -2083,17 +2241,14 @@ function question(){
   const situ=nv===0?0:(nv===1?[0,2][Math.random()*2|0]:Math.random()*3|0);
   const prime=nv===2&&Math.random()<.4?+(Math.random()*1.5+.5).toFixed(1):0;
   const posL=POSTAB[taille],pos=posL[Math.random()*posL.length|0];
-  if(th===0)th=prof>=40?1:(nv===2&&Math.random()<.45?3:2);
-  const d=pioche([]),h=[];
-  for(let k=0;k<2;k++)h.push(d.splice(Math.random()*d.length|0,1)[0]);
+  const h=mainTiree();
   trQ={th:th,pos:pos,prof:prof,taille:taille,situ:situ,prime:prime,h:h,code:hcode(h)};
   const duel=taille===2;
   $('tr-ctx').innerHTML=
     '<span><b>'+prof+' BB</b>effectif</span>'
    +'<span><b>'+taille+'</b>joueur'+(taille>1?'s':'')+' en jeu</span>'
-   +(th===3
-      ?'<span><b>BB</b>c’est toi</span>'
-      :'<span><b>'+pos+'</b>'+(duel?'bouton, en duel':(TRNOM[pos]||'position'))+'</span>')
+   +(th===3?'<span><b>BB</b>c’est toi</span>'
+           :'<span><b>'+pos+'</b>'+(duel?'bouton, en duel':(TRNOM[pos]||'position'))+'</span>')
    +'<span><b>'+SITUS[situ][0]+'</b>facteur '+SITUS[situ][1].toFixed(1)+'</span>'
    +(prime?'<span><b>Prime '+prime+' BB</b>par élimination</span>':'');
   $('tr-cards').innerHTML=h.map(c=>card(c)).join('');
@@ -2109,22 +2264,209 @@ function question(){
       +' à tapis pour '+prof+' BB. Tu es en grosse blinde. Tu paies ?';
     boutons('Payer','Coucher');
   }
-  $('tr-fb').innerHTML='<p class="score">'+(trScore.total
-    ?trScore.bon+' sur '+trScore.total+' · série de '+trScore.serie
-      +(trScore.record>1?' · record '+trScore.record:'')
-    :'Première main.')+'</p>';
+  finQuestion();
 }
-function boutons(oui,non){
-  $('tr-btns').innerHTML='<button class="p" onclick="repondre(true)">'+oui+'</button>'
-    +'<button class="f" onclick="repondre(false)">'+non+'</button>';
-  $('tr-btns').style.display='';
+
+/* ---------- 4 : defense de grosse blinde ---------- */
+const DEFPOS={UTG:.55,HJ:.68,CO:.82,BTN:1,SB:1.12};   /* on defend plus large contre une ouverture tardive */
+function qDefense(nv){
+  const vpos=pick1(ouvre(nv));
+  const taille=vpos==='UTG'||vpos==='HJ'?9:6;
+  const ouv=taille===9?3:2.5;
+  const h=mainTiree();
+  trQ={th:4,vpos:vpos,taille:taille,ouv:ouv,h:h,code:hcode(h),prof:nv===0?40:pick1([25,40,60])};
+  $('tr-ctx').innerHTML=
+    '<span><b>'+trQ.prof+' BB</b>effectif</span>'
+   +'<span><b>'+taille+'</b>joueurs en jeu</span>'
+   +'<span><b>'+vpos+'</b>ouvre à '+ouv+' BB</span>'
+   +'<span><b>BB</b>c’est toi</span>';
+  $('tr-cards').innerHTML=h.map(c=>card(c)).join('');
+  $('tr-cons').textContent='Tout le monde s’est couché jusqu’à '+vpos+', qui ouvre à '+ouv
+    +' BB. Tu es en grosse blinde : il te reste '+(ouv-1).toFixed(1)+' BB à payer pour voir le flop.';
+  boutonsL([{t:'3bet',v:'r',c:'p'},{t:'Suivre',v:'c'},{t:'Coucher',v:'f',c:'f'}]);
+  finQuestion();
 }
-function repondre(agir){
+function repDefense(v){
+  const q=trQ,c=q.code;
+  const large=resserrer(DEF.BB,DEFPOS[q.vpos]||1);
+  const valeur=R3V.has(c),bluff=R3B.has(c),suit=large.has(c);
+  const bonne=valeur?'r':(bluff?'r':(suit?'c':'f'));
+  const aussi=bluff?['c']:[];                 /* un 3bet de bluff n'est jamais obligatoire */
+  const juste=v===bonne||aussi.indexOf(v)>=0;
+  const aPayer=q.ouv-1,pot=q.ouv+1.5;
+  const cote=aPayer/(pot+aPayer);
+  const nom={r:'3bet',c:'suivre',f:'te coucher'}[bonne];
+  let expli=c+' en grosse blinde contre une ouverture '+q.vpos+' : il faut <b>'+nom+'</b>. ';
+  if(valeur)expli+='C’est une main de 3bet de valeur — tu veux construire le pot et jouer en initiative.';
+  else if(bluff)expli+='C’est un 3bet de bluff classique, mais suivre est tout aussi défendable : '
+    +'ces mains jouent bien les deux façons.';
+  else if(suit)expli+='Trop faible pour relancer, assez pour payer : la cote que t’offre la grosse blinde '
+    +'suffit à voir le flop.';
+  else expli+='Hors de ta range de défense : la cote est bonne, mais cette main joue mal hors de position '
+    +'et sans initiative.';
+  const calcul='Tu paies '+aPayer.toFixed(1)+' BB pour un pot de '+pot.toFixed(1)
+    +' BB → il te faut '+(cote*100).toFixed(0)+' % d’équité. '
+    +'Ta range de défense contre '+q.vpos+' couvre '+largeur(large).toFixed(0)
+    +' % des mains, et '+c+' est dans le top '+rangMain(c).toFixed(0)+' % par équité brute.';
+  conclure(juste,expli,calcul,'Hypothèse : ouverture standard, personne derrière toi.');
+}
+
+/* ---------- 5 : face a un 3bet ---------- */
+function q3bet(nv){
+  const pos=pick1(nv===0?['CO','BTN']:['UTG','HJ','CO','BTN']);
+  const vpos=pick1(['BTN','SB','BB'].filter(x=>x!==pos));
+  const ouv=2.5,troisb=nv===2?pick1([7.5,9,11]):(vpos==='BB'||vpos==='SB'?10:7.5);
+  const h=tirerDansRange(RFI[pos],[])||mainTiree();   /* tu as ouvert : ta main est dans ta range */
+  trQ={th:5,pos:pos,vpos:vpos,ouv:ouv,tb:troisb,h:h,code:hcode(h),prof:nv===0?60:pick1([40,60,100])};
+  $('tr-ctx').innerHTML=
+    '<span><b>'+trQ.prof+' BB</b>effectif</span>'
+   +'<span><b>'+pos+'</b>tu as ouvert à '+ouv+' BB</span>'
+   +'<span><b>'+vpos+'</b>relance à '+troisb+' BB</span>';
+  $('tr-cards').innerHTML=h.map(c=>card(c)).join('');
+  $('tr-cons').textContent='Tu as ouvert depuis '+pos+' à '+ouv+' BB. '+vpos+' te relance à '
+    +troisb+' BB. Tout le monde s’est couché. Tu fais quoi ?';
+  boutonsL([{t:'4bet',v:'r',c:'p'},{t:'Suivre',v:'c'},{t:'Coucher',v:'f',c:'f'}]);
+  finQuestion();
+}
+function rep3bet(v){
+  const q=trQ,c=q.code;
+  const quatre=R4.has(c),suite=RCONT.has(c);
+  const bonne=quatre?'r':(suite?'c':'f');
+  const aussi=quatre?['c']:[];                /* les grosses mains peuvent aussi temporiser */
+  const juste=v===bonne||aussi.indexOf(v)>=0;
+  const aPayer=q.tb-q.ouv,pot=q.tb+q.ouv+1.5;
+  const cote=aPayer/(pot+aPayer);
+  const nom={r:'4bet',c:'suivre',f:'te coucher'}[bonne];
+  let expli=c+' après ton ouverture '+q.pos+', face à un 3bet de '+q.vpos
+    +' : il faut <b>'+nom+'</b>. ';
+  if(quatre)expli+='Assez fort pour relancer à nouveau : tu ne crains presque aucune main qui continue.';
+  else if(suite)expli+='Trop fort pour jeter, pas assez pour relancer : tu paies et tu joues le flop.';
+  else expli+='Face à un 3bet, cette main est dominée par presque tout ce qui te relance. '
+    +'Ouvrir large est bien ; continuer large face à une relance ne l’est pas.';
+  const calcul='Tu ajoutes '+aPayer.toFixed(1)+' BB pour un pot de '+pot.toFixed(1)+' BB → '
+    +(cote*100).toFixed(0)+' % d’équité nécessaire, et encore, hors de position sur trois tours de mise. '
+    +'La range de 4bet couvre '+largeur(R4).toFixed(0)+' % des mains, celle qui continue '
+    +largeur(RCONT).toFixed(0)+' %. '+c+' est dans le top '+rangMain(c).toFixed(0)+' %.';
+  conclure(juste,expli,calcul,'Hypothèse : 3bet standard, pas de lecture particulière sur l’adversaire.');
+}
+
+/* ---------- 6 : payer une mise au flop ---------- */
+function qFlop(nv){
+  const vpos=pick1(nv===0?['CO','BTN']:['HJ','CO','BTN']);
+  const pot=nv===0?6:pick1([5,6,8,11]);
+  const part=nv===0?.6:pick1([.4,.5,.6,.75,1]);
+  const mise=Math.round(pot*part*10)/10;
+  let h,brd,eq,seuil;
+  const rg=RFI[vpos];
+  seuil=mise/(pot+2*mise);
+  for(let k=0;k<40;k++){
+    const d=pioche([]);
+    h=[];for(let i=0;i<2;i++)h.push(d.splice(Math.random()*d.length|0,1)[0]);
+    brd=[];for(let i=0;i<3;i++)brd.push(d.splice(Math.random()*d.length|0,1)[0]);
+    if(nv!==0)break;                             /* inutile de calculer : on prend ce tirage */
+    eq=equiteSurBoard(h,rg,brd,420);
+    if(Math.abs(eq-seuil)>.08)break;             /* en facile, on evite les cas serres */
+  }
+  trQ={th:6,vpos:vpos,pot:pot,mise:mise,part:part,h:h,brd:brd,code:hcode(h)};
+  $('tr-ctx').innerHTML=
+    '<span><b>'+vpos+'</b>a ouvert puis mise</span>'
+   +'<span><b>'+pot+' BB</b>dans le pot</span>'
+   +'<span><b>'+mise+' BB</b>sa mise</span>'
+   +'<span><b>'+(part*100).toFixed(0)+' %</b>du pot</span>';
+  $('tr-cards').innerHTML=h.map(c=>card(c)).join('');
+  $('tr-plus').innerHTML=ligneCartes('Le flop',brd);
+  $('tr-cons').textContent=vpos+' a ouvert avant le flop, tu as payé en grosse blinde. '
+    +'Il mise '+mise+' BB dans un pot de '+pot+' BB. Tu paies ?';
+  boutons('Payer','Coucher');
+  finQuestion();
+}
+function finirFlop(v){
+  const q=trQ,rg=RFI[q.vpos];
+  const seuil=q.mise/(q.pot+2*q.mise);
+  let eq=equiteSurBoard(q.h,rg,q.brd,1500);
+  if(Math.abs(eq-seuil)<.03)eq=equiteSurBoard(q.h,rg,q.brd,4500);
+  const bon=eq>=seuil,limite=Math.abs(eq-seuil)<.015;
+  const main=nomMain(best(q.h.concat(q.brd)));
+  const expli='Tu as <b>'+main+'</b>. Contre la range avec laquelle '+q.vpos+' ouvre — '
+    +largeur(rg).toFixed(0)+' % des mains — tu tiens <b>'+(eq*100).toFixed(1)+' % d’équité</b>, '
+    +'et il t’en faut '+(seuil*100).toFixed(1)+' % pour que payer rapporte → <b>'
+    +(bon?'tu paies':'tu te couches')+'</b>.'
+    +(limite?' C’est à la limite : les deux réponses passent.':'');
+  const calcul='Cote du pot = mise / (pot + 2 × mise) = '+q.mise+' / ('+q.pot+' + '+(2*q.mise)
+    +') = '+(seuil*100).toFixed(1)+' %. Tu paies '+q.mise+' BB pour en gagner '+(q.pot+q.mise)+'.';
+  conclure(limite||(v==='oui')===bon,expli,calcul,
+    'Équité estimée par simulation (±1 %). Le calcul ne tient compte que de ce tour : '
+    +'ni les mises à venir, ni ce que tu gagnerais en touchant ton tirage.');
+}
+
+/* ---------- 7 : compter les outs ---------- */
+function qOuts(nv){
+  let h,vil,brd,n,cartes;
+  for(let k=0;k<400;k++){
+    const d=pioche([]);
+    const tire=m=>{const x=[];for(let i=0;i<m;i++)x.push(d.splice(Math.random()*d.length|0,1)[0]);return x};
+    h=tire(2);vil=tire(2);brd=tire(nv===2&&Math.random()<.4?4:3);
+    if(best(h.concat(brd))>=best(vil.concat(brd)))continue;   /* il faut etre derriere */
+    const r=outsContre(h,vil,brd);n=r.n;cartes=r.cartes;
+    if(n>=(nv===0?4:2)&&n<=(nv===0?12:16))break;
+  }
+  trQ={th:7,h:h,vil:vil,brd:brd,n:n,cartes:cartes};
+  const rest=50-brd.length;
+  $('tr-ctx').innerHTML='<span><b>Tapis</b>les cartes sont sur le dos</span>'
+   +'<span><b>'+brd.length+'</b>cartes au tableau</span>'
+   +'<span><b>'+rest+'</b>cartes inconnues</span>';
+  $('tr-cards').innerHTML=h.map(c=>card(c)).join('');
+  $('tr-plus').innerHTML=ligneCartes('Le tableau',brd)+ligneCartes('Sa main, retournée',vil);
+  $('tr-cons').textContent='Vous êtes à tapis et il mène. Combien de cartes, parmi les '+rest
+    +' qui restent, te font passer devant dès la prochaine ?';
+  boutonsL(propositions(n).map(x=>({t:String(x),v:String(x)})),true);
+  finQuestion();
+}
+/* cartes qui te font passer seul en tete a la prochaine carte : calcul exact */
+function outsContre(h,vil,brd){
+  const rest=pioche(h.concat(vil).concat(brd));
+  const cartes=[];
+  for(let k=0;k<rest.length;k++){
+    const b=brd.concat([rest[k]]);
+    if(best(h.concat(b))>best(vil.concat(b)))cartes.push(rest[k]);
+  }
+  return{n:cartes.length,cartes:cartes};
+}
+function propositions(n){
+  const s=new Set([n]);
+  while(s.size<4){
+    const d=n+(Math.random()<.5?-1:1)*(1+(Math.random()*4|0));
+    if(d>0&&d<=20)s.add(d);
+  }
+  return[...s].sort((a,b)=>a-b);
+}
+function repOuts(v){
+  const q=trQ,n=q.n,juste=+v===n;
+  const rest=50-q.brd.length;
+  const l=q.cartes.slice(0,16).map(c=>'<span class="s'+c.s+'">'+R[c.r-2]+S[c.s]+'</span>').join(' ');
+  const expli='Il y a <b>'+n+' out'+(n>1?'s':'')+'</b> : '+l
+    +(q.cartes.length>16?' …':'')+'. '
+    +'Tu as '+nomMain(best(q.h.concat(q.brd)))+', il a '+nomMain(best(q.vil.concat(q.brd)))+'.';
+  const p=n/rest*100;
+  const calcul=n+' cartes sur '+rest+' inconnues, soit '+p.toFixed(1)+' % à la prochaine carte. '
+    +'La règle de pouce « outs × 2 » donne '+(n*2)+' %, ce qui est '
+    +(Math.abs(n*2-p)<2?'très proche':'un peu optimiste ici')+'.';
+  conclure(juste,expli,calcul,'Calcul exact : chaque carte restante est testée une par une.');
+}
+
+/* ===================== reponse et verdict ===================== */
+function repondre(v){
   if(!trQ)return;
   $('tr-btns').style.display='none';
-  if(trQ.th===3){$('tr-fb').innerHTML='<p class="score">Calcul de l’équité…</p>';
-    setTimeout(()=>finirIcm(agir),30);return}
-  const q=trQ,chart=q.th===1?RFI[q.pos]:PUSH[q.prof][q.pos];
+  const th=trQ.th;
+  if(th===4)return repDefense(v);
+  if(th===5)return rep3bet(v);
+  if(th===7)return repOuts(v);
+  if(th===3||th===6){
+    $('tr-fb').innerHTML='<p class="score">Calcul de l’équité…</p>';
+    return setTimeout(()=>{th===3?finirIcm(v==='oui'):finirFlop(v)},30);
+  }
+  const q=trQ,agir=v==='oui',chart=q.th===1?RFI[q.pos]:PUSH[q.prof][q.pos];
   const base=largeur(chart);
   const bf=SITUS[q.situ][1];
   /* ICM : on resserre quand un bust coute cher, on elargit quand une prime paie l'elimination */
@@ -2138,10 +2480,10 @@ function repondre(agir){
     expli=q.code+' depuis '+q.pos+' : il faut <b>'+(bon?'ouvrir':'se coucher')+'</b>. '
       +'La range d’ouverture de cette position couvre '+base.toFixed(0)+' % des mains'
       +(fact===1?'':', ramenée à '+cible.toFixed(0)+' % dans ce contexte')+'. '+q.code+' se situe dans le top '
-      +rg.toFixed(0)+' % par \u00e9quit\u00e9 brute.';
+      +rg.toFixed(0)+' % par équité brute.';
   }else{
     expli='À '+q.prof+' BB depuis '+q.pos+', le chart de tapis couvre '+base.toFixed(0)+' % des mains'
-      +(fact===1?'':', ajust\u00e9 \u00e0 '+cible.toFixed(0)+' % par le contexte')+'. '
+      +(fact===1?'':', ajusté à '+cible.toFixed(0)+' % par le contexte')+'. '
       +q.code+' est dans le top '+rg.toFixed(0)+' %, donc <b>'+(bon?'tapis':'poubelle')+'</b>.';
   }
   let calcul='';
@@ -2165,7 +2507,7 @@ function finirIcm(agir){
     +largeur(rg).toFixed(0)+' % des mains. '+q.code+' y tient <b>'+(eq*100).toFixed(1)
     +' % d’équité</b> alors qu’il te faut '+(seuil*100).toFixed(1)
     +' % pour que payer soit rentable → <b>'+(bon?'tu paies':'tu te couches')+'</b>.'
-    +(limite?' C’est a la limite : les deux reponses passent.':'');
+    +(limite?' C’est à la limite : les deux réponses passent.':'');
   const calcul='Seuil = facteur × risque / (facteur × risque + gain) = '
     +bf.toFixed(1)+' × '+risque+' / ('+bf.toFixed(1)+' × '+risque+' + '+gain.toFixed(1)+') = '
     +(seuil*100).toFixed(1)+' %. Tu risques '+risque+' BB de plus pour en gagner '+q.prof+' + 1 de blindes'
@@ -2173,9 +2515,14 @@ function finirIcm(agir){
   conclure(limite||agir===bon,expli,calcul,'Équité estimée par simulation, à 1 % près.');
 }
 function conclure(juste,expli,calcul,note){
-  trScore.total++;
-  if(juste){trScore.bon++;trScore.serie++;if(trScore.serie>trScore.record)trScore.record=trScore.serie}
-  else trScore.serie=0;
+  const s=statTheme(trQ?trQ.th:0);
+  trScore.total++;s.total++;
+  if(juste){
+    trScore.bon++;trScore.serie++;s.bon++;s.serie++;
+    if(trScore.serie>trScore.record)trScore.record=trScore.serie;
+    if(s.serie>s.record)s.record=s.serie;
+  }else{trScore.serie=0;s.serie=0}
+  sauver();
   $('tr-fb').innerHTML='<div class="fb '+(juste?'ok':'no')+'">'
     +'<span class="titre">'+(juste?'Correct.':'Raté.')+'</span>'
     +'<p>'+expli+'</p>'
@@ -2183,7 +2530,8 @@ function conclure(juste,expli,calcul,note){
     +(note?'<p class="calc">'+note+'</p>':'')
     +'</div>'
     +'<button class="p" style="width:100%;margin-top:10px" onclick="question()">Main suivante</button>'
-    +'<p class="score">'+trScore.bon+' sur '+trScore.total+' · série de '+trScore.serie+'</p>';
+    +'<p class="score">'+THEMES[trQ.th]+' : '+s.bon+' sur '+s.total+' · série de '+s.serie
+    +' · en tout '+trScore.bon+'/'+trScore.total+'</p>';
 }
 function goSolo(){rename($('nm').value);scr('solo')}
 function soloSeats(){
@@ -2364,7 +2712,7 @@ function opt(key){
   return OPTS[key].map((o,i)=>'<button aria-pressed="'+(U[key]===o[0])+'" onclick="pickI(\''+key+'\','+i+')">'+o[1]+'</button>').join('');
 }
 function pickI(k,i){pick(k,OPTS[k][i][0])}
-function pick(k,v){U[k]=v;apply();paint();if(k==='clock'){sync();if(pend)startClock()}}
+function pick(k,v){U[k]=v;apply();paint();sauver();if(k==='clock'){sync();if(pend)startClock()}}
 function apply(){
   const r=document.documentElement.style;
   r.setProperty('--felt',U.felt);r.setProperty('--rail',U.rail);r.setProperty('--back',U.back);
@@ -2372,7 +2720,7 @@ function apply(){
   if(P){render();if(pend)controls()}
 }
 const AVC=['🙂','😎','🦁','🐯','🐺','🦅','👑','🎩','🍀','🔥','🌵','🐙'];
-function setAv(e){U.av=e;paint();if($('i-tete'))$('i-tete').textContent=e;if(table)table.presence({a:e});
+function setAv(e){U.av=e;paint();sauver();if($('i-tete'))$('i-tete').textContent=e;if(table)table.presence({a:e});
   if(P&&P[mySeat]&&!net()){P[mySeat].av=e;render()}}
 function ouvrirAv(){
   const g=$('i-av'),t=$('i-tete');
@@ -2380,13 +2728,13 @@ function ouvrirAv(){
 }
 function avRow(){return AVC.map(e=>'<button aria-pressed="'+(U.av===e)+'" onclick="setAv(\''+e+'\')">'+e+'</button>').join('')}
 function lvRow(label,on,fn){return'<div class="lvrow"><span>'+label+'</span>'+LV.map((v,l)=>'<button aria-pressed="'+(on===l)+'" onclick="'+fn+'('+l+')">'+v.n+'</button>').join('')+'</div>'}
-function setAll(l){lvAll=l;if(P)P.forEach(p=>{if(p.bot)p.lv=l});paint();if(P){render();sync()}}
+function setAll(l){lvAll=l;if(P)P.forEach(p=>{if(p.bot)p.lv=l});paint();sauver();if(P){render();sync()}}
 function setLv(i,l){if(!P||!P[i])return;P[i].lv=l;paint();render();sync()}
-function setFill(v){botFill=v;paint();if(phase==='room')roomList()}
-function setBots(k){G.bots=k;paint()}
-function setCave(c){G.cave=c;paint()}
-function setRythme(r){G.rythme=r;paint()}
-function rename(v){v=clean(v).trim();U.name=v||'Toi';if(table)table.presence({n:U.name});
+function setFill(v){botFill=v;paint();sauver();if(phase==='room')roomList()}
+function setBots(k){G.bots=k;paint();sauver()}
+function setCave(c){G.cave=c;paint();sauver()}
+function setRythme(r){G.rythme=r;paint();sauver()}
+function rename(v){v=clean(v).trim();U.name=v||'Toi';sauver();if(table)table.presence({n:U.name});
   if(P&&P[mySeat]&&!net()){P[mySeat].n=U.name;render()}}
 function paint(){
   $('g-felt').innerHTML=sw('felt',FELTS);
@@ -2420,6 +2768,7 @@ function paint(){
   $('g-lvwrap').hidden=!canLv;
   $('g-lv').innerHTML=P?lvRow('Tous',P.every(p=>!p.bot||p.lv===lvAll)?lvAll:-1,'setAll')
     +P.map((p,i)=>p.bot?lvRow(p.n,p.lv,'setLv.bind(null,'+i+')'):'').join(''):'';
+  if($('memo-info'))$('memo-info').textContent=memoTexte();
 }
 /* ---- regles ---- */
 const RANGS=[
@@ -2497,7 +2846,12 @@ $('fv').addEventListener('click',e=>{if(e.target.id=='fv')$('fv').hidden=true});
 $('rv').addEventListener('click',e=>{if(e.target.id=='rv')$('rv').hidden=true});
 $('hv').addEventListener('click',e=>{if(e.target.id=='hv')$('hv').hidden=true});
 $('cv').addEventListener('click',e=>{if(e.target.id=='cv')$('cv').hidden=true});
+charger();
 apply();paint();scr('home');tab('h');
+if($('nm'))$('nm').value=U.name==='Toi'?'':U.name;
+/* on ecrit tout de suite quand l'appli passe en arriere-plan ou se ferme */
+addEventListener('pagehide',()=>{clearTimeout(sauveT);ecrire()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(sauveT);ecrire()}});
 ensureRoom().then(r=>{if(!r)netOff()});
 (async()=>{try{db=await claude.use('db')}catch(e){db=null}if(db)loadWins()})();
 </script><script>
