@@ -390,6 +390,7 @@ body.toile #ibox{padding-top:0}
 .an-coup b{color:var(--ink)}
 .an-coup em{font-style:normal;font-weight:700}
 .an-coup em.ok{color:#8fe0a8}.an-coup em.no{color:#e39a9a}.an-coup em.neutre{color:#cfc8bc}
+.an-coup .an-chiffres{font-size:11.5px;opacity:.75;margin-top:3px}
 .an-note{font-size:11.5px;line-height:1.55;color:var(--dim);margin:8px 0 0;opacity:.9}
 #ov[hidden],#intro[hidden],#hv[hidden],#cv[hidden],#rv[hidden],#fv[hidden],#iv[hidden]{display:none}
 #panel,#hpanel,#cpanel,#rpanel,#fpanel,#ipanel{background:#15100f;border:1px solid #ffffff2e;
@@ -660,6 +661,7 @@ body.toile #ibox{padding-top:0}
    <p class="accroche">Le poker entre potes.
     <span>Les jetons sont faux. Les bad beats, non.</span></p>
   </div>
+  <div id="reprise" hidden></div>
   <div class="actes">
    <button class="solo" onclick="goSolo()">Jouer contre les bots</button>
    <div class="duo">
@@ -690,10 +692,12 @@ body.toile #ibox{padding-top:0}
   <div class="opts" id="i-nb"></div>
   <label>Niveau des bots</label>
   <div class="opts" id="i-lv"></div>
+  <label>Mode de jeu</label>
+  <div class="opts" id="i-mode"></div>
   <label>Cave de départ</label>
   <div class="opts" id="i-cave"></div>
-  <label>Montée des blinds</label>
-  <div class="opts" id="i-ry"></div>
+  <div id="i-rywrap"><label>Montée des blinds</label>
+  <div class="opts" id="i-ry"></div></div>
   <div class="modes">
    <button class="p" onclick="startSolo()">Commencer la partie</button>
    <button class="back" onclick="scr('home')">Retour</button>
@@ -742,10 +746,12 @@ body.toile #ibox{padding-top:0}
    <div class="opts" id="r-fill" style="justify-content:center;margin-bottom:14px"></div>
    <label>Niveau des bots</label>
    <div class="opts" id="r-lv" style="justify-content:center;margin-bottom:14px"></div>
+   <label>Mode de jeu</label>
+   <div class="opts" id="r-mode" style="justify-content:center;margin-bottom:14px"></div>
    <label>Cave de départ</label>
    <div class="opts" id="r-cave" style="justify-content:center;margin-bottom:14px"></div>
-   <label>Montée des blinds</label>
-   <div class="opts" id="r-ry" style="justify-content:center;margin-bottom:18px"></div>
+   <div id="r-rywrap"><label>Montée des blinds</label>
+   <div class="opts" id="r-ry" style="justify-content:center;margin-bottom:18px"></div></div>
   </div>
   <div class="modes">
    <button class="p" id="r-go" onclick="hostStart()">Lancer la partie</button>
@@ -874,6 +880,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v42 — reconnexion des invités : chacun retrouve sa place et ses jetons après un rechargement */
 const S=['♠','♥','♦','♣'],R=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
 const HN=['carte haute','paire','double paire','brelan','quinte','couleur','full','carré','quinte flush'];
 /* ---- nom exact d'une main, reconstruit depuis le score de e5() ---- */
@@ -923,7 +930,9 @@ const PLACES=[6,8,10];
 const PALIERS=[[10,20],[15,30],[25,50],[40,80],[60,120],[100,200],[150,300],[250,500],[400,800],[600,1200]];
 const RYTHMES=[[0,'Fixes'],[12,'Lente'],[8,'Moyenne'],[5,'Rapide']];
 const CAVES=[500,1000,2000,5000];
-const G={cave:1000,rythme:0,bots:5};
+const G={cave:1000,rythme:0,bots:5,mode:'tournoi'};
+function cash(){return G.mode==='cash'}
+let enAttente=false;   /* cash : plus assez de joueurs avec des jetons, on attend une recave */
 let SB=10,BB=20,niveau=0,mainsNiveau=0;
 let sbSeat=null,bbSeat=null;   /* sieges des blinds, pour les jetons affiches */
 let sortis=[],classement=null;  /* ordre d'elimination, puis classement final */
@@ -931,10 +940,36 @@ let P,deck,board=[],dealer,stage,cur,curBet,minR,L=[],nf,nf2,pend=false;
 let dernMain=-1,finEnregistree=false,absent=false,absents={};
 let MODE='solo',mySeat=0,isHost=true,room=null,db=null,table=null,tcode='',hostPeer=null,myPeer=null,seatPeer=[],botFill=true,phase='home',lastHeard=0,actTimer=null,syncT=null,watch=null,ended=false;
 let dernierEnvoi=0,spectateur=false;   /* battement de l'hote ; invite non assis */
+/* ===================== reconnexion =====================
+   Chaque appareil garde un jeton tire au hasard, a lui seul. Il n'est jamais
+   envoye tel quel : la table ne recoit qu'une empreinte calculee avec son code,
+   inutilisable ailleurs. L'hote range les sieges par empreinte, si bien qu'un
+   joueur qui recharge sa page retrouve sa place et ses jetons. */
+const CLE_DEV='poker.dev',CLE_TABLE='poker.table';
+const APPAREIL=(()=>{
+  let d=null;try{d=localStorage.getItem(CLE_DEV)}catch(e){}
+  if(!d||!/^[a-z0-9]{16,64}$/.test(d)){
+    try{d=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('')}
+    catch(e){d=(Math.random().toString(36)+Math.random().toString(36)).replace(/[^a-z0-9]/g,'').slice(0,24)}
+    try{localStorage.setItem(CLE_DEV,d)}catch(e){}
+  }
+  return d;
+})();
+function empreinte(code){
+  const s=APPAREIL+'|'+code;let h1=0xdeadbeef,h2=0x41c6ce57;
+  for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+  return(h2>>>0).toString(36)+(h1>>>0).toString(36);
+}
+let seatDev=[];          /* hote : siege -> empreinte de l'appareil qui l'occupe */
+let partiDepuis={};      /* hote : siege -> heure ou sa connexion a disparu */
+let GRACE_DEPART=90000;  /* cash : delai avant qu'un bot tienne la place d'un absent */
 const U={felt:'#12452c',rail:'#5a3a1e',back:'#7a1f2b',bk:'stripe',cs:'classic',dk:'four',bb:false,name:'Toi',av:'🙂',th:'dark',clock:30,vibr:true,son:true};
 const LV=[{n:'Débutant',k:'D',f:.10,r:.86,a:.22,z:.34,bl:0},
           {n:'Normal',k:'N',f:.22,r:.76,a:.50,z:.20,bl:.06},
-          {n:'Expert',k:'E',f:.32,r:.68,a:.72,z:.09,bl:.16}];
+          {n:'Expert',k:'E',f:.32,r:.68,a:.72,z:.09,bl:.16},
+          {n:'Requin',k:'R',f:.34,r:.66,a:.74,z:.04,bl:.14}];
 let clockT=null,clockEnd=0;
 let moi=null,startStacks=[],injecte=0;
 let lvAll=1,HIST=[],WINS=[],handNo=0,hStart=0,res=[],runout=false,eqExact=true,shownFrom=0,lastSay=[0,0,0,0,0,0,0,0,0,0],curTab='h';
@@ -1009,6 +1044,7 @@ function charger(){
   /* on ne reprend que les cles qu'on connait : une vieille sauvegarde ne casse rien */
   if(d.u)Object.keys(U).forEach(k=>{if(d.u[k]!==undefined&&typeof d.u[k]===typeof U[k])U[k]=d.u[k]});
   if(d.g)Object.keys(G).forEach(k=>{if(typeof d.g[k]==='number')G[k]=d.g[k]});
+  if(d.g&&(d.g.mode==='cash'||d.g.mode==='tournoi'))G.mode=d.g.mode;
   if(typeof d.lv==='number'&&LV[d.lv])lvAll=d.lv;
   if(typeof d.fill==='boolean')botFill=d.fill;
   if(PLACES.indexOf(d.pl)>=0)NSEAT=d.pl;
@@ -1052,6 +1088,7 @@ function appliquerNiveau(){SB=PALIERS[niveau][0];BB=PALIERS[niveau][1]}
 function sousTitre(){
   const base=net()?'Table '+tcode.toUpperCase():(P?P.length+' joueurs':'6 joueurs');
   let t=base+' · blinds '+SB+'/'+BB;
+  if(cash()){$('sub').textContent=t+' · cash game';return}
   if(G.rythme&&niveau<PALIERS.length-1){
     const reste=Math.max(0,G.rythme-mainsNiveau);
     t+=' · niveau '+(niveau+1)+', montée dans '+reste+' main'+(reste>1?'s':'');
@@ -1103,24 +1140,34 @@ function finishGame(sansPodium){
 function startHand(){
   if(!P||phase!=='play')return;
   clearTimeout(actTimer);stopClock();
-  noterSorties();
-  if(alive()<2||(!net()&&P[mySeat].chips<=0)){
-    const seulMoi=!net()&&P[mySeat].chips<=0&&alive()>=2;
-    finishGame(seulMoi);render();   /* tu sautes mais les bots jouent encore : pas de podium */
-    if(seulMoi)showNew('Recaver ('+G.cave+')',recaver,'Nouvelle partie',()=>newGame(lastSeats));
-    else if(isHost)showNew('Nouvelle partie',()=>newGame(lastSeats));
-    else showNew('Partie terminée',null);
-    sync();return;
+  if(net()&&isHost)reprendreSieges();   /* qui est parti, qui est revenu, avant de distribuer */
+  if(cash()){
+    /* cash game : personne n'est éliminé. Les sièges qui arrivent ou repartent
+       sont réglés ici, au calme entre deux mains, puis on recave qui le demande. */
+    if(net()&&isHost){absorberDeparts();accueillirNouveaux();}
+    appliquerRecaves();
+    if(alive()<2){enAttente=true;attendreRecave();return;}
+    enAttente=false;
+  }else{
+    noterSorties();
+    if(alive()<2||(!net()&&P[mySeat].chips<=0)){
+      const seulMoi=!net()&&P[mySeat].chips<=0&&alive()>=2;
+      finishGame(seulMoi);render();   /* tu sautes mais les bots jouent encore : pas de podium */
+      if(seulMoi)showNew('Recaver ('+G.cave+')',recaver,'Nouvelle partie',()=>newGame(lastSeats));
+      else if(isHost)showNew('Nouvelle partie',()=>newGame(lastSeats));
+      else showNew('Partie terminée',null);
+      sync();return;
+    }
   }
   deck=[];for(let s=0;s<4;s++)for(let r=2;r<=14;r++)deck.push({r,s});
   for(let i=51;i>0;i--){const j=Math.random()*(i+1)|0;[deck[i],deck[j]]=[deck[j],deck[i]]}
-  if(G.rythme&&mainsNiveau>=G.rythme&&niveau<PALIERS.length-1){
+  if(!cash()&&G.rythme&&mainsNiveau>=G.rythme&&niveau<PALIERS.length-1){
     niveau++;mainsNiveau=0;appliquerNiveau();log('Blinds : '+SB+'/'+BB);
   }
   mainsNiveau++;sousTitre();startStacks=P.map(q=>q.chips);
   etatFini=false;board=[];stage=0;runout=false;shownFrom=0;handNo++;coups=[];
   absents[mySeat]=absent;hStart=P[mySeat].chips;res=[];
-  P.forEach(p=>{p.agresseur=false});
+  P.forEach(p=>{p.agresseur=false;p.derMise=-1});
   P.forEach(p=>{p.bet=p.tot=0;p.fold=p.empty||p.chips<=0;p.allin=false;p.acted=false;p.show=false;p.eq=null;
                 p.h=p.fold?[]:[deck.pop(),deck.pop()]});
   dealer=nxt(dealer,live);
@@ -1152,7 +1199,9 @@ function step(){
   if(P[cur].bot){pend=false;$('ctl').innerHTML='';setTimeout(()=>{if(P&&cur!=null&&P[cur])bot(P[cur])},750)}
   else if(cur===mySeat)controls();
   else{pend=false;$('ctl').innerHTML=attente('Au tour de '+P[cur].n+'…');
-       if(isHost)actTimer=setTimeout(()=>{const p=P[cur];if(p&&!p.bot)act(p,curBet-p.bet>0?'f':'c')},(U.clock?U.clock+4:90)*1000)}
+       /* un joueur deconnecte ne fait pas attendre la table : sa main joue vite */
+       if(isHost)actTimer=setTimeout(()=>{const p=P[cur];if(p&&!p.bot)act(p,curBet-p.bet>0?'f':'c')},
+         partiDepuis[cur]!=null?1500:(U.clock?U.clock+4:90)*1000)}
 }
 function nextStage(){
   if(!P||phase!=='play')return;
@@ -1198,7 +1247,8 @@ function noterCoup(t,to){
   if(!P||!P[mySeat]||spectateur||!P[mySeat].h.length)return;
   const m=P[mySeat];
   coups.push({s:stage,b:board.map(enc),p:pot(),a:Math.max(0,curBet-m.bet),
-              t:t,to:to||0,n:P.filter(live).length-1,pos:m.pos||''});
+              t:t,to:to||0,n:P.filter(live).length-1,pos:m.pos||'',
+              cb:curBet,bb:BB,cd:hcode(m.h)});
   if(coups.length>24)coups.shift();
 }
 function myAct(t,to){
@@ -1245,6 +1295,9 @@ const DEF={
   BB: parseR('22+ A2s+ K7s+ Q8s+ J8s+ T8s+ 97s+ 86s+ 75s+ 65s 54s A7o+ K9o+ Q9o+ J9o T9o')
 };
 const R3V=parseR('QQ+ AKs AKo'),R3B=parseR('A5s A4s KJs QTs 76s'),R4=parseR('JJ+ AKs AKo'),RCONT=parseR('TT+ AQs+ AKo');
+/* le Requin relance une ouverture bien plus souvent : 3 % de 3bets, c'est lisible */
+const R3P=parseR('TT+ AQs+ AJs KQs AQo'),            /* valeur elargie */
+      R3F=parseR('A5s A4s A3s KJs QTs JTs T9s 76s 65s');  /* et les bluffs */
 const LOOSE={UTG:'HJ',HJ:'CO',CO:'BTN',BTN:'BTN',SB:'SB',BB:'BB'};
 const DEV=[.26,.12,.04];
 function hcode(h){
@@ -1306,8 +1359,120 @@ function dernierAParler(){
   });
   return siege;
 }
+/* ===================== le Requin =====================
+   Les trois premiers niveaux jugent leur main dans l'absolu : une paire
+   vaut toujours pareil, qu'il y ait un adversaire ou cinq. Celui-ci calcule
+   son equite reelle sur le tableau, contre ce que les autres peuvent avoir,
+   et compare a la cote qu'on lui offre. */
+
+/* ce que l'adversaire peut raisonnablement avoir, vu sa position et sa mise */
+function rangeDe(q){
+  const base=q.agresseur?(RFI[q.pos]||RFI.CO):(DEF[q.pos]||DEF.BB);
+  const mise=pot()>0?q.tot/pot():0;
+  const f=mise>.34?.45:(mise>.18?.68:1);   /* plus il investit, plus sa range se resserre */
+  return f<1?resserrer(base,f):base;
+}
+/* equite contre plusieurs ranges a la fois, par tirage au sort */
+function equiteMulti(main,brd,ranges,essais){
+  const libre=pioche(main.concat(brd)),L=libre.length,reste=5-brd.length;
+  if(L<reste+2*ranges.length+2)return .5;
+  let pts=0,n=0;
+  for(let t=0;t<essais;t++){
+    const pris=[],mains=[];let ok=true;
+    for(let v=0;v<ranges.length&&ok;v++){
+      let trouve=false;
+      for(let k=0;k<150&&!trouve;k++){
+        const i=Math.random()*L|0,j=Math.random()*L|0;
+        if(i===j||pris.indexOf(i)>=0||pris.indexOf(j)>=0)continue;
+        if(ranges[v].has(hcode([libre[i],libre[j]]))){
+          pris.push(i,j);mains.push([libre[i],libre[j]]);trouve=true;
+        }
+      }
+      if(!trouve)ok=false;
+    }
+    if(!ok)break;
+    const b=brd.slice();
+    while(b.length<5){
+      const k=Math.random()*L|0;
+      if(pris.indexOf(k)>=0)continue;
+      pris.push(k);b.push(libre[k]);
+    }
+    const a=best(main.concat(b));let mx=a,eg=1;
+    for(let v=0;v<mains.length;v++){
+      const sc=best(mains[v].concat(b));
+      if(sc>mx){mx=sc;eg=1}else if(sc===mx)eg++;
+    }
+    if(a===mx)pts+=1/eg;
+    n++;
+  }
+  return n?pts/n:.5;
+}
+function preflopRequin(p,need,eff){
+  const c=hcode(p.h),pos=p.pos||'BTN';
+  /* tapis court : plus personne ne joue des coups compliques, c'est tapis ou poubelle */
+  if(eff<=16){
+    const pal=[5,10,15,20].reduce((a,b)=>Math.abs(b-eff)<Math.abs(a-eff)?b:a);
+    const ch=(PUSH[pal]&&(PUSH[pal][pos]||PUSH[pal].BTN))||RFI.BTN;
+    if(curBet<=BB)return ch.has(c)?act(p,'r',p.bet+p.chips):(need?act(p,'f'):act(p,'c'));
+    return(need&&!resserrer(ch,.5).has(c))?act(p,'f'):act(p,'c');
+  }
+  if(curBet<=BB){
+    const ouv=RFI[pos]||RFI.CO;
+    if(ouv.has(c))return act(p,'r',Math.max(curBet+minR,Math.round((curBet+2.2*BB)/10)*10));
+    return need?act(p,'f'):act(p,'c');
+  }
+  if(curBet<=4*BB){
+    if(R3V.has(c)||(R3P.has(c)&&Math.random()<.65)||(R3F.has(c)&&Math.random()<.6))
+      return act(p,'r',Math.max(curBet+minR,Math.round(curBet*3/10)*10));
+    /* en grosse blinde on a deja paye une blinde : la cote justifie de voir
+       beaucoup plus de flops qu'ailleurs */
+    const def=pos==='BB'?elargir(DEF.BB,1.35):(DEF[pos]||DEF.BB);
+    return(need&&!def.has(c))?act(p,'f'):act(p,'c');
+  }
+  if(R4.has(c))return act(p,'r',Math.max(curBet+minR,Math.round(curBet*2.3/10)*10));
+  return(need&&!RCONT.has(c))?act(p,'f'):act(p,'c');
+}
+function botRequin(p){
+  const need=curBet-p.bet,pt=pot();
+  const vivants=P.filter(q=>live(q)&&q!==p);
+  const eff=Math.min.apply(null,P.filter(live).map(q=>q.chips+q.bet))/BB;
+  if(stage===0)return preflopRequin(p,need,eff);
+  const nAdv=vivants.length;
+  const ranges=vivants.slice(0,3).map(rangeDe);
+  const eq=equiteMulti(p.h,board,ranges,nAdv>2?240:400);
+  const tir=tirages(p);
+  const mise=f=>Math.max(minR,Math.round(pt*f/10)*10);
+  const enPos=dernierAParler()===P.indexOf(p);
+  /* plus il y a de monde, plus il faut de main pour miser ou pour payer */
+  const seuilMise=[0,.50,.60,.68,.74,.79][Math.min(5,nAdv)];
+  const seuilRel=[0,.70,.77,.83,.87,.90][Math.min(5,nAdv)];
+  const relanca=p.derMise===stage-1;        /* il a mis au tour precedent */
+  if(!need){
+    /* la mise de continuation : celui qui a relance avant le flop reprend la main,
+       qu'il ait touche ou non. Sans ca, un adversaire sait qu'une mise = une main. */
+    if(p.agresseur&&stage===1&&nAdv<=2&&Math.random()<.72){
+      p.derMise=stage;return act(p,'r',curBet+mise(.55));
+    }
+    if(eq>=seuilMise){p.derMise=stage;return act(p,'r',curBet+mise(eq>seuilMise+.18?.8:.6))}
+    /* on relance une deuxieme fois quand il reste de quoi toucher */
+    if(relanca&&nAdv<=2&&(tir>.1||eq>.42)&&Math.random()<.6){
+      p.derMise=stage;return act(p,'r',curBet+mise(.62));
+    }
+    if(tir>.12&&enPos&&nAdv<=2&&Math.random()<.65){p.derMise=stage;return act(p,'r',curBet+mise(.55))}
+    if(eq<.33&&nAdv===1&&enPos&&Math.random()<.34){p.derMise=stage;return act(p,'r',curBet+mise(.5))}
+    return act(p,'c');
+  }
+  const cote=need/(pt+need);
+  const implicite=(board.length<5&&tir>.12)?.06:0;  /* un tirage rapporte plus tard */
+  /* payer hors de position, c'est payer encore au tour suivant : on exige un peu plus */
+  const marge=(stage<3?(enPos?.035:.075):.01);
+  if(eq+implicite<cote+marge+(nAdv>1?.05:0))return act(p,'f');
+  if(eq>=seuilRel&&p.chips>need){p.derMise=stage;return act(p,'r',curBet+mise(.85))}
+  act(p,'c');
+}
 function bot(p){
   if(!P||P[cur]!==p)return;
+  if(p.lv===3)return botRequin(p);
   if(stage===0)return preflop(p);
   const V=LV[p.lv]||LV[1],need=curBet-p.bet,pt=pot();
   const faite=strength(p),tirage=tirages(p);
@@ -1825,6 +1990,50 @@ function analyser(no){
   z.innerHTML='<p class="an-note">Calcul en cours\u2026</p>';
   setTimeout(()=>{z.innerHTML=texteAnalyse(h)},30);
 }
+/* Avant le flop, la bonne question n'est pas la cote : c'est la range.
+   On tranche contre les charts, et on le dit sans detour. */
+function verdictRange(c){
+  if(c.cb==null||c.bb==null||!c.cd||!c.pos)return null;
+  const code=c.cd;
+  const rg=rangMain(code).toFixed(0);
+  if(c.cb<=c.bb){                                   /* personne n'a encore ouvert */
+    if(c.a<=0)return null;                          /* tu peux checker : aucun chart ne dit quoi faire */
+    const ch=RFI[c.pos];if(!ch)return null;
+    const dans=ch.has(code),l=largeur(ch).toFixed(0);
+    if(c.t==='r')return{juge:true,juste:dans,txt:dans
+      ?'<em class="ok">Ouverture correcte.</em> Depuis '+c.pos+' on ouvre '+l+' % des mains, et '+code+' en fait partie.'
+      :'<em class="no">Ouverture trop large.</em> Depuis '+c.pos+' on ouvre '+l+' % des mains ; '
+        +code+' est dans le top '+rg+' %, donc dehors. Celle-l\u00e0 part \u00e0 la poubelle.'};
+    if(c.t==='f')return{juge:true,juste:!dans,txt:dans
+      ?'<em class="no">Trop serr\u00e9.</em> '+code+' est dans les '+l+' % qu\u2019on ouvre depuis '+c.pos
+        +' : il y avait de quoi relancer.'
+      :'<em class="ok">Fold correct.</em> '+code+' est hors des '+l+' % qu\u2019on ouvre depuis '+c.pos+'.'};
+    return{juge:true,juste:false,
+      txt:'<em class="no">Payer la blinde sans relancer, c\u2019est le coup qui rapporte le moins.</em> '
+        +'Tu laisses entrer tout le monde et tu abandonnes l\u2019initiative. Depuis '+c.pos+', '+code
+        +(dans?' m\u00e9ritait une ouverture.':' m\u00e9ritait la poubelle.')};
+  }
+  /* quelqu'un a ouvert devant toi */
+  const ch=DEF[c.pos]||DEF.BB;
+  const val=R3V.has(code),blf=R3B.has(code),def=ch.has(code);
+  const l=largeur(ch).toFixed(0);
+  if(c.t==='r')return{juge:true,juste:val||blf,txt:val
+    ?'<em class="ok">Relance de valeur justifi\u00e9e.</em> '+code+' est une des mains avec lesquelles on relance '
+      +'une ouverture pour construire le pot.'
+    :(blf
+      ?'<em class="ok">Relance de bluff d\u00e9fendable.</em> '+code+' fait partie des mains qui jouent bien '
+        +'en relance comme en suivi.'
+      :'<em class="no">Relance hors range.</em> '+code+' est dans le top '+rg+' % : trop faible pour relancer '
+        +'une ouverture, tu te retrouves dominé dès qu\u2019on te paie.')};
+  if(c.t==='c')return{juge:true,juste:def,txt:def
+    ?'<em class="ok">Suivi correct.</em> Depuis '+c.pos+' on continue avec '+l+' % des mains face \u00e0 une ouverture, '
+      +code+' en fait partie.'
+    :'<em class="no">Suivi hors range.</em> Depuis '+c.pos+' on ne continue qu\u2019avec '+l+' % des mains ; '
+      +code+' est dans le top '+rg+' %. Payer ici co\u00fbte sur la dur\u00e9e.'};
+  return{juge:true,juste:!def,txt:def
+    ?'<em class="no">Un peu serr\u00e9.</em> '+code+' entre dans les '+l+' % qu\u2019on d\u00e9fend depuis '+c.pos+'.'
+    :'<em class="ok">Fold correct.</em> '+code+' est hors des '+l+' % qu\u2019on d\u00e9fend depuis '+c.pos+'.'};
+}
 function texteAnalyse(h){
   const adv=(h.adv||[]).map(a=>a.h).filter(x=>x&&x.length===2);
   const connu=adv.length>0;
@@ -1836,6 +2045,15 @@ function texteAnalyse(h){
     else eq=equiteSurBoard(h.me,RFI.CO,bd,1200);
     const pc=(eq*100).toFixed(0);
     let ligne='',verdict='';
+    const vr=c.s===0?verdictRange(c):null;
+    if(vr){
+      juges++;if(vr.juste)bons++;
+      corps+='<div class="an-coup"><span class="rue">'+(RUES[c.s]||'')+'</span><p>'+vr.txt
+        +'</p><p class="an-chiffres">'
+        +(c.a>0?'Tu mets '+fmt(c.a)+' dans un pot de '+fmt(c.p)+' \u00b7 ':'')
+        +'\u00e9quit\u00e9 '+pc+' %.</p></div>';
+      return;
+    }
     if(c.a>0){
       const cote=c.a/(c.p+c.a),cp=(cote*100).toFixed(0);
       const rentable=eq>=cote;
@@ -1870,8 +2088,11 @@ function texteAnalyse(h){
       +(bd.length?' \u00b7 '+bd.map(x=>'<span class="s'+x.s+'">'+R[x.r-2]+S[x.s]+'</span>').join(' '):'')
       +'</span><p>'+ligne+' '+verdict+'</p></div>';
   });
-  const tete='<p class="an-tete">'+h.cp.length+' d\u00e9cision'+(h.cp.length>1?'s':'')
-    +(juges?' \u00b7 <b>'+bons+' sur '+juges+'</b> rentable'+(juges>1?'s':''):'')
+  const courte=h.cp.length===1&&h.cp[0].s===0;
+  const tete=(courte?'<p class="an-note" style="margin:6px 0 2px">Main courte : une seule d\u00e9cision, '
+      +'avant le flop. Il n\u2019y a rien d\u2019autre \u00e0 en tirer.</p>':'')
+    +'<p class="an-tete">'+h.cp.length+' d\u00e9cision'+(h.cp.length>1?'s':'')
+    +(juges?' \u00b7 <b>'+bons+' sur '+juges+'</b> correcte'+(juges>1?'s':''):'')
     +' \u00b7 solde de la main '+(h.d>0?'+':'')+fmt(h.d)+'</p>';
   const pied='<p class="an-note">'
     +(connu
@@ -1879,7 +2100,9 @@ function texteAnalyse(h){
         +(exacts?', exact \u2014 tous les tirages restants ont \u00e9t\u00e9 d\u00e9roul\u00e9s un par un.':'.')
       :'Personne n\u2019a montr\u00e9 ses cartes : l\u2019estimation est faite contre une main d\u2019ouverture '
         +'moyenne. \u00c0 prendre comme un ordre de grandeur.')
-    +'<br>Attention au sens de ce bilan : il dit si ton coup <b>a \u00e9t\u00e9</b> rentable, '
+    +'<br>Avant le flop, le verdict vient des charts d\u2019ouverture et de d\u00e9fense, pas des cartes '
+    +'de l\u2019adversaire : celui-l\u00e0 est valable au moment o\u00f9 tu joues. '
+    +'Apr\u00e8s le flop en revanche, attention au sens du bilan : il dit si ton coup <b>a \u00e9t\u00e9</b> rentable, '
     +'avec des cartes que tu ne voyais pas. Pas s\u2019il \u00e9tait juste au moment de le jouer. '
     +'Et il ne juge que payer ou se coucher \u2014 la taille de tes mises, il n\u2019y touche pas.</p>';
   return tete+corps+pied;
@@ -1980,6 +2203,135 @@ function recaver(){
   ended=false;injecte+=G.cave;P[mySeat].chips=G.cave;
   sortis=sortis.filter(x=>x.i!==mySeat);classement=null;   /* il revient : il n'est plus sorti */
   log(P[mySeat].n+' recave');startHand();
+}
+/* ===================== cash game =====================
+   Pas d'élimination : qui tombe à zéro se contente de passer son tour, et
+   recave quand il veut. Les sièges se règlent entre deux mains, jamais au
+   milieu d'un coup, pour ne rien corrompre. */
+function appliquerRecaves(){
+  if(!P)return;
+  P.forEach(p=>{
+    if(p.empty)return;
+    const vide=p.chips<=0;
+    if((p.bot&&vide)||p.rebuy){
+      if(p.chips<G.cave){injecte+=G.cave-p.chips;p.chips=G.cave}
+      if(p.rebuy&&!p.bot)log(p.n+' recave');
+      p.rebuy=false;
+    }
+  });
+}
+function attendreRecave(){
+  render();
+  const jePeux=P&&P[mySeat]&&!P[mySeat].empty&&P[mySeat].chips<G.cave;
+  if(!net())showNew('Recaver ('+G.cave+' jetons)',jePeux?demanderRecave:null);
+  else if(jePeux)showNew('Recaver ('+G.cave+' jetons)',demanderRecave);
+  else showNew('En attente de jetons…',null);
+  sync();
+}
+function demanderRecave(){
+  if(!cash()||spectateur||!P||!P[mySeat])return;
+  if(P[mySeat].chips>=G.cave){log('Recave possible seulement sous '+G.cave+' jetons');return}
+  P[mySeat].rebuy=true;
+  if(net()&&!isHost){try{table.emit('rebuy',{})}catch(e){}log('Recave demandée')}
+  else if(enAttente||etatFini)startHand();   /* on peut relancer tout de suite */
+  else log('Recave au prochain coup');
+  render();
+}
+/* Hote : qui est parti, qui revient. Appele a chaque changement dans la salle,
+   au battement, et entre deux mains. Rendre un siege ne fait que changer quelle
+   connexion a le droit de jouer pour lui : c'est sans risque, meme en pleine main. */
+/* le siege rattache a cette empreinte -- jamais celui de l'hote : un second onglet
+   ouvert sur son propre telephone ne doit pas lui prendre la partie des mains */
+function siegeDe(d){
+  if(!d)return -1;
+  for(let i=0;i<seatDev.length;i++)if(seatDev[i]===d&&seatPeer[i]!==myPeer)return i;
+  return -1;
+}
+function reprendreSieges(){
+  if(!net()||!isHost||!table||!P||phase!=='play')return false;
+  const pairs=table.peers(),vivants=new Set(pairs.map(p=>p.peer));
+  let chg=false;
+  const jouerVite=i=>{       /* son tour ne doit pas bloquer la table */
+    if(i!==cur||etatFini)return;
+    clearTimeout(actTimer);
+    actTimer=setTimeout(()=>{const p=P[cur];if(p&&!p.bot&&cur===i)act(p,curBet-p.bet>0?'f':'c')},1500);
+  };
+  /* une empreinte arrivee apres le placement : on la rattache a son siege */
+  pairs.forEach(p=>{const i=seatPeer.indexOf(p.peer);
+    if(i>=0&&p.presence&&p.presence.d&&!seatDev[i])seatDev[i]=p.presence.d});
+  /* departs : on note l'heure, le siege et les jetons restent a lui */
+  seatPeer.forEach((pe,i)=>{
+    if(pe&&pe!==myPeer&&!vivants.has(pe)&&partiDepuis[i]==null&&P[i]&&!P[i].bot){
+      partiDepuis[i]=Date.now();absents[i]=true;chg=true;
+      log(P[i].n+' a perdu la connexion…');jouerVite(i);
+    }
+  });
+  /* retours : une connexion non assise dont l'empreinte correspond a un siege.
+     La plus recente d'abord : deux onglets du meme appareil ne se disputent pas la place. */
+  const assis=new Set(seatPeer.filter(Boolean));
+  const tAr=p=>(p&&p.presence&&+p.presence.t)||0;
+  pairs.filter(p=>!p.isMe&&!assis.has(p.peer)&&p.presence&&p.presence.d)
+       .sort((a,b)=>tAr(b)-tAr(a))
+       .forEach(p=>{
+    const i=siegeDe(p.presence.d);
+    if(i<0||!P[i])return;
+    const ancien=seatPeer[i];
+    if(ancien===p.peer)return;
+    if(ancien&&vivants.has(ancien)&&tAr(pairs.find(x=>x.peer===ancien))>=tAr(p))return;
+    seatPeer[i]=p.peer;delete partiDepuis[i];absents[i]=false;
+    const r=P[i].remplace;
+    if(r){                  /* un bot ou une place vide le remplacait : il reprend la main */
+      if(P[i].empty){P[i].empty=false;P[i].chips=r.chips||0;injecte+=r.chips||0;P[i].fold=true}
+      P[i].bot=false;P[i].n=r.n;P[i].av=r.av;delete P[i].remplace;
+    }
+    log(P[i].n+' est de retour');chg=true;
+    if(i===cur&&!etatFini){clearTimeout(actTimer);
+      actTimer=setTimeout(()=>{const q=P[cur];if(q&&!q.bot&&cur===i)act(q,curBet-q.bet>0?'f':'c')},(U.clock?U.clock+4:90)*1000)}
+  });
+  if(chg){render();sync()}
+  return chg;
+}
+/* cash : passe le delai de grace, un bot tient la place de l'absent (ou elle se vide).
+   L'empreinte reste attachee au siege : s'il revient, meme tard, il le recupere. */
+function absorberDeparts(){
+  if(!table||!seatPeer)return;
+  const t=Date.now();
+  seatPeer.forEach((pe,i)=>{
+    if(partiDepuis[i]==null||t-partiDepuis[i]<GRACE_DEPART)return;
+    if(!P[i]||P[i].bot||P[i].empty)return;
+    P[i].remplace={n:P[i].n,av:P[i].av};
+    if(botFill){
+      let bi=0;while(bi<BOTS.length&&P.some(q=>q.n===BOTS[bi]))bi++;
+      P[i].bot=true;P[i].lv=lvAll;P[i].n=BOTS[bi%BOTS.length];P[i].av=AVB[bi%AVB.length];
+      log(P[i].remplace.n+' ne revient pas — un bot garde sa place');
+    }else{
+      P[i].remplace.chips=Math.max(0,P[i].chips);
+      injecte-=P[i].remplace.chips;P[i].empty=true;P[i].chips=0;P[i].fold=true;
+      log(P[i].remplace.n+' ne revient pas — sa place est mise de côté');
+    }
+    seatPeer[i]=null;absents[i]=false;
+  });
+}
+/* cash : un vrai nouveau venu, assis sur une place libre, avec sa cave.
+   Les places gardees pour un absent ne sont prises qu'en dernier recours. */
+function accueillirNouveaux(){
+  if(!table)return;
+  const assignes=new Set(seatPeer.filter(Boolean));
+  const nouveaux=table.peers().filter(p=>p.kind==='viewer'&&p.peer!==myPeer&&!assignes.has(p.peer)
+    &&p.presence&&(p.presence.d||p.presence.n)                          /* sa presence est arrivee */
+    &&siegeDe(p.presence.d)<0);                                          /* celui-la revient : pas un nouveau */
+  nouveaux.forEach(v=>{
+    const libre=k=>P[k]&&!seatPeer[k]&&(P[k].bot||P[k].empty);
+    let i=P.findIndex((q,k)=>libre(k)&&!q.remplace);
+    if(i<0&&P.length<NSEAT){i=P.length;P.push(mkPlayer({name:'',av:'',empty:true}));seatPeer.push(null);seatDev.push(null)}
+    if(i<0)i=P.findIndex((q,k)=>libre(k)&&q.remplace&&partiDepuis[k]!=null&&Date.now()-partiDepuis[k]>15*60000);
+    if(i<0)return;   /* table pleine */
+    const vieux=P[i].empty?0:Math.max(0,P[i].chips);
+    injecte+=G.cave-vieux;
+    P[i]=mkPlayer({name:clean(v.presence&&v.presence.n)||'Joueur',av:clean(v.presence&&v.presence.a)||'🙂'});
+    seatPeer[i]=v.peer;seatDev[i]=(v.presence&&v.presence.d)||null;delete partiDepuis[i];absents[i]=false;
+    log(P[i].n+' rejoint la table');
+  });
 }
 /* la couleur du jeton suit sa valeur, comme dans un vrai casino */
 function couleurJeton(v){
@@ -2139,7 +2491,7 @@ function equiteContreMains(moi,autres,brd){
 /* ===================== reseau ===================== */
 const enc=c=>c.r*4+c.s, dec=n=>({r:n>>2,s:n&3});
 function snapshot(){
-  return{cl:classement,sbs:sbSeat,bbs:bbSeat,hn:handNo,fin:ended||etatFini,dl:startStacks.length?P.map((q,i)=>q.chips-(startStacks[i]||0)):null,po:P.map(q=>q.pos||''),res:res.slice(),ck:U.clock,sb:SB,bb:BB,nv:niveau,mn:mainsNiveau,ry:G.rythme,sp:seatPeer,s:stage,c:cur,d:dealer,cb:curBet,mr:minR,ro:runout,ex:eqExact,en:ended,b:board.map(enc),lg:L.slice(),
+  return{cl:classement,sbs:sbSeat,bbs:bbSeat,hn:handNo,fin:ended||etatFini,dl:startStacks.length?P.map((q,i)=>q.chips-(startStacks[i]||0)):null,po:P.map(q=>q.pos||''),res:res.slice(),ck:U.clock,sb:SB,bb:BB,nv:niveau,mn:mainsNiveau,ry:G.rythme,sp:seatPeer,s:stage,c:cur,d:dealer,cb:curBet,mr:minR,ro:runout,ex:eqExact,en:ended,mo:G.mode,ab:P.map((q,i)=>absents[i]?1:0),b:board.map(enc),lg:L.slice(),
     p:P.map(p=>[p.n,p.av,p.lv,p.chips,p.bet,p.tot,
       (p.fold?1:0)|(p.allin?2:0)|(p.show?4:0)|(p.empty?8:0)|(p.bot?16:0),p.h.map(enc),p.eq==null?-1:Math.round(p.eq*1000),p.outs==null?-1:p.outs,(p.outsC||[]).map(enc)])};
 }
@@ -2155,6 +2507,10 @@ function applyState(s){
   if(phase!=='play'){phase='play';voile(false);MODE='net'}
   if(typeof s.ck==='number'&&s.ck!==U.clock){U.clock=s.ck;paint()}
   if(typeof s.sb==='number'){SB=s.sb;BB=s.bb;niveau=s.nv||0;mainsNiveau=s.mn||0;G.rythme=s.ry||0}
+  if((s.mo==='cash'||s.mo==='tournoi')&&s.mo!==G.mode){G.mode=s.mo;paint()}
+  /* l'hote sait qui est deconnecte : on l'affiche chez tout le monde (sauf sa propre case) */
+  if(Array.isArray(s.ab)){const ici=(s.sp||[]).indexOf(myPeer);
+    s.ab.forEach((v,i)=>{if(i!==ici)absents[i]=!!v})}
   sbSeat=typeof s.sbs==='number'?s.sbs:null;bbSeat=typeof s.bbs==='number'?s.bbs:null;
   if(s.cl&&s.cl.length){
     const neuf=!classement||classement.length!==s.cl.length||classement[0].n!==s.cl[0].n;
@@ -2223,10 +2579,33 @@ function accueil(){
   dire('⌂','Accueil');b.classList.remove('warn');
   quitterPartie();
 }
+/* ---- la table en cours, gardee sur l'appareil pour y revenir apres un rechargement ---- */
+const REPRISE_MAX=6*3600*1000;
+function memoTable(c){try{localStorage.setItem(CLE_TABLE,JSON.stringify({c:c,at:Date.now()}))}catch(e){}}
+function oublierTable(){try{localStorage.removeItem(CLE_TABLE)}catch(e){}afficherReprise()}
+function tableAReprendre(){
+  let t=null;try{t=JSON.parse(localStorage.getItem(CLE_TABLE)||'null')}catch(e){t=null}
+  if(!t||typeof t.c!=='string'||!/^[a-z0-9]{3,5}$/.test(t.c)||!(Date.now()-t.at<REPRISE_MAX))return null;
+  return t;
+}
+function afficherReprise(){
+  const z=$('reprise');if(!z)return;
+  const t=tableAReprendre();
+  z.hidden=!t||table!=null;
+  z.innerHTML=t?'<div class="pausebar"><b>Tu étais à la table '+t.c.toUpperCase()+'</b>'
+    +'Ta place et tes jetons t’attendent si la partie continue.'
+    +'<button class="p" style="display:block;width:100%;margin-top:10px" onclick="reprendrePartie()">Reprendre ma partie</button>'
+    +'<button class="petit" style="margin-top:8px" onclick="oublierTable()">Non merci</button></div>':'';
+}
+function reprendrePartie(){
+  const t=tableAReprendre();if(!t)return afficherReprise();
+  $('jc').value=t.c;joinTable();
+}
 function quitterPartie(){
   stopClock();clearTimeout(actTimer);clearTimeout(syncT);clearInterval(watch);
+  oublierTable();               /* il a quitte expres : on ne lui propose pas d'y retourner */
   if(table){try{table.leave()}catch(e){}}
-  table=null;hostPeer=null;myPeer=null;seatPeer=[];tcode='';
+  table=null;hostPeer=null;myPeer=null;seatPeer=[];seatDev=[];partiDepuis={};tcode='';
   MODE='solo';isHost=true;absent=false;absents={};dernMain=-1;finEnregistree=false;
   spectateur=false;etatFini=false;dernierEnvoi=0;
   P=null;board=[];L=[];ended=false;cur=null;
@@ -2236,7 +2615,8 @@ function quitterPartie(){
   mySeat=0;scr('home');paint();
 }
 function scr(n){['home','solo','join','room','train'].forEach(x=>$('sc-'+x).hidden=x!==n);
-  document.body.classList.toggle('toile',n==='home');voile(true);phase=n}
+  document.body.classList.toggle('toile',n==='home');voile(true);phase=n;
+  if(n==='home')afficherReprise()}
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='tcin'){
     e.preventDefault();envoyerTchat();return;
@@ -2354,6 +2734,13 @@ function equiteSurBoard(main,set,brd,essais){
     n++;
   }
   return n?pts/n:0;
+}
+/* on ajoute les meilleures mains manquantes pour atteindre un pourcentage vise */
+function elargir(set,f){
+  if(f<=1)return set;
+  const out=new Set(topPct(Math.min(100,largeur(set)*f)));
+  set.forEach(c=>out.add(c));
+  return out;
 }
 /* sous-ensemble le plus fort d'une range, ramene a un pourcentage de mains */
 function resserrer(set,f){
@@ -2735,12 +3122,14 @@ async function openTable(c,asHost){
     const me=table.peers().filter(p=>p.isMe&&p.sameTab);
     myPeer=me.length?me[0].peer:null;
     if(asHost)hostPeer=myPeer;
-    table.presence({n:U.name,a:U.av});
+    /* d : empreinte de cet appareil pour CETTE table ; t : heure d'arrivee */
+    table.presence({n:U.name,a:U.av,d:empreinte(c),t:Date.now()});
+    if(!asHost)memoTable(c);     /* apres un rechargement, on proposera de revenir ici */
     table.onPeers(()=>{
       const m=table.peers().filter(p=>p.isMe&&p.sameTab);if(m.length)myPeer=m[0].peer;
       if(asHost&&!hostPeer)hostPeer=myPeer;
       if(phase==='room')roomList();
-      if(isHost&&P)sync();
+      if(isHost&&P){if(!reprendreSieges())sync()}
       else if(!isHost&&table)try{table.emit('hello',{})}catch(e){}
     });
     table.on('st',m=>{
@@ -2755,6 +3144,11 @@ async function openTable(c,asHost){
       if(i<0||cur!==i||!P[i]||P[i].bot)return;
       const d=m.data||{},t=d.a==='f'?'f':d.a==='r'?'r':'c';
       act(P[i],t,Math.max(0,Math.min(1e7,+d.to||0)));
+    });
+    table.on('rebuy',m=>{
+      if(!isHost||!P||!cash()||(m.isMe&&m.sameTab))return;
+      const i=seatPeer.indexOf(m.peer);
+      if(i>=0&&P[i]&&!P[i].empty){P[i].rebuy=true;if(enAttente)startHand();else sync()}
     });
     table.on('emo',m=>{
       if(m.isMe&&m.sameTab)return;
@@ -2801,6 +3195,7 @@ function battement(){
   if(!net()||!table)return;
   const t=Date.now();
   if(isHost){
+    reprendreSieges();        /* filet de securite si un changement de salle a ete manque */
     if(P&&phase==='play'&&t-dernierEnvoi>2600){
       dernierEnvoi=t;try{table.emit('st',snapshot())}catch(e){}
     }
@@ -2827,6 +3222,7 @@ async function joinTable(){
   if(await openTable(c,false)){scr('room');roomList();paint()}
 }
 function leaveTable(){
+  oublierTable();               /* depart volontaire : rien a reprendre */
   try{if(table)table.leave()}catch(e){}
   table=null;hostPeer=null;MODE='solo';isHost=true;clearInterval(watch);scr('home');
 }
@@ -2835,9 +3231,10 @@ function hostStart(){
   const ps=table.peers().filter(p=>p.kind==='viewer');
   const mine=ps.filter(p=>p.peer===myPeer),rest=ps.filter(p=>p.peer!==myPeer);
   const ordered=mine.concat(rest).slice(0,NSEAT);
-  seatPeer=[];const seats=[];
-  ordered.forEach(p=>{seatPeer.push(p.peer);seats.push({name:clean(p.presence.n)||'Joueur',av:clean(p.presence.a)||'🙂'})});
-  if(botFill){let bi=0;while(seats.length<NSEAT){seatPeer.push(null);seats.push({name:BOTS[bi],av:AVB[bi],bot:true});bi++}}
+  seatPeer=[];seatDev=[];partiDepuis={};absents={};const seats=[];
+  ordered.forEach(p=>{seatPeer.push(p.peer);seatDev.push((p.presence&&p.presence.d)||null);
+    seats.push({name:clean(p.presence.n)||'Joueur',av:clean(p.presence.a)||'🙂'})});
+  if(botFill){let bi=0;while(seats.length<NSEAT){seatPeer.push(null);seatDev.push(null);seats.push({name:BOTS[bi],av:AVB[bi],bot:true});bi++}}
   if(seats.length<2)return;
   mySeat=seatPeer.indexOf(myPeer);if(mySeat<0)mySeat=0;
   phase='play';voile(false);raz_tchat();
@@ -2908,6 +3305,8 @@ function setPlaces(k){NSEAT=k;paint();sauver();if(phase==='room')roomList()}
 function setBots(k){G.bots=k;paint();sauver()}
 function setCave(c){G.cave=c;paint();sauver()}
 function setRythme(r){G.rythme=r;paint();sauver()}
+const MODES=[['tournoi','Tournoi'],['cash','Cash game']];
+function setMode(m){G.mode=m;paint();sauver()}
 function rename(v){v=clean(v).trim();U.name=v||'Toi';sauver();if(table)table.presence({n:U.name});
   if(P&&P[mySeat]&&!net()){P[mySeat].n=U.name;render()}}
 function paint(){
@@ -2924,6 +3323,7 @@ function paint(){
     +(tchatOuvert?' style="background:var(--gold)"':'')+'>💬'
     +(tcNonLus?'<sup>'+tcNonLus+'</sup>':'')+'</button>'
     +'<button onclick="openC()" title="Calculatrice" aria-label="Calculatrice">🧮</button>'
+    +(cash()&&!spectateur?'<button onclick="demanderRecave()" title="Recaver" aria-label="Recaver">🔄</button>':'')
     +'<button onclick="basculerAbsence()" title="'+(absent?'Revenir à la table':'S\'absenter')
     +'" aria-label="'+(absent?'Revenir':'S\'absenter')+'"'+(absent?' style="background:var(--gold)"':'')
     +'>'+(absent?'▶️':'⏸️')+'</button></div>';
@@ -2936,6 +3336,10 @@ function paint(){
   $('i-cave').innerHTML=caveBtns;$('r-cave').innerHTML=caveBtns;
   const ryBtns=RYTHMES.map(r=>'<button aria-pressed="'+(G.rythme===r[0])+'" onclick="setRythme('+r[0]+')">'+r[1]+'</button>').join('');
   $('i-ry').innerHTML=ryBtns;$('r-ry').innerHTML=ryBtns;
+  const moBtns=MODES.map(m=>'<button aria-pressed="'+(G.mode===m[0])+'" onclick="setMode(\''+m[0]+'\')">'+m[1]+'</button>').join('');
+  if($('i-mode'))$('i-mode').innerHTML=moBtns;if($('r-mode'))$('r-mode').innerHTML=moBtns;
+  if($('i-rywrap'))$('i-rywrap').hidden=cash();   /* en cash les blinds ne montent pas */
+  if($('r-rywrap'))$('r-rywrap').hidden=cash();
   if($('r-places'))$('r-places').innerHTML=PLACES.map(k=>'<button aria-pressed="'+(NSEAT===k)
     +'" onclick="setPlaces('+k+')">'+k+' joueurs</button>').join('');
   $('r-fill').innerHTML='<button aria-pressed="'+botFill+'" onclick="setFill(true)">Compléter à '+NSEAT+' avec des bots</button>'

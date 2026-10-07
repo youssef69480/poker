@@ -21,13 +21,15 @@
 
   function config() {
     var c = window.CONFIG_POKER || {};
-    var u = (c.url || "").trim().replace(/\/+$/, "");
+    var u = (c.url || "").trim();
     var k = (c.cle || "").trim();
     if (!u || !k) return null;
-    if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(u)) {
+    /* on tolere qu'on ait colle l'adresse de l'API REST : on ne garde que le domaine */
+    var m = u.match(/^https:\/\/([a-z0-9-]+\.supabase\.(?:co|in))(?:\/.*)?$/i);
+    if (!m) {
       throw { code: "adresse Supabase invalide (attendu https://xxxx.supabase.co)" };
     }
-    return { url: u, cle: k };
+    return { url: "https://" + m[1], cle: k };
   }
 
   /* identifiant unique de cet onglet, le temps de la session */
@@ -78,7 +80,9 @@
             kind: "viewer",
             presence: {
               n: dernierEtat && dernierEtat.n,
-              a: dernierEtat && dernierEtat.a
+              a: dernierEtat && dernierEtat.a,
+              d: dernierEtat && dernierEtat.d,   /* empreinte d'appareil : sert a rendre son siege a qui revient */
+              t: dernierEtat && dernierEtat.t    /* heure d'arrivee : le plus recent l'emporte */
             }
           });
         });
