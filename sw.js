@@ -1,7 +1,7 @@
 /* Cache de l'appli : elle se lance sans reseau une fois installee.
    A chaque mise a jour, change le numero de VERSION : les anciens
    fichiers sont alors effaces et les nouveaux telecharges. */
-const VERSION = 'poker-v14';
+const VERSION = 'poker-v15';
 const FICHIERS = ['./', './index.html', './cotes.html', './supabase.js',
   './config.js', './reseau.js', './manifest.json',
   './icone-192.png', './icone-512.png', './apple-touch-icon.png'];
