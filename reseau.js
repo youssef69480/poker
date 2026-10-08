@@ -110,7 +110,8 @@
               a: dernierEtat && dernierEtat.a,
               d: dernierEtat && dernierEtat.d,   /* empreinte d'appareil : sert a rendre son siege a qui revient */
               t: dernierEtat && dernierEtat.t,   /* heure d'arrivee : le plus recent l'emporte */
-              j: dernierEtat && dernierEtat.j    /* identifiant de joueur, pour le classement */
+              j: dernierEtat && dernierEtat.j,   /* identifiant de joueur, pour le classement */
+              k: dernierEtat && dernierEtat.k    /* cle publique : l'hote lui chiffre ses cartes */
             }
           });
         });
