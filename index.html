@@ -874,6 +874,23 @@ body.toile #ibox{padding-top:0}
 .badge.ok{opacity:1;border-color:#e3b95c73}.badge.ok .ic{filter:none}
 #hpanel .tabs button{flex:1 1 auto;padding:8px 6px}
 @media (prefers-reduced-motion:reduce){.succes{animation:none}}
+
+/* ---- revoir une main ---- */
+.anbtn.rj{background:#e3b95c26;color:var(--gold);border:1px solid #e3b95c6b}
+#ctl .rjbar{width:100%;display:flex;flex-direction:column;gap:9px}
+#ctl .rjtxt{display:flex;flex-direction:column;gap:2px;line-height:1.3;min-height:34px}
+#ctl .rjtxt b{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+#ctl .rjtxt span{font-size:14px;color:var(--ink)}
+#ctl .rjbtns{display:flex;gap:7px}
+#ctl .rjbtns button{flex:1;padding:13px 4px;font-size:15px;border-radius:11px;
+  background:var(--soft);color:var(--ink);border:1px solid var(--line)}
+#ctl .rjbtns button.p{flex:1.3;background:linear-gradient(176deg,#f0cd79,var(--gold));color:#2a1d05;border:0}
+#ctl .rjbtns button.f{flex:1.2;background:transparent;color:var(--dim);font-weight:600}
+#ctl .rjjauge{height:5px;border-radius:3px;background:var(--soft);overflow:hidden}
+#ctl .rjjauge i{display:block;height:100%;background:var(--gold);transition:width .25s}
+body.rejeu-actif #talk{visibility:hidden}
+body.rejeu-actif .seat.act .plaque{border-color:#ffffff1f;box-shadow:0 5px 14px -5px #000c}
+@media (min-width:900px){#ctl .rjbtns button{padding:14px 6px;font-size:16px}}
 </style></head><body><div id="app">
 <h1>Hold'em <span></span><button id="bhome" onclick="accueil()" aria-label="Accueil"><i>⌂</i><u>Accueil</u></button><button onclick="openH()" aria-label="Historique"><i>◷</i><u>Historique</u></button><button onclick="openP()" aria-label="Réglages"><i>⚙</i><u>Réglages</u></button></h1>
 <div class="sub" id="sub">Jetons fictifs · blinds 10/20</div>
@@ -1147,6 +1164,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v49 — revoir une main sur la table, coup par coup */
 /* v48 — cartes chiffrées pour chaque joueur, reprise de la table quand l'hôte recharge */
 /* v47 — succès, ante, straddle, run it twice, banque de temps, pré-actions */
 /* v46 — musique de fond lounge composée en direct (bouton 🎵) */
@@ -1308,7 +1326,7 @@ let sauveT=null;
 function aGarder(n){
   return{v:1,m43:1,u:U,g:G,lv:lvAll,fill:botFill,
          tr:trScore,trs:trStats,trn:trNiv,trt:trTheme,pl:NSEAT,
-         su:SU,cpt:CPT,hist:HIST.slice(-(n||60)),wins:WINS.slice(-(n||60)),pa:PARTIES.slice(-(n?40:200))};
+         su:SU,cpt:CPT,hist:HIST.slice(-(n||60)).map((h,k,l)=>(h&&h.rj&&k<l.length-(n?6:14))?Object.assign({},h,{rj:null}):h),wins:WINS.slice(-(n||60)),pa:PARTIES.slice(-(n?40:200))};
 }
 function ecrire(){
   if(!memoOK)return;
@@ -1483,6 +1501,10 @@ function startHand(){
       put(P[st],2*BB);curBet=2*BB;minR=2*BB;strSeat=st;cur=nxt(st,canAct);log(P[st].n+' straddle à '+fmt(2*BB))}
   }
   mainGagnante=null;
+  ouvrirPiste();
+  if(G.ante){const a=valeurAnte();P.forEach((q,i)=>{if(!q.fold&&q.tot>0)noter({t:'m',i:i,a:Math.min(a,q.tot),an:1})})}
+  noter({t:'m',i:sb,a:P[sb].bet});noter({t:'m',i:bb,a:P[bb].bet});
+  if(strSeat!=null)noter({t:'m',i:strSeat,a:P[strSeat].bet});
   blobs=null;if(net()&&isHost)chiffrerMains();
   /* on montre la donne (et on la transmet) avant que quiconque ne parle */
   render();sync();
@@ -1519,6 +1541,7 @@ function nextStage(){
   if(stage==1){board.push(deck.pop(),deck.pop(),deck.pop());street('Flop');son('carte')}
   else if(stage<4){board.push(deck.pop());street(stage==2?'Turn':'River');son('carte')}
   else return showdown();
+  noter({t:'b',b:board.map(enc)});
   if(runout)equities();
   cur=nxt(dealer,canAct);render();sync();
   setTimeout(step,Math.max(runout?1700:800,dureeBoard(stage===1?3:1)));
@@ -1539,6 +1562,7 @@ function act(p,t,to){
     else log(p.n+' suit (tapis)');
     if(add>0)son('jeton')
   }
+  noter({t:'a',i:i,k:t==='f'?'f':(t==='c'?'c':'r'),to:p.bet});
   p.acted=true;cur=nxt(i,canAct);step();
 }
 function neufMoi(pos){moi={vpip:false,pfr:false,flop:false,agg:0,pas:0,pos:pos||''}}
@@ -1880,9 +1904,12 @@ function calculerOuts(lv,rest){
     p.outsC=cartes[i];
   });
 }
-function award(w){const t=pot();w.chips+=t;res.push({w:w.n,amt:t});log(w.n+' remporte '+fmt(t)+' (les autres se sont couchés)');win1([w],t);end()}
+function award(w){const t=pot();w.chips+=t;res.push({w:w.n,amt:t});
+  noter({t:'w',w:[P.indexOf(w)],a:t,hn:''});
+  log(w.n+' remporte '+fmt(t)+' (les autres se sont couchés)');win1([w],t);end()}
 function showdown(){
-  const lv=P.filter(live);lv.forEach(p=>{p.show=true;p.sc=best(p.h.concat(board))});
+  const lv=P.filter(live);lv.forEach(p=>{p.show=true;p.sc=best(p.h.concat(board));
+    noter({t:'s',i:P.indexOf(p),h:p.h.map(enc)})});
   /* run it twice : la fin du tableau est redistribuee, chaque tableau rapporte la moitie de chaque pot */
   const deux=!!G.rit&&runout&&ritDe!=null&&ritDe<5&&lv.length>=2&&deck.length>=5-ritDe;
   board2=null;
@@ -1901,6 +1928,7 @@ function showdown(){
       const nm=nomMain(mx)+(dd?(bi?' · 2e tableau':' · 1er tableau'):'');
       if(!res.length)mainGagnante={c:[].concat.apply([],ws.map(w=>meilleure5(w.h.concat(bd)))).map(enc)};
       res.push({w:ws.map(w=>w.n).join(' et '),m:ws.length>1,amt:a,hn:nm});win1(ws,a);
+      noter({t:'w',w:ws.map(w=>P.indexOf(w)),a:a,hn:nm});
       log(ws.map(w=>w.n).join(' et ')+(ws.length>1?' gagnent ':' gagne ')+fmt(a)+' ('+nm+')');
     });
     prev=l;
@@ -1932,7 +1960,8 @@ function marques(){
 }
 function end(){
   etatFini=true;enCours=false;
-  HIST.push({n:handNo,me:P[mySeat].h.slice(),bd:board.slice(),d:P[mySeat].chips-hStart,
+  const rj=fermerPiste();derPiste=rj?{hn:handNo,t:rj}:null;
+  HIST.push({n:handNo,rj:rj,me:P[mySeat].h.slice(),bd:board.slice(),d:P[mySeat].chips-hStart,
              res:res.slice(),lg:logMain(),st:moi?Object.assign({},moi):null,fl:marques(),
              cp:coups.slice(),
              adv:P.map((p,i)=>({p:p,i:i})).filter(x=>x.i!==mySeat&&x.p.show&&x.p.h.length)
@@ -2479,6 +2508,7 @@ const MARQ={gros:'gros pot',beat:'bad beat',bluff:'bluff réussi',tapis:'tapis'}
 let filtre='tout';
 function setFiltre(f){filtre=f;openH()}
 function openH(){
+  if(rejeu)fermerRejeu();
   const hs=HIST.filter(h=>!h.sep),won=hs.filter(h=>h.d>0).length,bal=hs.reduce((a,h)=>a+h.d,0);
   const nbM=HIST.filter(h=>!h.sep&&h.fl&&h.fl.length).length;
   $('hfiltre').innerHTML='<button aria-pressed="'+(filtre==='tout')+'" onclick="setFiltre(\'tout\')">Toutes</button>'
@@ -2492,6 +2522,7 @@ function openH(){
     +(h.fl||[]).map(f=>'<span class="marque '+f+'">'+(MARQ[f]||f)+'</span>').join('')
     +'</div><div class="rejeu" id="rj'+h.n+'" hidden>'+((h.lg||[]).join('<br>')||'Pas de détail pour cette main.')
     +'<button class="petit anbtn" onclick="event.stopPropagation();analyser('+h.n+')">Relire mes décisions</button>'
+    +(h.rj?'<button class="petit anbtn rj" onclick="event.stopPropagation();ouvrirRejeu('+h.n+')">▶ Revoir la main sur la table</button>':'')
     +'<div class="an" id="an'+h.n+'"></div></div>'
     +'</div><span class="amt '+(h.d>0?'g':h.d<0?'l':'')+'">'+(h.d>0?'+':'')+fmt(h.d)+'</span></div>').join('')
     :'<p class="hr">'+(filtre==='marq'?'Aucune main marquante pour l\'instant — gros pot, bad beat, bluff réussi ou tapis.':'Aucune main terminée pour l\'instant.')+'</p>';
@@ -3587,6 +3618,162 @@ function equiteContreMains(moi,autres,brd){
   }
   return{eq:n?pts/n:0,exact:reste<=2,cas:n};
 }
+/* ===================== revoir une main =====================
+   Pendant la main, on note tout ce qui se passe : qui mise quoi, quelles cartes
+   tombent, qui montre son jeu. Apres coup, on rejoue la sequence sur la vraie table,
+   coup par coup, avec les memes animations. Rien n'est recalcule : on redonne juste
+   a l'affichage l'etat exact qu'il avait a cet instant-la. */
+let piste=null;                 /* la main en cours, telle qu'on la racontera */
+let derPiste=null;              /* la derniere main finie, a transmettre aux invites */
+let rejeu=null;                 /* la relecture en cours */
+function ouvrirPiste(){
+  if(!P)return;
+  piste={ms:mySeat,dl:dealer,sb:SB,bb:BB,sbs:sbSeat,bbs:bbSeat,sts:strSeat,
+    j:P.map((p,i)=>({n:p.n,av:p.av,b:p.bot?1:0,e:p.empty?1:0,c:startStacks[i]||0})),e:[]};
+}
+function noter(ev){if(piste)piste.e.push(ev)}
+/* a la fin, on ajoute les mains connues : en solo on montre tout, en ligne seulement
+   ce qui a ete abattu -- une main couchee reste couchee */
+function fermerPiste(){
+  if(!piste||!P)return null;
+  P.forEach((p,i)=>{if(p.h&&p.h.length===2&&(p.show||!net()))piste.j[i].h=p.h.map(enc)});
+  piste.g=mainGagnante?mainGagnante.c.slice():null;
+  const t=piste;piste=null;
+  return(t.e.length>2&&t.j.length>1)?t:null;
+}
+/* ---- rejouer ---- */
+function etatCourant(){
+  return{P:P,board:board,board2:board2,stage:stage,cur:cur,dealer:dealer,curBet:curBet,minR:minR,
+    runout:runout,etatFini:etatFini,res:res,mainGagnante:mainGagnante,sbSeat:sbSeat,bbSeat:bbSeat,
+    strSeat:strSeat,handNo:handNo,mySeat:mySeat,spectateur:spectateur,pend:pend,absents:absents,
+    ritDe:ritDe,shownFrom:shownFrom,moi:moi,SB:SB,BB:BB,L:L.slice(),sub:$('sub').textContent,ctl:$('ctl').innerHTML};
+}
+function rendreEtat(o){
+  P=o.P;board=o.board;board2=o.board2;stage=o.stage;cur=o.cur;dealer=o.dealer;curBet=o.curBet;
+  minR=o.minR;runout=o.runout;etatFini=o.etatFini;res=o.res;mainGagnante=o.mainGagnante;
+  sbSeat=o.sbSeat;bbSeat=o.bbSeat;strSeat=o.strSeat;handNo=o.handNo;mySeat=o.mySeat;
+  spectateur=o.spectateur;pend=o.pend;absents=o.absents;ritDe=o.ritDe;shownFrom=o.shownFrom;
+  moi=o.moi;SB=o.SB;BB=o.BB;L=o.L;peindreLog();$('sub').textContent=o.sub;
+}
+function mainDuRejeu(n){
+  const h=HIST.filter(x=>!x.sep).find(x=>x.n===n);
+  return(h&&h.rj&&h.rj.e&&h.rj.e.length)?h.rj:null;
+}
+function ouvrirRejeu(n){
+  const t=mainDuRejeu(n);if(!t)return;
+  if(P&&pend&&cur===mySeat&&!etatFini){log('C’est à toi — la relecture attendra.');return}
+  if(rejeu)return allerRejeu(0);
+  $('hv').hidden=true;
+  rejeu={t:t,n:n,i:-1,avant:etatCourant(),lecture:false,minuteur:null};
+  document.body.classList.add('rejeu-actif');
+  allerRejeu(0);
+}
+function fermerRejeu(){
+  if(!rejeu)return;
+  clearTimeout(rejeu.minuteur);
+  const a=rejeu.avant;rejeu=null;
+  document.body.classList.remove('rejeu-actif');
+  rendreEtat(a);
+  ANIM.hn=-1;ANIM.recu=null;ANIM.finCle='';
+  if(P)render();
+  if(P&&pend&&cur===mySeat&&!etatFini)controls();
+  else $('ctl').innerHTML=a.ctl;      /* les boutons d'avant reprennent leur place */
+  sousTitre();
+}
+/* on reconstruit l'etat au coup k en rejouant depuis le debut : court et sans surprise */
+function etatAu(t,k){
+  const P2=t.j.map(x=>({n:x.n,av:x.av,bot:!!x.b,empty:!!x.e,lv:1,chips:x.c,bet:0,tot:0,
+    fold:!!x.e,allin:false,acted:false,show:false,pos:'',eq:null,outs:null,outsC:[],
+    h:x.h?x.h.map(dec):[]}));
+  const o={P:P2,board:[],stage:0,cur:null,curBet:0,res:[],fini:false,montre:{},rue:0};
+  for(let z=0;z<=k&&z<t.e.length;z++){
+    const e=t.e[z];
+    if(e.t==='m'){const p=P2[e.i];if(!p)continue;const a=Math.min(e.a,p.chips);
+      p.chips-=a;p.tot+=a;if(!e.an)p.bet+=a;      /* l'ante va droit au pot, pas dans la mise */
+      if(!p.chips)p.allin=true;o.curBet=Math.max(o.curBet,p.bet)}
+    else if(e.t==='a'){
+      const p=P2[e.i];if(!p)continue;o.cur=e.i;
+      if(e.k==='f')p.fold=true;
+      else{const a=Math.min(Math.max(0,e.to-p.bet),p.chips);p.chips-=a;p.bet+=a;p.tot+=a;
+        if(!p.chips)p.allin=true;if(p.bet>o.curBet)o.curBet=p.bet}
+    }
+    else if(e.t==='b'){
+      P2.forEach(p=>{p.bet=0});o.curBet=0;o.cur=null;
+      o.board=(e.b||[]).map(dec);o.stage=o.board.length>=5?3:o.board.length>=4?2:1;
+    }
+    else if(e.t==='s'){const p=P2[e.i];if(p){p.show=true;if(e.h)p.h=e.h.map(dec)}}
+    else if(e.t==='w'){
+      P2.forEach(p=>{p.bet=0});o.cur=null;o.fini=true;
+      (e.w||[]).forEach(i=>{if(P2[i])P2[i].chips+=Math.floor(e.a/e.w.length)});
+      o.res.push({w:(e.w||[]).map(i=>P2[i]?P2[i].n:'?').join(' et '),m:(e.w||[]).length>1,amt:e.a,hn:e.hn||''});
+    }
+  }
+  return o;
+}
+function allerRejeu(k){
+  if(!rejeu)return;
+  const t=rejeu.t,n=t.e.length;
+  k=Math.max(0,Math.min(n-1,k));
+  const recule=k<rejeu.i;
+  rejeu.i=k;
+  const o=etatAu(t,k);
+  P=o.P;board=o.board;board2=null;stage=o.stage;cur=o.fini?null:o.cur;dealer=t.dl;
+  curBet=o.curBet;minR=t.bb;runout=false;ritDe=null;etatFini=o.fini;res=o.res;
+  sbSeat=t.sbs;bbSeat=t.bbs;strSeat=t.sts;mySeat=t.ms;spectateur=false;absents={};
+  SB=t.sb;BB=t.bb;handNo=-2;pend=false;moi=null;
+  mainGagnante=(o.fini&&t.g)?{c:t.g}:null;
+  if(k===0){ANIM.hn=-1;ANIM.recu=null;shownFrom=0}       /* la donne se rejoue */
+  render();
+  if(recule){ANIM.bd=board.length;ANIM.stage=stage;ANIM.bets=P.map(p=>p.bet);
+             ANIM.shows=P.map(p=>!!p.show);ANIM.finCle=o.fini?'x':''}
+  /* le journal raconte la main relue, ligne a ligne */
+  L=['— Main '+rejeu.n+', relecture —'];
+  for(let z=0;z<=k;z++){const x=texteEv(t,t.e[z]);if(x)L.push(x)}
+  if(L.length>40)L=L.slice(-40);
+  peindreLog();
+  $('sub').textContent='Relecture · main '+rejeu.n+' · blinds '+t.sb+'/'+t.bb;
+  barreRejeu();
+  if(rejeu.lecture){
+    clearTimeout(rejeu.minuteur);
+    if(k>=n-1)rejeu.lecture=false;
+    else rejeu.minuteur=setTimeout(()=>allerRejeu(k+1),t.e[k+1]&&t.e[k+1].t==='b'?1500:900);
+  }
+}
+function lireRejeu(){
+  if(!rejeu)return;
+  rejeu.lecture=!rejeu.lecture;
+  if(rejeu.lecture&&rejeu.i>=rejeu.t.e.length-1)return allerRejeu(0);
+  if(rejeu.lecture)allerRejeu(rejeu.i+1);else{clearTimeout(rejeu.minuteur);barreRejeu()}
+}
+const RUE_NOM=['Avant le flop','Flop','Turn','River'];
+function texteEv(t,e){
+  if(!e)return'';
+  const nom=i=>(t.j[i]&&t.j[i].n)||'?';
+  if(e.t==='m')return nom(e.i)+' mise '+fmt(e.a);
+  if(e.t==='a')return e.k==='f'?nom(e.i)+' se couche'
+    :e.k==='c'?nom(e.i)+' suit':nom(e.i)+' mise '+fmt(e.to);
+  if(e.t==='b')return RUE_NOM[(e.b||[]).length>=5?3:(e.b||[]).length>=4?2:1];
+  if(e.t==='s')return nom(e.i)+' montre son jeu';
+  if(e.t==='w')return(e.w||[]).map(nom).join(' et ')+' remporte '+fmt(e.a)+(e.hn?' ('+e.hn+')':'');
+  return'';
+}
+function texteRejeu(){return rejeu?texteEv(rejeu.t,rejeu.t.e[rejeu.i]):''}
+function barreRejeu(){
+  if(!rejeu)return;
+  const n=rejeu.t.e.length,k=rejeu.i;
+  $('ctl').innerHTML='<div class="rjbar">'
+    +'<div class="rjtxt"><b>Coup '+(k+1)+' sur '+n+'</b><span>'+texteRejeu()+'</span></div>'
+    +'<div class="rjbtns">'
+    +'<button onclick="allerRejeu(0)" title="Au début" aria-label="Au début">⏮</button>'
+    +'<button onclick="allerRejeu('+(k-1)+')"'+(k<=0?' disabled':'')+' aria-label="Coup précédent">◀</button>'
+    +'<button class="p" onclick="lireRejeu()" aria-label="'+(rejeu.lecture?'Pause':'Lecture')+'">'
+      +(rejeu.lecture?'❚❚':'▶')+'</button>'
+    +'<button onclick="allerRejeu('+(k+1)+')"'+(k>=n-1?' disabled':'')+' aria-label="Coup suivant">▶</button>'
+    +'<button class="f" onclick="fermerRejeu()">Fermer</button>'
+    +'</div>'
+    +'<div class="rjjauge"><i style="width:'+Math.round((k+1)/n*100)+'%"></i></div>'
+    +'</div>';
+}
 /* ===================== reseau ===================== */
 const enc=c=>c.r*4+c.s, dec=n=>({r:n>>2,s:n&3});
 /* ===================== l'hote qui recharge sa page =====================
@@ -3740,7 +3927,7 @@ function dechiffrerMain(blob,hn,i,pub){
 }
 
 function snapshot(){
-  return{cl:classement,sbs:sbSeat,bbs:bbSeat,hn:handNo,fin:ended||etatFini,dl:startStacks.length?P.map((q,i)=>q.chips-(startStacks[i]||0)):null,po:P.map(q=>q.pos||''),res:res.slice(),ck:U.clock,sb:SB,bb:BB,nv:niveau,mn:mainsNiveau,ry:G.rythme,sp:seatPeer,s:stage,c:cur,d:dealer,cb:curBet,mr:minR,ro:runout,ex:eqExact,en:ended,mo:G.mode,xo:[G.ante,G.str,G.rit],st2:strSeat,b2:board2?board2.map(enc):null,rd:ritDe,ab:P.map((q,i)=>absents[i]?1:0),b:board.map(enc),lg:L.slice(-14),mg:mainGagnante,
+  return{cl:classement,sbs:sbSeat,bbs:bbSeat,hn:handNo,fin:ended||etatFini,dl:startStacks.length?P.map((q,i)=>q.chips-(startStacks[i]||0)):null,po:P.map(q=>q.pos||''),res:res.slice(),ck:U.clock,sb:SB,bb:BB,nv:niveau,mn:mainsNiveau,ry:G.rythme,sp:seatPeer,s:stage,c:cur,d:dealer,cb:curBet,mr:minR,ro:runout,ex:eqExact,en:ended,mo:G.mode,rj:(etatFini&&derPiste&&derPiste.hn===handNo)?derPiste.t:null,xo:[G.ante,G.str,G.rit],st2:strSeat,b2:board2?board2.map(enc):null,rd:ritDe,ab:P.map((q,i)=>absents[i]?1:0),b:board.map(enc),lg:L.slice(-14),mg:mainGagnante,
     hk:maPub,hc:(blobs&&blobs.hn===handNo)?blobs.par:null,
     p:P.map((p,i)=>[p.n,p.av,p.lv,p.chips,p.bet,p.tot,
       (p.fold?1:0)|(p.allin?2:0)|(p.show?4:0)|(p.empty?8:0)|(p.bot?16:0),mainVisible(p,i),p.eq==null?-1:Math.round(p.eq*1000),p.outs==null?-1:p.outs,(p.outsC||[]).map(enc)])};
@@ -3762,6 +3949,9 @@ function sync(){
 function applyState(s){
   if(!s||!s.p)return;
   lastHeard=Date.now();
+  /* la table continue pendant qu'on relit : des que c'est a moi, on rend la main */
+  if(rejeu){const k=(s.sp||[]).indexOf(myPeer);
+    if(k>=0&&s.c===k&&!s.fin&&!s.ro&&s.p[k]&&!(s.p[k][6]&1))fermerRejeu();else return}
   if(typeof s.hk==='string'&&s.hk)hotePub=s.hk;
   /* mes deux cartes arrivent chiffrees : je suis le seul a pouvoir les ouvrir.
      On ne touche pas a ce qu'on a recu, on garde le clair de son cote. */
@@ -3795,7 +3985,7 @@ function applyState(s){
     if(s.hn!==dernMain){dernMain=s.hn;eqMinMoi=null;preAct=null;preEnCours='';neufMoi((s.po||[])[mySeat]||'');finEnregistree=false;coups=[]}
     if(s.fin&&!finEnregistree&&s.dl&&!spectateur){
       finEnregistree=true;
-      HIST.push({n:s.hn,me:mesH||(s.p[mySeat][7]||[]).map(dec),bd:(s.b||[]).map(dec),
+      HIST.push({n:s.hn,rj:s.rj||null,me:mesH||(s.p[mySeat][7]||[]).map(dec),bd:(s.b||[]).map(dec),
                  d:s.dl[mySeat]||0,res:(s.res||[]).slice(),lg:(s.lg||[]).slice(),
                  st:moi?Object.assign({},moi):null,cp:coups.slice(),
                  adv:s.p.map((a,i)=>({a:a,i:i}))
@@ -3845,6 +4035,7 @@ function roomList(){
 }
 let confirmeQuitter=null;
 function accueil(){
+  if(rejeu)fermerRejeu();
   const b=$('bhome'),dire=(ic,tx)=>{b.innerHTML='<i>'+ic+'</i><u>'+tx+'</u>'};
   if(P&&phase==='play'&&!ended&&!confirmeQuitter){
     dire('✕','Quitter ?');b.classList.add('warn');
