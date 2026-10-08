@@ -473,6 +473,7 @@ body.toile #ibox{padding-top:0}
 .clsrow .r{flex:0 0 24px;color:var(--gold);font-weight:700}
 .clsrow .n{flex:1}
 .clsrow .inf{flex:0 0 auto;color:var(--dim);font-size:12px;text-align:right;line-height:1.35;white-space:nowrap}
+.clsrow.moi .n{color:var(--gold)}.clsrow .elo{font-size:15px;color:var(--ink)}
 .tro{display:flex;gap:9px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:13px}
 .tro .rk{flex:0 0 26px;color:var(--gold);font-weight:700}
 .tro .nm{flex:1}
@@ -974,7 +975,7 @@ body.toile #ibox{padding-top:0}
 <div class="tabs"><button id="tb-h" onclick="tab('h')">Mes mains</button><button id="tb-s" onclick="tab('s')">Statistiques</button><button id="tb-w" onclick="tab('w')">Palmarès</button></div>
 <div id="pane-h"><p id="hsum"></p><div class="tabs" id="hfiltre"></div><div id="hl"></div></div>
 <div id="pane-s" hidden><div id="stats"></div></div>
-<div id="pane-w" hidden><p id="wsum"></p><div id="wtop"></div><div id="wl"></div></div>
+<div id="pane-w" hidden><div id="welo"></div><p id="wsum"></p><div id="wtop"></div><div id="wl"></div></div>
 <button class="p" onclick="$('hv').hidden=true">Fermer</button>
 </div></div>
 <div id="iv" hidden><div id="ipanel">
@@ -1068,6 +1069,8 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <h2>Réglages</h2>
 <div class="grp"><span>Thème</span><div class="opts" id="g-th"></div></div>
 <div class="grp"><span>Sons</span><div class="opts" id="g-sn"></div></div>
+<div class="grp"><span>Musique de fond</span><div class="opts" id="g-mu"></div>
+  <p class="hint">Une boucle lounge composée par l’appli, libre de droits. Elle se fait discrète quand c’est à toi.</p></div>
 <div class="grp"><span>Vibration quand c'est à toi</span><div class="opts" id="g-vb"></div></div>
 <div class="grp"><span>Temps pour jouer</span><div class="opts" id="g-ck"></div>
   <p class="hint">Passé le délai, ta main se couche — ou checke si c'est gratuit.</p></div>
@@ -1093,7 +1096,8 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
-/* v44 — la table habillée, cartes et sièges agrandis sur PC */
+/* v46 — musique de fond lounge composée en direct (bouton 🎵) */
+/* v45 — classement Elo entre potes, nouveaux sons, défense de BB, 3bets des bots, double clic corrigé */
 const S=['♠','♥','♦','♣'],R=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
 const HN=['carte haute','paire','double paire','brelan','quinte','couleur','full','carré','quinte flush'];
 /* ---- nom exact d'une main, reconstruit depuis le score de e5() ---- */
@@ -1176,10 +1180,12 @@ function empreinte(code){
   return(h2>>>0).toString(36)+(h1>>>0).toString(36);
 }
 let seatDev=[];          /* hote : siege -> empreinte de l'appareil qui l'occupe */
+let seatJ=[];            /* hote : siege -> identifiant de joueur, pour le classement */
+const JOUEUR=empreinte('classement');   /* le meme a chaque table, sans rien reveler du jeton */
 let partiDepuis={};      /* hote : siege -> heure ou sa connexion a disparu */
 let GRACE_DEPART=90000;  /* cash : delai avant qu'un bot tienne la place d'un absent */
 const U={felt:'#12452c',rail:'#5a3a1e',back:'#7a1f2b',bk:'casino',cs:'classic',dk:'four',bb:false,name:'Toi',av:'🙂',th:'dark',clock:30,vibr:true,son:true,
-         anim:1,crou:true};   /* anim : 1 normales, 2 rapides, 0 coupees */
+         anim:1,crou:true,mus:0};   /* mus : 0 coupee, 1 douce, 2 normale */   /* anim : 1 normales, 2 rapides, 0 coupees */
 const LV=[{n:'Débutant',k:'D',f:.10,r:.86,a:.22,z:.34,bl:0},
           {n:'Normal',k:'N',f:.22,r:.76,a:.50,z:.20,bl:.06},
           {n:'Expert',k:'E',f:.32,r:.68,a:.72,z:.09,bl:.16},
@@ -1247,7 +1253,7 @@ let sauveT=null;
 function aGarder(n){
   return{v:1,m43:1,u:U,g:G,lv:lvAll,fill:botFill,
          tr:trScore,trs:trStats,trn:trNiv,trt:trTheme,pl:NSEAT,
-         hist:HIST.slice(-(n||60)),wins:WINS.slice(-(n||60))};
+         hist:HIST.slice(-(n||60)),wins:WINS.slice(-(n||60)),pa:PARTIES.slice(-(n?40:200))};
 }
 function ecrire(){
   if(!memoOK)return;
@@ -1277,6 +1283,7 @@ function charger(){
   if(typeof d.trt==='number'&&THEMES[d.trt])trTheme=d.trt;
   if(Array.isArray(d.hist))HIST=d.hist.filter(h=>h&&typeof h==='object');
   if(Array.isArray(d.wins))WINS=d.wins.filter(w=>w&&w.at&&w.winner);
+  if(Array.isArray(d.pa))PARTIES=d.pa.filter(partieValide);
 }
 let effaceArme=null;
 function effacerDonnees(){
@@ -1321,7 +1328,7 @@ function sousTitre(){
 function newGame(seats){
   sbSeat=bbSeat=null;sortis=[];classement=null;
   lastSeats=seats;ended=false;niveau=0;mainsNiveau=0;appliquerNiveau();
-  ANIM.hn=-1;      /* nouvelle partie : la premiere donne doit etre jouee, meme numero de main ou pas */
+  ANIM.hn=-1;enCours=false;   /* nouvelle partie : la premiere donne doit etre jouee, meme numero de main ou pas */
   injecte=seats.filter(o=>!o.empty).length*G.cave;
   P=seats.map(mkPlayer);dealer=P.length-1;L=[];
   if(HIST.length)HIST.push({sep:true});handNo=0;startHand();
@@ -1345,7 +1352,7 @@ function construireClassement(){
   const ordre=debout.concat(sortisDesc.filter(i=>debout.indexOf(i)<0));
   classement=ordre.map((i,k)=>{
     const s=sortis.find(x=>x.i===i);
-    return{n:P[i].n,av:P[i].av,bot:!!P[i].bot,p:k+1,j:P[i].chips,m:s?s.main:handNo};
+    return{n:P[i].n,av:P[i].av,bot:!!P[i].bot,p:k+1,j:P[i].chips,m:s?s.main:handNo,i:i};
   });
   return classement;
 }
@@ -1358,12 +1365,16 @@ function finishGame(sansPodium){
   recordWin({at:Date.now(),code:net()?tcode.toUpperCase():'SOLO',mode:net()?'amis':'solo',
     winner:cl[0].n,av:cl[0].av,bot:cl[0].bot,hands:handNo,players:seated.map(p=>p.n),
     tous:seated.map(p=>({n:p.n,av:p.av,bot:!!p.bot,j:p.chips})),cl:cl});
+  if(net()&&isHost)enregistrerPartie(cl);
   log('🏆 '+cl[0].n+' remporte la partie.');son(w===P[mySeat]?'gain':'fin');
   if(!sansPodium)setTimeout(montrerPodium,350);
 }
+let enCours=false;   /* une main est distribuee et pas encore reglee : on n'en relance pas une autre par-dessus */
 function startHand(){
   if(!P||phase!=='play')return;
+  if(enCours)return;   /* double clic sur « Main suivante » pendant la donne : les blindes poses seraient perdus */
   clearTimeout(actTimer);stopClock();
+  nf=nf2=null;
   if(net()&&isHost)reprendreSieges();   /* qui est parti, qui est revenu, avant de distribuer */
   if(cash()){
     /* cash game : personne n'est éliminé. Les sièges qui arrivent ou repartent
@@ -1383,6 +1394,7 @@ function startHand(){
       sync();return;
     }
   }
+  enCours=true;$('ctl').innerHTML=attente('Distribution…');pend=false;
   deck=[];for(let s=0;s<4;s++)for(let r=2;r<=14;r++)deck.push({r,s});
   for(let i=51;i>0;i--){const j=Math.random()*(i+1)|0;[deck[i],deck[j]]=[deck[j],deck[i]]}
   if(!cash()&&G.rythme&&mainsNiveau>=G.rythme&&niveau<PALIERS.length-1){
@@ -1478,7 +1490,7 @@ function noterCoup(t,to){
   const m=P[mySeat];
   coups.push({s:stage,b:board.map(enc),p:pot(),a:Math.max(0,curBet-m.bet),
               t:t,to:to||0,n:P.filter(live).length-1,pos:m.pos||'',
-              cb:curBet,bb:BB,cd:hcode(m.h)});
+              cb:curBet,bb:BB,cd:hcode(m.h),op:stage===0?ouvreurDe(m):''});
   if(coups.length>24)coups.shift();
 }
 function myAct(t,to){
@@ -1551,9 +1563,12 @@ function preflop(p){
     return need?act(p,'f'):act(p,'c');
   }
   if(curBet<=4*BB){
-    if(R3V.has(c)&&Math.random()<.85)return to(curBet*3);
-    if(p.lv===2&&R3B.has(c)&&Math.random()<.4)return to(curBet*3);
-    const call=p.lv===0?DEF.BB:p.lv===1?DEF[LOOSE[pos]]:DEF[pos];
+    /* valeur pure, valeur elargie, bluffs : un joueur qui ne 3bette qu'avec les as se lit tout seul */
+    const tb=p.lv===2?[.97,.8,.7]:p.lv===1?[.92,.55,.15]:[.6,0,0];
+    if(R3V.has(c)&&Math.random()<tb[0])return to(curBet*3);
+    if(R3P.has(c)&&Math.random()<tb[1])return to(curBet*3);
+    if(R3F.has(c)&&Math.random()<tb[2])return to(curBet*3);
+    const call=p.lv===0?DEF.BB:pos==='BB'?defenseBB(ouvreurDe(p)):p.lv===1?DEF[LOOSE[pos]]:DEF[pos];
     return(need&&!yes(call))?act(p,'f'):act(p,'c');
   }
   if(R4.has(c)&&Math.random()<.7)return to(curBet*2.3);
@@ -1656,7 +1671,7 @@ function preflopRequin(p,need,eff){
       return act(p,'r',Math.max(curBet+minR,Math.round(curBet*3/10)*10));
     /* en grosse blinde on a deja paye une blinde : la cote justifie de voir
        beaucoup plus de flops qu'ailleurs */
-    const def=pos==='BB'?elargir(DEF.BB,1.35):(DEF[pos]||DEF.BB);
+    const def=pos==='BB'?defenseBB(ouvreurDe(p)):(DEF[pos]||DEF.BB);
     return(need&&!def.has(c))?act(p,'f'):act(p,'c');
   }
   if(R4.has(c))return act(p,'r',Math.max(curBet+minR,Math.round(curBet*2.3/10)*10));
@@ -1835,7 +1850,7 @@ function marques(){
   return f;
 }
 function end(){
-  etatFini=true;
+  etatFini=true;enCours=false;
   HIST.push({n:handNo,me:P[mySeat].h.slice(),bd:board.slice(),d:P[mySeat].chips-hStart,
              res:res.slice(),lg:logMain(),st:moi?Object.assign({},moi):null,fl:marques(),
              cp:coups.slice(),
@@ -1876,8 +1891,8 @@ function say(i,txt){
 function pick1(a){return a[Math.random()*a.length|0]}
 /* ---- sons de synthese : aucun fichier a charger ---- */
 let AC=null;
-function reveiller(){
-  if(!U.son)return null;
+function reveiller(force){
+  if(!U.son&&!force)return null;
   try{
     if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
     if(AC.state==='suspended')AC.resume();
@@ -1895,14 +1910,206 @@ function bip(freq,duree,type,vol,retard){
   o.connect(g);g.connect(a.destination);
   o.start(t);o.stop(t+duree+0.02);
 }
+/* Les sons de la table, fabriques a partir de bruit filtre : une carte qui glisse est
+   un souffle aigu, un jeton en ceramique est un choc bref suivi d'une petite resonance. */
+let BRUIT=null;
+function bruit(a){
+  if(BRUIT&&BRUIT.sampleRate===a.sampleRate)return BRUIT;
+  const n=Math.floor(a.sampleRate*.6),buf=a.createBuffer(1,n,a.sampleRate),d=buf.getChannelData(0);
+  for(let k=0;k<n;k++)d[k]=Math.random()*2-1;
+  return BRUIT=buf;
+}
+function souffle(o){
+  const a=reveiller();if(!a)return;
+  const t=a.currentTime+(o.retard||0);
+  const src=a.createBufferSource();src.buffer=bruit(a);
+  const f=a.createBiquadFilter();f.type=o.type||'bandpass';f.Q.value=o.q||1;
+  f.frequency.setValueAtTime(o.f,t);if(o.f2)f.frequency.exponentialRampToValueAtTime(o.f2,t+o.dur);
+  const g=a.createGain();
+  g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(o.vol,t+(o.att||.002));
+  g.gain.exponentialRampToValueAtTime(0.0001,t+o.dur);
+  src.connect(f);f.connect(g);g.connect(a.destination);
+  src.start(t,Math.random()*.4);src.stop(t+o.dur+.03);
+}
+function tinte(fr,dur,vol,retard){
+  const a=reveiller();if(!a)return;
+  const t=a.currentTime+(retard||0),o=a.createOscillator(),g=a.createGain();
+  o.type='sine';o.frequency.setValueAtTime(fr,t);o.frequency.exponentialRampToValueAtTime(fr*.985,t+dur);
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+dur+.03);
+}
+function clac(retard,force){              /* un jeton qui en touche un autre */
+  const k=force||1;
+  souffle({f:3600+Math.random()*1400,q:4,dur:.03,vol:.11*k,retard:retard});
+  souffle({f:1100,type:'lowpass',q:.7,dur:.022,vol:.06*k,retard:retard});
+  tinte(2700+Math.random()*900,.07,.02*k,retard);
+}
 function son(quoi){
   if(!U.son)return;
-  if(quoi==='carte')bip(1800,0.05,'triangle',0.035);
-  else if(quoi==='jeton'){bip(900,0.045,'square',0.022);bip(1200,0.04,'square',0.018,0.055)}
-  else if(quoi==='tour'){bip(660,0.12,'sine',0.05);bip(880,0.16,'sine',0.05,0.1)}
-  else if(quoi==='gain'){bip(523,0.13,'sine',0.05);bip(659,0.13,'sine',0.05,0.1);bip(784,0.26,'sine',0.055,0.2)}
+  if(quoi==='carte'){                    /* la carte glisse sur le tapis puis claque */
+    souffle({f:1800,f2:5200,q:.7,dur:.085,vol:.075,att:.014});
+    souffle({f:4800,q:2.5,dur:.018,vol:.045,retard:.07});
+  }
+  else if(quoi==='jeton'){
+    clac(0,1);clac(.04+Math.random()*.012,.75);
+    if(Math.random()<.5)clac(.085+Math.random()*.02,.5);
+  }
+  else if(quoi==='melange'){             /* le croupier mele le paquet : un battement rapide qui accelere */
+    let t=0;for(let k=0;k<22;k++){souffle({f:3200+Math.random()*1800,q:2,dur:.014,vol:.045,retard:t});t+=.03-k*.0007}
+  }
+  else if(quoi==='tour'){bip(784,0.22,'sine',0.035);bip(1175,0.3,'sine',0.028,0.11)}
+  else if(quoi==='gain'){                /* une pile de jetons ramassee */
+    for(let k=0;k<10;k++)clac(k*.045+Math.random()*.03,1-k*.06);
+    bip(1047,0.35,'sine',0.02,0.42);
+  }
   else if(quoi==='fin'){bip(392,0.18,'sine',0.045);bip(330,0.3,'sine',0.04,0.16)}
 }
+/* ---- musique de fond : une boucle lounge jouee en direct, composee ici (aucun fichier, aucun droit) ----
+   Piano electrique en accords, contrebasse, balais sur la caisse claire, et un vibraphone qui
+   improvise de temps en temps sur les notes de l'accord. Grille de 8 mesures en re mineur, swing leger. */
+const MUS={on:false,arret:null,minu:null,t0:0,pas:0,mel:72,der:1,
+           bus:null,duck:null,vol:null,duckCible:1};
+const MUS_TEMPO=74,MUS_B=60/MUS_TEMPO;          /* duree d'un temps */
+const MUS_GRILLE=[                               /* basse + voicing du piano (notes midi) */
+  {b:38,q:45,v:[53,57,60,64]},    /* Dm9    */
+  {b:43,q:38,v:[53,57,59,64]},    /* G13    */
+  {b:36,q:43,v:[52,55,59,62]},    /* Cmaj9  */
+  {b:45,q:40,v:[55,59,61,65]},    /* A7(b13)*/
+  {b:38,q:45,v:[53,57,60,64]},    /* Dm9    */
+  {b:43,q:38,v:[53,57,59,64]},    /* G13    */
+  {b:41,q:36,v:[52,55,57,60]},    /* Fmaj7  */
+  {b:40,q:45,v:[50,55,58,62]}     /* E7(b9) -> retour sur Dm */
+];
+const MUS_COMP=[[0,3],[0,5],[1,4,6],[0,3,6],[0,6]];   /* ou tombent les accords dans la mesure (croches) */
+function hz(m){return 440*Math.pow(2,(m-69)/12)}
+function musBus(a){
+  if(MUS.bus&&MUS.bus.context===a)return;
+  const vol=a.createGain();vol.gain.value=0;
+  const comp=a.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;
+  const duck=a.createGain();duck.gain.value=1;
+  const bus=a.createGain();bus.gain.value=1;
+  /* une petite salle : reponse impulsionnelle fabriquee avec du bruit qui s'eteint */
+  const n=Math.floor(a.sampleRate*2.2),ir=a.createBuffer(2,n,a.sampleRate);
+  for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let k=0;k<n;k++)d[k]=(Math.random()*2-1)*Math.pow(1-k/n,3.2)}
+  const rev=a.createConvolver();rev.buffer=ir;
+  const humide=a.createGain();humide.gain.value=.28;
+  bus.connect(duck);bus.connect(rev);rev.connect(humide);humide.connect(duck);
+  duck.connect(vol);vol.connect(comp);comp.connect(a.destination);
+  MUS.bus=bus;MUS.duck=duck;MUS.vol=vol;
+}
+function musVolume(){return [0,.45,.8][U.mus]||0}
+/* ---- les instruments ---- */
+function musPiano(a,m,t,dur,v){               /* piano electrique : fondamentale + harmonique + petite attaque */
+  const f=hz(m),g=a.createGain(),lp=a.createBiquadFilter();
+  lp.type='lowpass';lp.frequency.value=2400;
+  g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(v,t+.006);
+  g.gain.exponentialRampToValueAtTime(v*.35,t+.25);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  [[1,1],[2,.22],[3.98,.05]].forEach(([r,k],i)=>{
+    const o=a.createOscillator(),og=a.createGain();o.type='sine';o.frequency.value=f*r;
+    og.gain.value=k;
+    if(i===2){og.gain.setValueAtTime(k,t);og.gain.exponentialRampToValueAtTime(0.0001,t+.12)}
+    o.connect(og);og.connect(lp);o.start(t);o.stop(t+dur+.05);
+  });
+  lp.connect(g);g.connect(MUS.bus);
+}
+function musBasse(a,m,t,dur,v){
+  const o=a.createOscillator(),g=a.createGain(),lp=a.createBiquadFilter();
+  o.type='triangle';o.frequency.value=hz(m);
+  lp.type='lowpass';lp.frequency.setValueAtTime(900,t);lp.frequency.exponentialRampToValueAtTime(320,t+.25);
+  g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(v,t+.012);
+  g.gain.exponentialRampToValueAtTime(v*.4,t+.18);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(lp);lp.connect(g);g.connect(MUS.bus);o.start(t);o.stop(t+dur+.05);
+}
+function musBalai(a,t,dur,v,f){               /* balai : bruit filtre, attaque douce */
+  const s=a.createBufferSource();s.buffer=bruit(a);
+  const bp=a.createBiquadFilter();bp.type='bandpass';bp.frequency.value=f||5200;bp.Q.value=.8;
+  const g=a.createGain();
+  g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(v,t+dur*.3);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  s.connect(bp);bp.connect(g);g.connect(MUS.bus);s.start(t,Math.random()*.4);s.stop(t+dur+.03);
+}
+function musVibra(a,m,t,v){                   /* vibraphone : son pur, longue tenue, leger tremolo */
+  const f=hz(m),g=a.createGain(),o=a.createOscillator(),o2=a.createOscillator(),g2=a.createGain();
+  o.type='sine';o.frequency.value=f;o2.type='sine';o2.frequency.value=f*4;g2.gain.value=.08;
+  const lfo=a.createOscillator(),lg=a.createGain();lfo.frequency.value=5.2;lg.gain.value=v*.25;
+  lfo.connect(lg);lg.connect(g.gain);
+  g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(v,t+.004);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+1.6);
+  o.connect(g);o2.connect(g2);g2.connect(g);g.connect(MUS.bus);
+  [o,o2,lfo].forEach(x=>{x.start(t);x.stop(t+1.65)});
+}
+/* ---- la partition, croche par croche ---- */
+function musHeure(p){return MUS.t0+Math.floor(p/2)*MUS_B+(p%2?MUS_B*.64:0)}   /* croches swinguees */
+let musMotif=MUS_COMP[0];
+function musCroche(a,p,t){
+  const k=p%8,mes=Math.floor(p/8),ac=MUS_GRILLE[mes%8],suiv=MUS_GRILLE[(mes+1)%8],tour=Math.floor(mes/8);
+  if(k===0)musMotif=MUS_COMP[(mes*7+tour*3+(Math.random()<.3?1:0))%MUS_COMP.length];
+  /* piano */
+  if(musMotif.indexOf(k)>=0){
+    const long=k===0?MUS_B*3.2:MUS_B*1.1,v=(k===0?.05:.038)*(.85+Math.random()*.3);
+    ac.v.forEach((m,i)=>musPiano(a,m,t+i*.008,long,v));
+  }
+  /* basse : fondamentale, quinte, puis une note de passage vers l'accord suivant */
+  if(k===0)musBasse(a,ac.b,t,MUS_B*1.9,.16);
+  else if(k===4)musBasse(a,Math.random()<.6?ac.q:ac.b+(ac.b<41?12:0),t,MUS_B*1.5,.13);
+  else if(k===7&&Math.random()<.55)musBasse(a,suiv.b+(Math.random()<.5?1:-1),t,MUS_B*.6,.1);
+  /* balais : le "chhh" sur 2 et 4, des petites frappes de cymbale sur le swing */
+  if(k===2||k===6)musBalai(a,t,.28,.035,3800);
+  if(k%2===1||k===0||k===4)musBalai(a,t,.07,k%2?.012:.016,8200);
+  /* vibraphone : improvise dans la seconde moitie de la grille, pas a chaque tour */
+  if(mes%8>=4&&tour%2===0){
+    const chance=k%2?.22:.4;
+    if(Math.random()<chance){
+      const notes=[];ac.v.forEach(m=>{[12,24].forEach(o=>{const x=m+o;if(x>=64&&x<=84)notes.push(x)})});
+      notes.sort((x,y)=>x-y);
+      let i=notes.findIndex(x=>x>=MUS.mel);if(i<0)i=notes.length-1;
+      i=Math.max(0,Math.min(notes.length-1,i+(Math.random()<.5?-1:1)*(1+(Math.random()<.3?1:0))));
+      MUS.mel=notes[i];musVibra(a,MUS.mel,t,.04);
+    }
+  }
+}
+function musTic(){
+  const a=AC;if(!a||!MUS.on)return;
+  const now=a.currentTime;
+  if(musHeure(MUS.pas)<now-.05){              /* l'onglet a dormi : on repart proprement sur une mesure */
+    MUS.pas=Math.ceil(MUS.pas/8)*8;MUS.t0=now+.1-(MUS.pas/2)*MUS_B;
+  }
+  while(musHeure(MUS.pas)<now+.4){musCroche(a,MUS.pas,musHeure(MUS.pas));MUS.pas++}
+  musAmbiance();
+}
+function musDemarrer(){
+  const a=reveiller(true);if(!a)return;
+  musBus(a);
+  clearTimeout(MUS.arret);MUS.arret=null;
+  const g=MUS.vol.gain,now=a.currentTime;
+  g.cancelScheduledValues(now);g.setValueAtTime(g.value,now);g.linearRampToValueAtTime(musVolume(),now+1.5);
+  if(MUS.on)return;
+  MUS.on=true;MUS.pas=0;MUS.t0=now+.15;
+  clearInterval(MUS.minu);MUS.minu=setInterval(musTic,90);musTic();
+}
+function musArreter(){
+  if(!MUS.on||!AC||!MUS.vol)return;
+  const g=MUS.vol.gain,now=AC.currentTime;
+  g.cancelScheduledValues(now);g.setValueAtTime(g.value,now);g.linearRampToValueAtTime(0,now+.8);
+  clearTimeout(MUS.arret);
+  MUS.arret=setTimeout(()=>{MUS.on=false;clearInterval(MUS.minu);MUS.minu=null},900);
+}
+function musAppliquer(){
+  if(U.mus>0)MUS.der=U.mus;
+  if(U.mus>0&&!document.hidden)musDemarrer();else musArreter();
+}
+function basculerMusique(){U.mus=U.mus?0:(MUS.der||1);musAppliquer();paint();sauver()}
+/* plus bas pendant mon tour et a l'abattage, pour entendre la table et reflechir */
+function musAmbiance(){
+  if(!MUS.on||!MUS.duck||!AC)return;
+  const sd=typeof etatFini!=='undefined'&&etatFini&&Array.isArray(res)&&res.some(r=>r&&r.hn);
+  const c=(typeof pend!=='undefined'&&pend)?.45:sd?.55:1;
+  if(c===MUS.duckCible)return;
+  MUS.duckCible=c;MUS.duck.gain.setTargetAtTime(c,AC.currentTime,.35);
+}
+/* le navigateur exige un geste avant de jouer du son : on lance au premier toucher si la musique etait allumee */
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{if(U.mus>0&&!MUS.on&&!document.hidden)musDemarrer()},{passive:true}));
+document.addEventListener('visibilitychange',()=>{if(document.hidden)musArreter();else if(U.mus>0)musDemarrer()});
 function talk(i,kind,chance){
   if(!P||!P[i]||!P[i].bot)return;
   const v=VOICE[BOTS.indexOf(P[i].n)];if(!v||!v[kind])return;
@@ -2103,7 +2310,7 @@ function hcards(a){return a.map(c=>'<span class="s'+c.s+'">'+R[c.r-2]+S[c.s]+'</
 function tab(t){
   curTab=t;
   ['h','s','w'].forEach(x=>{$('pane-'+x).hidden=t!==x;$('tb-'+x).setAttribute('aria-pressed',t===x)});
-  if(t==='w')paintWins();
+  if(t==='w'){paintWins();chargerClassement()}
   if(t==='s')paintStats();
 }
 function pc(x){return(x*100).toFixed(0)+' %'}
@@ -2245,7 +2452,7 @@ function verdictRange(c){
         +(dans?' m\u00e9ritait une ouverture.':' m\u00e9ritait la poubelle.')};
   }
   /* quelqu'un a ouvert devant toi */
-  const ch=DEF[c.pos]||DEF.BB;
+  const ch=c.pos==='BB'?defenseBB(c.op||'BTN'):(DEF[c.pos]||DEF.BB);
   const val=R3V.has(code),blf=R3B.has(code),def=ch.has(code);
   const l=largeur(ch).toFixed(0);
   if(c.t==='r')return{juge:true,juste:val||blf,txt:val
@@ -2340,6 +2547,7 @@ function texteAnalyse(h){
 }
 function dstr(ms){const d=new Date(ms);return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}
 function paintWins(){
+  peindreElo();
   const w=WINS.slice().sort((a,b)=>b.at-a.at);
   const tot={};
   w.forEach(g=>{const k=g.winner;if(!tot[k])tot[k]={n:0,av:g.av,bot:g.bot};tot[k].n++});
@@ -2381,6 +2589,99 @@ function paintWins(){
     +((g.cl&&g.cl.length>1)?'<br>puis '+g.cl.slice(1,3).map(x=>x.p+'. '+x.n).join(' · '):'')
     +'</div></span></div>').join('')
     :'<p class="hr">Aucune partie terminée pour l\'instant. Le palmarès se remplit quand un joueur rafle tous les jetons.</p>';
+}
+/* ===================== classement entre potes =====================
+   A la fin d'un tournoi joue a plusieurs humains, l'hote l'enregistre. Le classement
+   est un Elo : tout le monde part de 1000 ; battre quelqu'un de mieux classe rapporte
+   plus que battre un debutant. Les bots ne comptent pas. */
+let PARTIES=[];
+let classementSource='local';      /* local | attente | partage | erreur */
+function stockageCommun(){
+  if(window.STOCKAGE_RESEAU)return window.STOCKAGE_RESEAU;           /* l'appli installee : Supabase */
+  if(db)return{                                                       /* le lien Claude */
+    ajouter:r=>db.collection('parties').add(r),
+    lister:async()=>{const q=await db.collection('parties').orderBy('at','desc').limit(400).get();
+      return q.docs.map(d=>d.data())}};
+  return null;
+}
+function partieValide(r){
+  return!!r&&typeof r.at==='number'&&Array.isArray(r.joueurs)&&r.joueurs.length>=2&&r.joueurs.length<=10
+    &&r.joueurs.every(x=>x&&typeof x.p==='number'&&x.p>=1&&x.p<=10);
+}
+function ajouterPartieLocale(r){
+  if(!partieValide(r))return false;
+  if(PARTIES.some(x=>x.at===r.at&&x.code===r.code))return false;
+  PARTIES.push(r);PARTIES.sort((a,b)=>a.at-b.at);
+  if(PARTIES.length>300)PARTIES.splice(0,PARTIES.length-300);
+  return true;
+}
+function enregistrerPartie(cl){
+  const joueurs=cl.map(x=>{
+    const hum=P[x.i]&&!P[x.i].bot;
+    return{id:hum?(x.i===mySeat?JOUEUR:(seatJ[x.i]||null)):null,n:x.n,av:x.av,p:x.p,bot:!hum};
+  });
+  if(joueurs.filter(x=>x.id).length<2)return null;            /* contre des bots seulement : ca ne compte pas */
+  const rec={v:1,at:Date.now(),code:(tcode||'').toUpperCase(),mains:handNo,joueurs:joueurs};
+  ajouterPartieLocale(rec);sauver();
+  const st=stockageCommun();
+  if(st)Promise.resolve().then(()=>st.ajouter(rec)).catch(()=>{classementSource='erreur'});
+  return rec;
+}
+async function chargerClassement(){
+  const st=stockageCommun();
+  if(!st){classementSource='local';return}
+  if(classementSource!=='partage')classementSource='attente';
+  try{
+    const l=await st.lister();
+    let neuf=false;(l||[]).forEach(r=>{if(ajouterPartieLocale(r))neuf=true});
+    if(neuf)sauver();
+    classementSource='partage';
+  }catch(e){classementSource='erreur'}
+  if(curTab==='w'&&!$('hv').hidden)peindreElo();
+}
+function calculerElo(){
+  const R={},I={};
+  PARTIES.forEach(g=>{
+    const vus={},hs=g.joueurs.filter(x=>x.id&&!x.bot&&typeof x.id==='string'&&!vus[x.id]&&(vus[x.id]=1));
+    if(hs.length<2)return;
+    const K=32/(hs.length-1),d={};
+    hs.forEach(x=>{
+      if(R[x.id]==null)R[x.id]=1000;d[x.id]=0;
+      const f=I[x.id]||(I[x.id]={parties:0,vict:0,podiums:0});
+      f.n=clean(x.n)||'Joueur';f.av=clean(x.av)||'🙂';f.parties++;
+      if(x.p===1)f.vict++;if(x.p<=3)f.podiums++;
+    });
+    for(let a=0;a<hs.length;a++)for(let b=a+1;b<hs.length;b++){
+      const A=hs[a],B=hs[b],ea=1/(1+Math.pow(10,(R[B.id]-R[A.id])/400));
+      const sa=A.p<B.p?1:A.p>B.p?0:.5;
+      d[A.id]+=K*(sa-ea);d[B.id]-=K*(sa-ea);
+    }
+    hs.forEach(x=>{R[x.id]+=d[x.id]});
+  });
+  return Object.keys(I).map(id=>Object.assign({id:id,elo:Math.round(R[id])},I[id]))
+    .sort((a,b)=>b.elo-a.elo||b.vict-a.vict||b.parties-a.parties);
+}
+function peindreElo(){
+  const z=$('welo');if(!z)return;
+  const l=calculerElo();
+  const note={
+    local:'Gardé sur cet appareil seulement.',
+    attente:'Chargement du classement partagé…',
+    partage:'Partagé entre tous ceux qui jouent sur ton appli.',
+    erreur:window.STOCKAGE_RESEAU
+      ?'Le classement partagé ne répond pas : la table « poker_parties » existe-t-elle sur ton Supabase ? En attendant, voici ce que cet appareil connaît.'
+      :'Le classement partagé ne répond pas. En attendant, voici ce que cet appareil connaît.'
+  }[classementSource]||'';
+  z.innerHTML='<div class="gtitre" style="margin-top:2px">Classement entre potes</div>'
+    +'<p class="gsous">Elo : tout le monde part de 1000, et battre un joueur mieux classé rapporte plus. '
+    +'Seuls les tournois joués à plusieurs humains comptent.</p>'
+    +(l.length?l.slice(0,20).map((x,k)=>'<div class="clsrow'+(x.id===JOUEUR?' moi':'')+'">'
+        +'<span class="r">'+(k+1)+'</span><span>'+x.av+'</span>'
+        +'<span class="n">'+x.n+(x.id===JOUEUR?' <span class="ct">toi</span>':'')+'</span>'
+        +'<span class="inf"><b class="elo">'+x.elo+'</b><br>'+x.vict+' victoire'+(x.vict>1?'s':'')
+        +' · '+x.parties+' partie'+(x.parties>1?'s':'')+'</span></div>').join('')
+      :'<p class="hr">Aucun tournoi entre potes terminé pour l’instant.</p>')
+    +'<p class="an-note" style="margin-bottom:14px">'+note+'</p>';
 }
 async function loadWins(){
   if(!db)return;
@@ -2489,7 +2790,8 @@ function reprendreSieges(){
   };
   /* une empreinte arrivee apres le placement : on la rattache a son siege */
   pairs.forEach(p=>{const i=seatPeer.indexOf(p.peer);
-    if(i>=0&&p.presence&&p.presence.d&&!seatDev[i])seatDev[i]=p.presence.d});
+    if(i>=0&&p.presence&&p.presence.d&&!seatDev[i])seatDev[i]=p.presence.d;
+    if(i>=0&&p.presence&&typeof p.presence.j==='string'&&!seatJ[i])seatJ[i]=p.presence.j.slice(0,40)});
   /* departs : on note l'heure, le siege et les jetons restent a lui */
   seatPeer.forEach((pe,i)=>{
     if(pe&&pe!==myPeer&&!vivants.has(pe)&&partiDepuis[i]==null&&P[i]&&!P[i].bot){
@@ -2554,13 +2856,14 @@ function accueillirNouveaux(){
   nouveaux.forEach(v=>{
     const libre=k=>P[k]&&!seatPeer[k]&&(P[k].bot||P[k].empty);
     let i=P.findIndex((q,k)=>libre(k)&&!q.remplace);
-    if(i<0&&P.length<NSEAT){i=P.length;P.push(mkPlayer({name:'',av:'',empty:true}));seatPeer.push(null);seatDev.push(null)}
+    if(i<0&&P.length<NSEAT){i=P.length;P.push(mkPlayer({name:'',av:'',empty:true}));seatPeer.push(null);seatDev.push(null);seatJ.push(null)}
     if(i<0)i=P.findIndex((q,k)=>libre(k)&&q.remplace&&partiDepuis[k]!=null&&Date.now()-partiDepuis[k]>15*60000);
     if(i<0)return;   /* table pleine */
     const vieux=P[i].empty?0:Math.max(0,P[i].chips);
     injecte+=G.cave-vieux;
     P[i]=mkPlayer({name:clean(v.presence&&v.presence.n)||'Joueur',av:clean(v.presence&&v.presence.a)||'🙂'});
-    seatPeer[i]=v.peer;seatDev[i]=(v.presence&&v.presence.d)||null;delete partiDepuis[i];absents[i]=false;
+    seatPeer[i]=v.peer;seatDev[i]=(v.presence&&v.presence.d)||null;
+    seatJ[i]=(v.presence&&typeof v.presence.j==='string'&&v.presence.j.slice(0,40))||null;delete partiDepuis[i];absents[i]=false;
     log(P[i].n+' rejoint la table');
   });
 }
@@ -2817,6 +3120,7 @@ function distribuer(){
   for(let k=1;k<=n;k++){const j=(dealer+k)%n;if(P[j]&&P[j].h&&P[j].h.length&&!P[j].empty)qui.push(j)}
   if(!v||!qui.length){ANIM.recu=null;return}
   ANIM.recu=P.map(()=>0);
+  son('melange');
   const pas=85/v,dur=320/v,o=origineCartes();
   let k=0;
   for(let r=0;r<2;r++)qui.forEach(i=>{
@@ -3146,7 +3450,7 @@ function reprendrePartie(){
 function quitterPartie(){
   stopClock();clearTimeout(actTimer);clearTimeout(syncT);clearInterval(watch);
   oublierTable();               /* il a quitte expres : on ne lui propose pas d'y retourner */
-  ANIM.hn=-1;ANIM.recu=null;
+  ANIM.hn=-1;ANIM.recu=null;enCours=false;
   if(table){try{table.leave()}catch(e){}}
   table=null;hostPeer=null;myPeer=null;seatPeer=[];seatDev=[];partiDepuis={};tcode='';
   MODE='solo';isHost=true;absent=false;absents={};dernMain=-1;finEnregistree=false;
@@ -3181,6 +3485,20 @@ function maj(t){return t.charAt(0).toUpperCase()+t.slice(1)}
 function nbC(c){return c.length===2?6:(c.endsWith('s')?4:12)}
 function largeur(set){let t=0;set.forEach(c=>t+=nbC(c));return t/1326*100}
 function rangMain(c){let t=0;for(const x of CLASSEMENT){t+=nbC(x);if(x===c)break}return t/1326*100}
+/* ---- defendre la grosse blinde ----
+   On a deja paye une blinde : la cote permet de voir beaucoup de flops, d'autant plus
+   que l'ouvreur est tardif. On jouera hors de position, donc on garde surtout ce qui
+   touche fort ou se joue bien : paires, assorties, connectees ; les depareillees
+   decousues partent en premier. D'apres les charts usuels a 100 BB, ouverture 2,5-3 BB, sans ante. */
+const DEFBB={
+  UTG:parseR('22+ A2s+ K7s+ Q9s+ J9s+ T8s+ 97s+ 86s+ 75s+ 64s+ 54s A9o+ KTo+ QTo+ JTo'),
+  HJ: parseR('22+ A2s+ K5s+ Q8s+ J8s+ T8s+ 97s+ 86s+ 75s+ 64s+ 53s+ A8o+ K9o+ Q9o+ J9o+ T9o'),
+  CO: parseR('22+ A2s+ K2s+ Q6s+ J7s+ T7s+ 96s+ 85s+ 74s+ 63s+ 53s+ 43s A5o+ K8o+ Q9o+ J9o+ T8o+ 98o'),
+  BTN:parseR('22+ A2s+ K2s+ Q4s+ J6s+ T6s+ 95s+ 85s+ 74s+ 63s+ 53s+ 43s A2o+ K7o+ Q8o+ J8o+ T8o+ 97o+ 87o 76o'),
+  SB: parseR('22+ A2s+ K2s+ Q2s+ J4s+ T5s+ 95s+ 84s+ 73s+ 62s+ 52s+ 42s+ 32s A2o+ K4o+ Q7o+ J8o+ T7o+ 97o+ 86o+ 76o 65o')
+};
+function defenseBB(vpos){return DEFBB[vpos]||DEFBB.BTN}
+function ouvreurDe(p){const o=P&&P.find(q=>q!==p&&q.agresseur&&!q.fold);return o?o.pos:'BTN'}
 const _ctop={};
 function topPct(p){
   const k=p.toFixed(1);if(_ctop[k])return _ctop[k];
@@ -3392,7 +3710,7 @@ function qDefense(nv){
 }
 function repDefense(v){
   const q=trQ,c=q.code;
-  const large=resserrer(DEF.BB,DEFPOS[q.vpos]||1);
+  const large=defenseBB(q.vpos);
   const valeur=R3V.has(c),bluff=R3B.has(c),suit=large.has(c);
   const bonne=valeur?'r':(bluff?'r':(suit?'c':'f'));
   const aussi=bluff?['c']:[];                 /* un 3bet de bluff n'est jamais obligatoire */
@@ -3667,7 +3985,7 @@ async function openTable(c,asHost){
     myPeer=me.length?me[0].peer:null;
     if(asHost)hostPeer=myPeer;
     /* d : empreinte de cet appareil pour CETTE table ; t : heure d'arrivee */
-    table.presence({n:U.name,a:U.av,d:empreinte(c),t:Date.now()});
+    table.presence({n:U.name,a:U.av,d:empreinte(c),j:JOUEUR,t:Date.now()});
     if(!asHost)memoTable(c);     /* apres un rechargement, on proposera de revenir ici */
     table.onPeers(()=>{
       const m=table.peers().filter(p=>p.isMe&&p.sameTab);if(m.length)myPeer=m[0].peer;
@@ -3775,10 +4093,11 @@ function hostStart(){
   const ps=table.peers().filter(p=>p.kind==='viewer');
   const mine=ps.filter(p=>p.peer===myPeer),rest=ps.filter(p=>p.peer!==myPeer);
   const ordered=mine.concat(rest).slice(0,NSEAT);
-  seatPeer=[];seatDev=[];partiDepuis={};absents={};const seats=[];
+  seatPeer=[];seatDev=[];seatJ=[];partiDepuis={};absents={};const seats=[];
   ordered.forEach(p=>{seatPeer.push(p.peer);seatDev.push((p.presence&&p.presence.d)||null);
+    seatJ.push((p.presence&&typeof p.presence.j==='string'&&p.presence.j.slice(0,40))||null);
     seats.push({name:clean(p.presence.n)||'Joueur',av:clean(p.presence.a)||'🙂'})});
-  if(botFill){let bi=0;while(seats.length<NSEAT){seatPeer.push(null);seatDev.push(null);seats.push({name:BOTS[bi],av:AVB[bi],bot:true});bi++}}
+  if(botFill){let bi=0;while(seats.length<NSEAT){seatPeer.push(null);seatDev.push(null);seatJ.push(null);seats.push({name:BOTS[bi],av:AVB[bi],bot:true});bi++}}
   if(seats.length<2)return;
   mySeat=seatPeer.indexOf(myPeer);if(mySeat<0)mySeat=0;
   phase='play';voile(false);raz_tchat();
@@ -3822,13 +4141,14 @@ const OPTS={
   dk:[['two','2 couleurs'],['four','4 couleurs']],
   bb:[[false,'Jetons'],[true,'Big blinds']],
   anim:[[1,'Normales'],[2,'Rapides'],[0,'Coupées']],
-  crou:[[true,'Visible'],[false,'Masqué']]
+  crou:[[true,'Visible'],[false,'Masqué']],
+  mus:[[0,'Coupée'],[1,'Douce'],[2,'Normale']]
 };
 function opt(key){
   return OPTS[key].map((o,i)=>'<button aria-pressed="'+(U[key]===o[0])+'" onclick="pickI(\''+key+'\','+i+')">'+o[1]+'</button>').join('');
 }
 function pickI(k,i){pick(k,OPTS[k][i][0])}
-function pick(k,v){U[k]=v;apply();paint();sauver();if(k==='clock'){sync();if(pend)startClock()}}
+function pick(k,v){U[k]=v;if(k==='mus')musAppliquer();apply();paint();sauver();if(k==='clock'){sync();if(pend)startClock()}}
 function apply(){
   const r=document.documentElement.style;
   r.setProperty('--felt',U.felt);r.setProperty('--rail',U.rail);r.setProperty('--back',U.back);
@@ -3863,7 +4183,7 @@ function paint(){
   $('g-th').innerHTML=opt('th');$('g-ck').innerHTML=opt('clock');$('g-vb').innerHTML=opt('vibr');$('g-sn').innerHTML=opt('son');
   $('g-bk').innerHTML=opt('bk');$('g-cs').innerHTML=opt('cs');
   $('g-dk').innerHTML=opt('dk');$('g-bb').innerHTML=opt('bb');
-  if($('g-an'))$('g-an').innerHTML=opt('anim');if($('g-cr'))$('g-cr').innerHTML=opt('crou');
+  if($('g-an'))$('g-an').innerHTML=opt('anim');if($('g-cr'))$('g-cr').innerHTML=opt('crou');if($('g-mu'))$('g-mu').innerHTML=opt('mus');
   $('talk').classList.toggle('emo-ouvert',emosOuvert);
   $('talk').innerHTML='<div id="emos" role="menu">'
     +EMO.map(e=>'<button onclick="sendEmo(\''+e+'\');basculerEmos(false)" aria-label="Envoyer '+e+'">'+e+'</button>').join('')
@@ -3874,6 +4194,8 @@ function paint(){
     +(tchatOuvert?' style="background:var(--gold)"':'')+'>💬'
     +(tcNonLus?'<sup>'+tcNonLus+'</sup>':'')+'</button>'
     +'<button onclick="openC()" title="Calculatrice" aria-label="Calculatrice">🧮</button>'
+    +'<button onclick="basculerMusique()" title="Musique de fond" aria-label="Musique de fond" aria-pressed="'+(U.mus>0)+'"'
+    +(U.mus>0?' style="background:var(--gold)"':'')+'>🎵</button>'
     +(cash()&&!spectateur?'<button onclick="demanderRecave()" title="Recaver" aria-label="Recaver">🔄</button>':'')
     +'<button onclick="basculerAbsence()" title="'+(absent?'Revenir à la table':'S\'absenter')
     +'" aria-label="'+(absent?'Revenir':'S\'absenter')+'"'+(absent?' style="background:var(--gold)"':'')

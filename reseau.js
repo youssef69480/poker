@@ -32,6 +32,38 @@
     return { url: "https://" + m[1], cle: k };
   }
 
+  function obtenirClient(c) {
+    if (client) return client;
+    c = c || config();
+    if (!c || !window.supabase || !window.supabase.createClient) return null;
+    client = window.supabase.createClient(c.url, c.cle, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      realtime: { params: { eventsPerSecond: 40 } }
+    });
+    return client;
+  }
+
+  /* ---- le classement entre potes : une table toute simple, voir supabase-classement.sql ---- */
+  var configure = false;
+  try { configure = !!config(); } catch (e) { configure = false; }
+  if (configure) {
+    window.STOCKAGE_RESEAU = {
+      ajouter: async function (rec) {
+        var cl = obtenirClient();
+        if (!cl) throw { code: "bibliotheque reseau absente" };
+        var r = await cl.from("poker_parties").insert({ donnees: rec });
+        if (r.error) throw r.error;
+      },
+      lister: async function () {
+        var cl = obtenirClient();
+        if (!cl) throw { code: "bibliotheque reseau absente" };
+        var r = await cl.from("poker_parties").select("donnees").order("cree", { ascending: false }).limit(400);
+        if (r.error) throw r.error;
+        return (r.data || []).map(function (x) { return x.donnees; });
+      }
+    };
+  }
+
   /* identifiant unique de cet onglet, le temps de la session */
   var MOI = "p" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
@@ -41,12 +73,7 @@
     if (!window.supabase || !window.supabase.createClient) {
       throw { code: "bibliotheque reseau absente" };
     }
-    if (!client) {
-      client = window.supabase.createClient(c.url, c.cle, {
-        auth: { persistSession: false, autoRefreshToken: false },
-        realtime: { params: { eventsPerSecond: 40 } }
-      });
-    }
+    obtenirClient(c);
     return {
       join: function (nom) { return rejoindre(nom); }
     };
@@ -82,7 +109,8 @@
               n: dernierEtat && dernierEtat.n,
               a: dernierEtat && dernierEtat.a,
               d: dernierEtat && dernierEtat.d,   /* empreinte d'appareil : sert a rendre son siege a qui revient */
-              t: dernierEtat && dernierEtat.t    /* heure d'arrivee : le plus recent l'emporte */
+              t: dernierEtat && dernierEtat.t,   /* heure d'arrivee : le plus recent l'emporte */
+              j: dernierEtat && dernierEtat.j    /* identifiant de joueur, pour le classement */
             }
           });
         });
