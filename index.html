@@ -891,6 +891,239 @@ body.toile #ibox{padding-top:0}
 body.rejeu-actif #talk{visibility:hidden}
 body.rejeu-actif .seat.act .plaque{border-color:#ffffff1f;box-shadow:0 5px 14px -5px #000c}
 @media (min-width:900px){#ctl .rjbtns button{padding:14px 6px;font-size:16px}}
+
+/* ======================= v50 : l'accueil, sur le feutre ======================= */
+#feutre{display:none}
+body.toile #intro{background:#0b0a0c}
+body.toile #feutre{display:block;position:fixed;inset:-17% -31%;z-index:0;pointer-events:none;
+  border-radius:50%;background:#12452c;
+  background-image:
+    repeating-linear-gradient(48deg,#ffffff07 0 1px,transparent 1px 3px),
+    repeating-linear-gradient(-48deg,#00000012 0 1px,transparent 1px 3px),
+    radial-gradient(60% 42% at 50% 18%,#ffffff2e 0%,#ffffff0d 40%,transparent 72%),
+    radial-gradient(118% 100% at 50% 42%,transparent 34%,#00000085 78%,#000000c4 100%);
+  box-shadow:inset 0 0 0 26px #5a3a1e,inset 0 0 0 29px #ffffff1a}
+body.toile #ibox{position:relative;z-index:1}
+#sc-home{text-align:left}
+
+/* le poste du croupier, en fond : il distribue en boucle */
+.ac-tapis{position:relative;z-index:0;text-align:center;padding:22px 0 2px;margin:0 0 13px}
+.ac-croup{position:absolute;left:50%;top:40px;width:2px;height:2px;transform:translateX(-50%);pointer-events:none;z-index:-1}
+.ac-croup .vole{position:absolute;left:-11px;top:0;width:22px;height:31px;border-radius:4px;opacity:0;
+  background:#7a1f2b;background-image:repeating-linear-gradient(45deg,#ffffff1f 0 1px,transparent 1px 5px);
+  border:1px solid #f3ebda80;box-shadow:0 6px 14px -4px #000000a6;
+  animation:ac-donne 4.6s cubic-bezier(.22,.8,.3,1) infinite}
+.ac-croup .vole.b{animation-name:ac-donne-d}
+@keyframes ac-donne{0%{transform:translate(0,0) rotate(-4deg) scale(.72);opacity:0}
+  14%{opacity:.62}52%{transform:translate(-112px,104px) rotate(-17deg) scale(1);opacity:.62}
+  70%,100%{transform:translate(-112px,104px) rotate(-17deg) scale(1);opacity:0}}
+@keyframes ac-donne-d{0%{transform:translate(0,0) rotate(4deg) scale(.72);opacity:0}
+  24%{opacity:0}38%{opacity:.62}74%{transform:translate(112px,104px) rotate(17deg) scale(1);opacity:.62}
+  90%,100%{transform:translate(112px,104px) rotate(17deg) scale(1);opacity:0}}
+[data-anim="0"] .ac-croup .vole{animation:none;opacity:0}
+@media (prefers-reduced-motion:reduce){.ac-croup .vole{animation:none;opacity:0}}
+.ac-eventail{position:relative;display:inline-flex;align-items:flex-end;margin-bottom:8px}
+.ac-eventail .ac-hc{width:42px;height:59px;border-radius:6px;box-shadow:0 9px 18px #00000080;
+  background:linear-gradient(177deg,#fffdf7,#ece3cd);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;font-family:Fraunces,Georgia,serif;font-weight:900;color:#16130f;font-size:16px;line-height:1}
+.ac-eventail .ac-hc i{font-style:normal;font-size:12px}
+.ac-eventail .a1{transform:rotate(-13deg);margin-right:-12px}
+.ac-eventail .a2{transform:translateY(-6px);margin-right:-12px}
+.ac-eventail .a2 b,.ac-eventail .a2 i{color:#b3261e}
+.ac-eventail .a3{transform:rotate(13deg);background:#7a1f2b;border:1.5px solid #f3ebda;
+  background-image:radial-gradient(circle at 50% 50%,#ffffff24 0 15%,transparent 16%),
+    repeating-linear-gradient(45deg,#ffffff17 0 1px,transparent 1px 5px),
+    repeating-linear-gradient(-45deg,#ffffff17 0 1px,transparent 1px 5px)}
+#ibox #sc-home .ac-titre{position:relative;margin:0;font-family:Fraunces,Georgia,serif;font-weight:900;
+  font-size:31px;line-height:.95;letter-spacing:-.025em;color:#f8f4e8;text-shadow:0 3px 18px #000000a6;text-align:center}
+#ibox #sc-home .ac-titre em{font-style:normal;color:#e3b95c}
+#ibox #sc-home .ac-accroche{margin:6px 0 0;font-size:12.5px;color:#f6f1e4c7;text-align:center}
+
+.ac-colonnes{display:flex;flex-direction:column;gap:12px}
+.ac-gauche,.ac-droite{display:contents}
+.ac-moi{order:1}#sc-home .avp{order:2}.ac-actes{order:3}
+#ac-carte{order:4}#ac-derniere{order:5}.ac-pills{order:6;margin-top:4px}#netnote{order:7}
+#ac-carte:empty,#ac-derniere:empty{display:none}
+
+/* la plaque de nom, comme a la table */
+.ac-moi{display:flex;align-items:center;gap:9px;padding:5px 16px 5px 5px;border-radius:999px;
+  background:linear-gradient(180deg,#24201ff5,#110e0ff8);border:1px solid #ffffff24;border-top-color:#ffffff42;
+  box-shadow:0 8px 20px -7px #000000cc}
+#sc-home .ac-moi .tete{flex:0 0 auto;width:42px;height:42px;padding:2px;border-radius:50%;border:0;
+  background:#ffffff26;font-size:20px;line-height:1}
+#sc-home .ac-moi .tete::after{content:''}
+.ac-champ{flex:1 1 auto;min-width:0}
+#ibox #sc-home .ac-champ label{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:#a79f93;margin:0}
+#ibox #sc-home .ac-champ input{width:100%;padding:0;border:0;background:transparent;color:#f3ede1;
+  font:700 17px Fraunces,Georgia,serif;margin:0;border-radius:0}
+#sc-home .avp{margin:0;padding:10px 8px;background:#00000057;border:1px solid #ffffff1f;border-radius:13px}
+
+/* les actions */
+.ac-actes{display:flex;flex-direction:column;gap:8px}
+.ac-actes button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 16px;
+  border-radius:15px;font-weight:400}
+.ac-actes button b{display:block;font-size:16px;font-weight:700;line-height:1.2}
+.ac-actes button small{display:block;font-size:12px;line-height:1.3;margin-top:1px}
+.ac-solo{border:0;background:linear-gradient(176deg,#f2d088,#dcae48);color:#2a1d05;
+  box-shadow:0 10px 22px -10px #000000d9,inset 0 1px 0 #ffffff80}
+.ac-solo small{opacity:.74}
+.ac-creer{border:1px solid #ffffff33;background:#08160f94;color:#f1ece0}
+.ac-creer small{color:#f6f1e4a8}
+.ac-creer b{font-size:15px}
+.ac-actes .jet{flex:0 0 auto;width:29px;height:29px;border-radius:50%;
+  box-shadow:inset 0 0 0 2px #ffffff4d,0 2px 4px #0006;
+  background:repeating-conic-gradient(from 14deg,#f3eddf 0 11deg,var(--jc,#b3261e) 0 45deg)}
+.ac-actes .j-rouge{--jc:#b3261e}.ac-actes .j-vert{--jc:#1d7a4c}
+
+.ac-code{border:1px solid #ffffff33;border-radius:14px;background:#08160f94;padding:10px 13px 11px}
+#ibox #sc-home .ac-code label{display:block;font-size:11.5px;color:#f6f1e4b8;margin:0 0 8px}
+.ac-code .cases{display:flex;align-items:center;gap:7px}
+#ibox #sc-home .ac-code .cases input{flex:1 1 0;min-width:0;width:auto;height:42px;margin:0;padding:0;
+  text-align:center;border-radius:10px;border:1px solid #ffffff38;background:#0000004d;color:#f8f4e8;
+  font:700 19px Fraunces,Georgia,serif;text-transform:uppercase;letter-spacing:0}
+#ibox #sc-home .ac-code .cases input:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
+.ac-code .cases button{flex:0 0 auto;width:44px;height:42px;padding:0;border:0;border-radius:11px;
+  background:linear-gradient(176deg,#f2d088,#dcae48);display:flex;align-items:center;justify-content:center}
+.ac-code .cases button svg{width:20px;height:20px;fill:none;stroke:#2a1d05;stroke-width:2.4;
+  stroke-linecap:round;stroke-linejoin:round}
+.ac-code .cases button[disabled]{background:#ffffff1f}
+.ac-code .cases button[disabled] svg{stroke:#8d877e}
+#ibox #sc-home .ac-code .note{margin:8px 0 0;text-align:left}
+
+/* ce que l'appli sait de toi */
+.ac-bloc{border:1px solid #ffffff29;border-radius:15px;padding:11px 14px 12px;
+  background:linear-gradient(180deg,#14221ac7,#08120de0);
+  box-shadow:0 10px 24px -14px #000000e6}
+.ac-bloc .tete{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
+.ac-bloc .tete span{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#a79f93}
+.ac-bloc .tete em{margin-left:auto;font-style:normal;font-size:12px;color:var(--gold)}
+.ac-chiffres{display:flex;align-items:center;gap:13px}
+.ac-chiffres .gros{font-family:Fraunces,Georgia,serif;font-weight:900;font-size:27px;line-height:1;color:#f8f4e8}
+.ac-chiffres .sep{width:1px;align-self:stretch;background:#ffffff21}
+.ac-chiffres .lot{display:flex;gap:13px}
+.ac-chiffres .lot b{display:block;font-size:16px;font-weight:700;line-height:1.2}
+.ac-chiffres small,.ac-chiffres .lot small{display:block;font-size:10.5px;color:#a79f93;margin-top:2px}
+.ac-succ{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:9px;border-top:1px solid #ffffff1c}
+.ac-succ i{font-style:normal;font-size:17px;line-height:1}
+.ac-succ span{font-size:12.5px;color:#f6f1e4cc}
+.ac-succ span b{color:#f8f4e8}
+
+/* ta derniere main */
+.ac-dm{display:flex;align-items:center;gap:10px}
+.ac-dm .jeux{display:flex;align-items:center;gap:7px;flex:1 1 auto;min-width:0}
+.ac-dm .pq{display:flex;gap:2px}
+.ac-dm .pt{color:#ffffff38;font-size:12px}
+.ac-dm .mc{width:19px;height:26px;border-radius:4px;background:linear-gradient(162deg,#fffdf7,#f5eedc);
+  box-shadow:0 2px 4px #00000073;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:Fraunces,Georgia,serif;font-weight:900;font-size:9px;line-height:1;color:#16130f}
+.ac-dm .mc i{font-style:normal;font-size:7px}
+.ac-dm .mienne{width:21px;height:29px;font-size:10px;box-shadow:0 0 0 1.5px var(--gold),0 2px 5px #00000080}
+.ac-dm .mienne i{font-size:8px}
+.ac-dm .mc.s1,.ac-dm .mc.s1 i{color:#b3261e}
+.ac-dm .mc.s2,.ac-dm .mc.s2 i{color:#1763b8}
+.ac-dm .mc.s3,.ac-dm .mc.s3 i{color:#15774a}
+#sc-home .ac-revoir{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding:8px 12px;
+  border:1px solid #e3b95c80;border-radius:999px;background:#e3b95c29;color:var(--gold);
+  font:600 12.5px 'Hanken Grotesk',sans-serif}
+.ac-revoir svg{width:11px;height:11px;fill:currentColor}
+.ac-bilan{display:flex;align-items:center;gap:7px;margin-top:9px}
+.ac-bilan span{font-size:12.5px;color:#f6f1e4d1}
+.ac-bilan .g{color:#86d79b;font-weight:700}.ac-bilan .l{color:#e39a9a;font-weight:700}
+.ac-bilan .marque{margin-left:auto}
+
+/* les pastilles */
+.ac-pills{display:flex;flex-wrap:wrap;gap:7px}
+#sc-home .ac-pills button{flex:0 0 auto;padding:9px 13px;border-radius:999px;border:1px solid #ffffff2e;
+  background:#08160f8c;color:#dad3c6;font-size:13px;font-weight:500}
+#sc-home .ac-pills .p1{border-color:#e3b95c73;background:#e3b95c26;color:var(--gold);font-weight:600}
+
+/* le bandeau de reprise : ce qui compte quand une partie attend */
+#reprise{margin:0 0 12px}
+#reprise[hidden]{display:none}
+.ac-rep{border:1px solid #e3b95c9e;border-radius:16px;padding:13px 15px 14px;
+  background:linear-gradient(180deg,#3a2d12eb,#1a1409f2);box-shadow:0 12px 26px -12px #000000e6;
+  animation:ac-pulse 2.6s ease-in-out infinite}
+@keyframes ac-pulse{50%{box-shadow:0 0 0 5px #e3b95c1f,0 12px 26px -12px #000000e6}}
+@media (prefers-reduced-motion:reduce){.ac-rep{animation:none}}
+.ac-rep .l1{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.ac-rep .pt{width:8px;height:8px;border-radius:50%;background:#86d79b;box-shadow:0 0 0 3px #86d79b33}
+.ac-rep b{font-size:14.5px;color:#f8f4e8;font-weight:700}
+.ac-rep b u{font-family:Fraunces,Georgia,serif;letter-spacing:.12em;color:var(--gold);text-decoration:none}
+#sc-home .ac-rep .x{margin-left:auto;width:26px;height:26px;flex:0 0 auto;padding:0;border:0;border-radius:8px;
+  background:#ffffff14;color:#a79f93;font-size:15px;line-height:1}
+.ac-rep .l2{display:flex;align-items:center;gap:7px;margin-bottom:11px}
+.ac-rep .tetes{display:inline-flex}
+.ac-rep .tetes i{width:24px;height:24px;border-radius:50%;border:1.5px solid #12452c;font-style:normal;
+  background:radial-gradient(circle at 38% 32%,#3b3337,#141113);display:flex;align-items:center;
+  justify-content:center;font-size:12px}
+.ac-rep .tetes i+i{margin-left:-7px}
+.ac-rep .l2 span{font-size:12.5px;color:#f6f1e4c7}
+#sc-home .ac-rep .go{width:100%;padding:12px 14px;border:0;border-radius:12px;
+  background:linear-gradient(176deg,#f2d088,#dcae48);color:#2a1d05;font:700 15.5px 'Hanken Grotesk',sans-serif}
+/* quand une table attend, le reste s'efface */
+body.attend .ac-tapis{margin-bottom:10px}
+body.attend .ac-croup,body.attend .ac-accroche{display:none}
+body.attend .ac-eventail .ac-hc{width:28px;height:39px;font-size:11px;box-shadow:0 5px 11px #00000080}
+body.attend .ac-eventail .ac-hc i{font-size:9px}
+body.attend .ac-eventail .a3{display:none}
+body.attend #ibox #sc-home .ac-titre{font-size:20px}
+body.attend .ac-solo{background:#08160f94;border:1px solid #ffffff33;color:#f1ece0;box-shadow:none}
+body.attend .ac-solo small{color:#f6f1e4a8;opacity:1}
+body.attend .ac-solo b{font-size:15px}
+body.attend #ac-derniere{display:none}
+
+/* ecrans peu hauts : on resserre pour que tout tienne sans scroller */
+@media (max-width:899px) and (max-height:830px){
+  .ac-tapis{padding-top:6px;margin-bottom:9px}
+  .ac-eventail .ac-hc{width:34px;height:48px;font-size:13px;margin-right:-10px}
+  .ac-eventail .ac-hc i{font-size:10px}
+  #ibox #sc-home .ac-titre{font-size:25px}
+  #ibox #sc-home .ac-accroche{display:none}
+  .ac-croup{top:30px}
+  .ac-colonnes{gap:9px}
+  .ac-actes{gap:7px}
+  .ac-actes button{padding:11px 15px}
+  .ac-actes button b{font-size:15px}
+  .ac-code{padding:8px 12px 9px}
+  .ac-code .cases input,.ac-code .cases button{height:38px}
+  .ac-bloc{padding:9px 13px 10px}
+  .ac-bloc .tete{margin-bottom:7px}
+  .ac-succ{margin-top:8px;padding-top:7px}
+  #ibox{padding-top:calc(10px + env(safe-area-inset-top,0px))}
+}
+@media (max-width:899px) and (max-height:720px){
+  .ac-eventail .ac-hc{width:27px;height:38px;font-size:11px;margin-right:-8px}
+  .ac-eventail .ac-hc i{font-size:8px}
+  .ac-eventail{margin-bottom:5px}
+  #ibox #sc-home .ac-titre{font-size:21px}
+  .ac-croup{top:18px}
+  .ac-colonnes{gap:7px}
+  .ac-chiffres .gros{font-size:23px}
+  .ac-actes button small{font-size:11.5px}
+  #sc-home .ac-pills button{padding:8px 11px;font-size:12.5px}
+}
+
+/* grand ecran : deux colonnes */
+@media (min-width:900px){
+  #ibox{max-width:1080px}
+  .ac-tapis{margin-bottom:18px}
+  .ac-colonnes{flex-direction:row;gap:38px;align-items:flex-start}
+  .ac-gauche,.ac-droite{display:flex;flex-direction:column;min-width:0}
+  .ac-gauche{flex:999 1 500px;gap:14px}
+  .ac-droite{flex:1 1 320px;gap:14px}
+  .ac-moi,#sc-home .avp,.ac-actes,#ac-carte,#ac-derniere,.ac-pills,#netnote{order:0}
+  .ac-pills{margin-top:2px}
+  #ibox #sc-home .ac-titre{font-size:44px}
+  .ac-eventail .ac-hc{width:56px;height:79px;font-size:21px;margin-right:-17px}
+  .ac-eventail .ac-hc i{font-size:16px}
+  .ac-croup{top:52px}
+  .ac-actes button{padding:16px 19px}
+  .ac-actes .ac-solo b{font-size:18px}
+  .ac-bloc{padding:15px 18px 16px}
+  .ac-chiffres .gros{font-size:36px}
+  .ac-droite:empty{display:none}
+}
 </style></head><body><div id="app">
 <h1>Hold'em <span></span><button id="bhome" onclick="accueil()" aria-label="Accueil"><i>⌂</i><u>Accueil</u></button><button onclick="openH()" aria-label="Historique"><i>◷</i><u>Historique</u></button><button onclick="openP()" aria-label="Réglages"><i>⚙</i><u>Réglages</u></button></h1>
 <div class="sub" id="sub">Jetons fictifs · blinds 10/20</div>
@@ -911,52 +1144,78 @@ body.rejeu-actif .seat.act .plaque{border-color:#ffffff1f;box-shadow:0 5px 14px 
 <div id="talk"></div><div id="ctl"></div>
 </div>
 
-<div id="intro"><div id="ibox">
+<div id="intro"><div id="feutre" aria-hidden="true"></div><div id="ibox">
  <div id="sc-home">
-  <div class="tapis">
-   <div class="deco" aria-hidden="true">
-    <i class="jeton j-rouge p-a"></i><i class="jeton j-noir p-b"></i>
-    <i class="jeton j-blanc p-c"></i><i class="jeton j-vert p-d"></i>
-    <i class="jeton j-or p-e"></i><i class="jeton j-mauve p-f"></i>
-    <i class="jeton j-rouge p-g"></i>
-   </div>
-   <span class="pip pip-nw">♠</span><span class="pip pip-ne">♥</span>
-   <span class="pip pip-sw">♦</span><span class="pip pip-se">♣</span>
-   <div class="eventail" aria-hidden="true">
-    <div class="hc p1"><i class="s0">A</i><b class="s0">♠</b></div>
-    <div class="hc p2"><i class="s1">K</i><b class="s1">♥</b></div>
-    <div class="hc p3"><i class="s2">Q</i><b class="s2">♦</b></div>
-    <div class="hc p4"><i class="s3">J</i><b class="s3">♣</b></div>
-   </div>
-   <h2>Poker<em>Hold’em</em></h2>
-   <p class="accroche">Le poker entre potes.
-    <span>Les jetons sont faux. Les bad beats, non.</span></p>
-  </div>
   <div id="reprise" hidden></div>
-  <div class="actes">
-   <button class="solo" onclick="goSolo()">Jouer contre les bots</button>
-   <div class="duo">
-    <button id="b-create" onclick="createTable()">Créer une table</button>
-    <button id="b-join" onclick="scr('join')">Rejoindre</button>
+
+  <div class="ac-tapis">
+   <div class="ac-croup" aria-hidden="true"><span class="vole"></span><span class="vole b"></span></div>
+   <div class="ac-eventail" aria-hidden="true">
+    <span class="ac-hc a1"><b>A</b><i class="s0">♠</i></span>
+    <span class="ac-hc a2"><b>A</b><i class="s1">♥</i></span>
+    <span class="ac-hc a3"></span>
+   </div>
+   <h2 class="ac-titre">Poker <em>Hold’em</em></h2>
+   <p class="ac-accroche">Les jetons sont faux. Les bad beats, non.</p>
+  </div>
+
+  <div class="ac-colonnes">
+   <div class="ac-gauche">
+    <div class="ac-moi">
+     <button class="tete" id="i-tete" onclick="ouvrirAv()" aria-expanded="false"
+       aria-controls="i-av" title="Changer d’avatar">🙂</button>
+     <span class="ac-champ">
+      <label for="nm">Qui joue&nbsp;?</label>
+      <input id="nm" maxlength="12" placeholder="Ton nom" autocomplete="off" aria-label="Ton nom">
+     </span>
+    </div>
+    <div class="avp" id="i-av" hidden></div>
+
+    <div class="ac-actes">
+     <button class="ac-solo" onclick="goSolo()">
+      <span class="jet j-rouge" aria-hidden="true"></span>
+      <span><b>Jouer contre les bots</b><small>Tout de suite, sans attendre personne</small></span>
+     </button>
+     <button class="ac-creer" id="b-create" onclick="createTable()">
+      <span class="jet j-vert" aria-hidden="true"></span>
+      <span><b>Créer une table</b><small>Tu reçois un code à partager</small></span>
+     </button>
+     <div class="ac-code">
+      <label for="cd0">Un pote t’a donné un code&nbsp;?</label>
+      <div class="cases">
+       <input id="cd0" maxlength="1" autocomplete="off" aria-label="Code, 1re lettre"
+         oninput="tapeCode(0)" onkeydown="toucheCode(0,event)" onpaste="collerCode(event)">
+       <input id="cd1" maxlength="1" autocomplete="off" aria-label="Code, 2e lettre"
+         oninput="tapeCode(1)" onkeydown="toucheCode(1,event)" onpaste="collerCode(event)">
+       <input id="cd2" maxlength="1" autocomplete="off" aria-label="Code, 3e lettre"
+         oninput="tapeCode(2)" onkeydown="toucheCode(2,event)" onpaste="collerCode(event)">
+       <input id="cd3" maxlength="1" autocomplete="off" aria-label="Code, 4e lettre"
+         oninput="tapeCode(3)" onkeydown="toucheCode(3,event)" onpaste="collerCode(event)">
+       <button id="b-join" onclick="rejoindreAccueil()" aria-label="Rejoindre la table">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+       </button>
+      </div>
+      <p class="note" id="joinerr2" hidden></p>
+     </div>
+    </div>
+
+    <div class="ac-pills">
+     <button class="p1" onclick="openTrain()">🎯 S’entraîner</button>
+     <button onclick="openH()">Palmarès</button>
+     <button onclick="openR()">Règles</button>
+     <button onclick="openI()">Installer</button>
+    </div>
+    <p class="note" id="netnote" hidden></p>
+   </div>
+
+   <div class="ac-droite">
+    <div id="ac-carte"></div>
+    <div id="ac-derniere"></div>
    </div>
   </div>
-  <div class="fins">
-   <button onclick="openR()">Règles</button>
-   <button onclick="openTrain()">S’entraîner</button>
-   <button onclick="openH()">Palmarès</button>
-   <button onclick="openI()">Installer</button>
-  </div>
-  <label class="qui" for="nm">Qui joue ?</label>
-  <div class="moi">
-   <button class="tete" id="i-tete" onclick="ouvrirAv()" aria-expanded="false"
-     aria-controls="i-av" title="Changer d’avatar">🙂</button>
-   <input id="nm" maxlength="12" placeholder="Ton nom" autocomplete="off" aria-label="Ton nom">
-  </div>
-  <div class="avp" id="i-av" hidden></div>
-  <p class="note" id="netnote" hidden></p>
  </div>
 
- <div id="sc-solo" hidden>
+<div id="sc-solo" hidden>
   <h2>Partie solo</h2>
   <p>Choisis tes adversaires et le rythme de la partie.</p>
   <label>Nombre d'adversaires</label>
@@ -1164,6 +1423,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v50 — accueil sur le feutre : nom en premier, code de table en direct, ta carte de joueur */
 /* v49 — revoir une main sur la table, coup par coup */
 /* v48 — cartes chiffrées pour chaque joueur, reprise de la table quand l'hôte recharge */
 /* v47 — succès, ante, straddle, run it twice, banque de temps, pré-actions */
@@ -1227,7 +1487,7 @@ let strSeat=null,ritDe=null,board2=null,eqMinMoi=null,actFin=0,preAct=null,preEn
 const BANQUE_MAX=3,BANQUE_S=20;let banque=BANQUE_MAX,banqueH={};   /* sieges des blinds, pour les jetons affiches */
 let sortis=[],classement=null;  /* ordre d'elimination, puis classement final */
 let P,deck,board=[],dealer,stage,cur,curBet,minR,L=[],nf,nf2,pend=false;
-let dernMain=-1,finEnregistree=false,absent=false,absents={};
+let dernMain=-1,memoMain=-1,finEnregistree=false,absent=false,absents={};
 let MODE='solo',mySeat=0,isHost=true,room=null,db=null,table=null,tcode='',hostPeer=null,myPeer=null,seatPeer=[],botFill=true,phase='home',lastHeard=0,actTimer=null,syncT=null,watch=null,ended=false;
 let dernierEnvoi=0,spectateur=false,hoteEmp='';   /* battement de l'hote ; invite non assis */
 /* ===================== reconnexion =====================
@@ -1961,7 +2221,7 @@ function marques(){
 function end(){
   etatFini=true;enCours=false;
   const rj=fermerPiste();derPiste=rj?{hn:handNo,t:rj}:null;
-  HIST.push({n:handNo,rj:rj,me:P[mySeat].h.slice(),bd:board.slice(),d:P[mySeat].chips-hStart,
+  HIST.push({n:handNo,at:Date.now(),rj:rj,me:P[mySeat].h.slice(),bd:board.slice(),d:P[mySeat].chips-hStart,
              res:res.slice(),lg:logMain(),st:moi?Object.assign({},moi):null,fl:marques(),
              cp:coups.slice(),
              adv:P.map((p,i)=>({p:p,i:i})).filter(x=>x.i!==mySeat&&x.p.show&&x.p.h.length)
@@ -2417,6 +2677,108 @@ function sendEmo(e){
   }
 }
 function greet(){P.forEach((p,i)=>{if(p.bot)setTimeout(()=>talk(i,'g'),400+i*520)})}
+/* ===================== l'accueil =====================
+   L'ecran d'entree doit savoir qui tu es : ton nom d'abord, puis les trois facons
+   d'entrer en jeu, puis ce que l'appli garde de toi -- ton classement et ta derniere
+   main, avec de quoi la revoir. Tout est reconstruit a chaque retour a l'accueil. */
+function tapeCode(i){
+  const e=$('cd'+i);if(!e)return;
+  e.value=(e.value||'').replace(/[^a-zA-Z0-9]/g,'').slice(-1).toUpperCase();
+  if($('joinerr2'))$('joinerr2').hidden=true;
+  if(e.value&&i<3){const n=$('cd'+(i+1));if(n){n.focus();if(n.select)n.select()}}
+  majCode();
+  if(codeAccueil().length===4)rejoindreAccueil();
+}
+function toucheCode(i,ev){
+  if(!ev)return;
+  if(ev.key==='Backspace'&&!$('cd'+i).value&&i>0){const p=$('cd'+(i-1));if(p){p.focus();p.value='';majCode()}}
+  if(ev.key==='Enter')rejoindreAccueil();
+}
+function collerCode(ev){
+  const t=(ev&&ev.clipboardData&&ev.clipboardData.getData('text'))||'';
+  const c=t.replace(/[^a-zA-Z0-9]/g,'').slice(0,4).toUpperCase();
+  if(!c)return;
+  if(ev.preventDefault)ev.preventDefault();
+  for(let k=0;k<4;k++){const e=$('cd'+k);if(e)e.value=c[k]||''}
+  majCode();
+  const d=$('cd'+Math.min(3,c.length-1));if(d)d.focus();
+  if(c.length>=3)rejoindreAccueil();
+}
+function codeAccueil(){
+  let s='';for(let i=0;i<4;i++){const e=$('cd'+i);if(e)s+=(e.value||'').trim()}
+  return s.toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+function majCode(){
+  const b=$('b-join');if(b&&!b.dataset.off)b.disabled=codeAccueil().length<3;
+}
+function videCode(){for(let i=0;i<4;i++){const e=$('cd'+i);if(e)e.value=''}majCode()}
+function rejoindreAccueil(){
+  const c=codeAccueil(),z=$('joinerr2');
+  if(c.length<3){if(z){z.textContent='Il faut les 4 caractères du code.';z.hidden=false}return}
+  if(z)z.hidden=true;
+  if($('jc'))$('jc').value=c;
+  joinTable();
+}
+/* ---- ce que l'appli garde de toi ---- */
+function peindreAccueil(){
+  if(!$('ac-carte'))return;
+  majCode();
+  /* le classement, s'il y en a un ; sinon les chiffres de tes parties */
+  const l=(typeof calculerElo==='function')?calculerElo():[];
+  const rang=l.findIndex(x=>x.id===JOUEUR),moi=rang>=0?l[rang]:null;
+  const nSucc=SUCCES.filter(x=>SU[x[0]]).length;
+  const der=SUCCES.filter(x=>SU[x[0]]).sort((a,b)=>SU[b[0]]-SU[a[0]])[0];
+  let h='';
+  if(moi||CPT.j>0||WINS.length){
+    h='<div class="ac-bloc"><div class="tete"><span>'+(moi?'Ton classement':'Tes parties')+'</span>'
+      +(moi?'<em>'+(rang+1)+'<sup>e</sup> sur '+l.length+'</em>':'')+'</div>'
+      +'<div class="ac-chiffres">'
+      +'<div><div class="gros">'+(moi?moi.elo:fmtN(CPT.j))+'</div><small>'
+        +(moi?'points Elo':'main'+(CPT.j>1?'s':'')+' jouée'+(CPT.j>1?'s':''))+'</small></div>'
+      +'<div class="sep"></div><div class="lot">'
+      +(moi?'<div><b>'+moi.parties+'</b><small>partie'+(moi.parties>1?'s':'')+'</small></div>':
+             '<div><b>'+fmtN(CPT.g)+'</b><small>pot'+(CPT.g>1?'s':'')+' gagné'+(CPT.g>1?'s':'')+'</small></div>')
+      +'<div><b>'+(moi?moi.vict:CPT.v)+'</b><small>victoire'+((moi?moi.vict:CPT.v)>1?'s':'')+'</small></div>'
+      +'<div><b>'+nSucc+'/'+SUCCES.length+'</b><small>succès</small></div>'
+      +'</div></div>'
+      +(der?'<div class="ac-succ"><i>'+der[1]+'</i><span><b>'+der[2]+'</b> — '+quand(SU[der[0]])+'</span></div>':'')
+      +'</div>';
+  }
+  $('ac-carte').innerHTML=h;
+  $('ac-derniere').innerHTML=blocDerniere();
+}
+function fmtN(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' ')}
+function quand(t){
+  if(!t)return'';
+  const d=Math.floor((Date.now()-t)/60000);
+  if(d<2)return'à l’instant';
+  if(d<60)return'il y a '+d+' min';
+  const hh=Math.floor(d/60);if(hh<24)return'il y a '+hh+' h';
+  const j=Math.floor(hh/24);return j<2?'hier':'il y a '+j+' jours';
+}
+function miniCarte(c,mien){
+  const fig=c.r>=11&&c.r<=13;
+  return'<span class="mc s'+c.s+(mien?' mienne':'')+'">'+R[c.r-2]+'<i>'+S[c.s]+'</i></span>';
+}
+function blocDerniere(){
+  const h=HIST.filter(x=>!x.sep&&x.me&&x.me.length===2).pop();
+  if(!h)return'';
+  const res=(h.res||[]),nom=res.map(r=>r.hn).filter(Boolean)[0]||'';
+  const marq=(h.fl||[])[0];
+  return'<div class="ac-bloc"><div class="tete"><span>Ta dernière main</span>'
+    +(h.at?'<em style="color:#a79f93">'+quand(h.at)+'</em>':'')+'</div>'
+    +'<div class="ac-dm"><div class="jeux">'
+    +'<div class="pq">'+h.me.map(c=>miniCarte(c,true)).join('')+'</div>'
+    +((h.bd&&h.bd.length)?'<span class="pt">·</span><div class="pq">'+h.bd.map(c=>miniCarte(c)).join('')+'</div>':'')
+    +'</div>'
+    +(h.rj?'<button class="ac-revoir" onclick="ouvrirRejeu('+h.n+')">'
+        +'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5l13 7.5-13 7.5z"/></svg>Revoir</button>':'')
+    +'</div>'
+    +'<div class="ac-bilan"><span class="'+(h.d>0?'g':h.d<0?'l':'')+'">'+(h.d>0?'+':'')+fmt(h.d)+'</span>'
+    +(nom?'<span>· '+nom+'</span>':'')
+    +(marq?'<span class="marque '+marq+'">'+(MARQ[marq]||marq)+'</span>':'')
+    +'</div></div>';
+}
 /* ===================== panneaux ===================== */
 function hcards(a){return a.map(c=>'<span class="s'+c.s+'">'+R[c.r-2]+S[c.s]+'</span>').join(' ')}
 function tab(t){
@@ -3985,7 +4347,7 @@ function applyState(s){
     if(s.hn!==dernMain){dernMain=s.hn;eqMinMoi=null;preAct=null;preEnCours='';neufMoi((s.po||[])[mySeat]||'');finEnregistree=false;coups=[]}
     if(s.fin&&!finEnregistree&&s.dl&&!spectateur){
       finEnregistree=true;
-      HIST.push({n:s.hn,rj:s.rj||null,me:mesH||(s.p[mySeat][7]||[]).map(dec),bd:(s.b||[]).map(dec),
+      HIST.push({n:s.hn,at:Date.now(),rj:s.rj||null,me:mesH||(s.p[mySeat][7]||[]).map(dec),bd:(s.b||[]).map(dec),
                  d:s.dl[mySeat]||0,res:(s.res||[]).slice(),lg:(s.lg||[]).slice(),
                  st:moi?Object.assign({},moi):null,cp:coups.slice(),
                  adv:s.p.map((a,i)=>({a:a,i:i}))
@@ -4009,6 +4371,10 @@ function applyState(s){
     outs:(a[9]==null||a[9]<0)?null:a[9],outsC:(a[10]||[]).map(dec)}));
   board=(s.b||[]).map(dec);stage=s.s;cur=s.c;dealer=s.d;curBet=s.cb;minR=s.mr;runout=s.ro;eqExact=s.ex;
   L=s.lg||[];peindreLog();sousTitre();mainGagnante=s.mg||null;
+  /* de quoi se decrire a l'accueil si on revient plus tard */
+  if(!isHost&&!spectateur&&tcode&&s.hn!==memoMain){memoMain=s.hn;
+    memoTable(tcode,{av:P.filter(q=>!q.empty&&!q.bot).slice(0,4).map(q=>q.av),
+      n:P.filter(q=>!q.empty).length,m:s.hn,j:P[mySeat]?P[mySeat].chips:0})}
   if(board.length<prev)shownFrom=0;
   else if(board.length===3&&prev===0){street('Flop');son('carte')}
   else if(board.length>prev&&prev>0){street(board.length===4?'Turn':'River');son('carte')}
@@ -4048,7 +4414,9 @@ function accueil(){
 }
 /* ---- la table en cours, gardee sur l'appareil pour y revenir apres un rechargement ---- */
 const REPRISE_MAX=6*3600*1000;
-function memoTable(c){try{localStorage.setItem(CLE_TABLE,JSON.stringify({c:c,at:Date.now()}))}catch(e){}}
+function memoTable(c,info){
+  try{localStorage.setItem(CLE_TABLE,JSON.stringify(Object.assign({c:c,at:Date.now()},info||{})))}catch(e){}
+}
 function oublierTable(){try{localStorage.removeItem(CLE_TABLE)}catch(e){}afficherReprise()}
 function tableAReprendre(){
   let t=null;try{t=JSON.parse(localStorage.getItem(CLE_TABLE)||'null')}catch(e){t=null}
@@ -4057,22 +4425,30 @@ function tableAReprendre(){
 }
 function afficherReprise(){
   const z=$('reprise');if(!z)return;
-  const h=tableHote();
-  if(h&&table==null){
-    z.hidden=false;
-    z.innerHTML='<div class="pausebar"><b>Ta table '+h.c.toUpperCase()+' est en pause</b>'
-      +'C’est toi qui la tiens : tes amis attendent que tu reviennes. Tout est gardé — '
-      +'les jetons, les sièges et la main en cours.'
-      +'<button class="p" style="display:block;width:100%;margin-top:10px" onclick="reprendreHote()">Reprendre ma table</button>'
-      +'<button class="petit" style="margin-top:8px" onclick="oublierTableHote();afficherReprise()">Abandonner la partie</button></div>';
-    return;
-  }
-  const t=tableAReprendre();
-  z.hidden=!t||table!=null;
-  z.innerHTML=t?'<div class="pausebar"><b>Tu étais à la table '+t.c.toUpperCase()+'</b>'
-    +'Ta place et tes jetons t’attendent si la partie continue.'
-    +'<button class="p" style="display:block;width:100%;margin-top:10px" onclick="reprendrePartie()">Reprendre ma partie</button>'
-    +'<button class="petit" style="margin-top:8px" onclick="oublierTable()">Non merci</button></div>':'';
+  const h=tableHote(),t=h?null:tableAReprendre();
+  const quoi=(table==null)?(h||t):null;
+  document.body.classList.toggle('attend',!!quoi);
+  if(!quoi){z.hidden=true;z.innerHTML='';return}
+  const hote=!!h;
+  const avs=hote?(h.p||[]).filter(x=>!x.e&&!x.b).slice(0,4).map(x=>x.av)
+                :(Array.isArray(t.av)?t.av.slice(0,4):[]);
+  const nb=hote?(h.p||[]).filter(x=>!x.e).length:(+t.n||0);
+  const main=hote?(h.hn||0):(+t.m||0);
+  const jet=hote?((h.p||[])[h.ms]||{}).c:(+t.j||0);
+  const bouts=[];
+  if(nb)bouts.push(nb+' joueur'+(nb>1?'s':''));
+  if(main)bouts.push('main '+main);
+  if(jet)bouts.push('tes '+fmt(jet)+' jetons sont gardés');
+  z.hidden=false;
+  z.innerHTML='<div class="ac-rep"><div class="l1"><span class="pt"></span>'
+    +'<b>Ta table <u>'+quoi.c.toUpperCase()+'</u> '+(hote?'est en pause':'t’attend')+'</b>'
+    +'<button class="x" onclick="'+(hote?'oublierTableHote()':'oublierTable()')+';afficherReprise()" '
+    +'aria-label="Ne plus proposer cette table">\u00d7</button></div>'
+    +(bouts.length||avs.length?'<div class="l2">'
+      +(avs.length?'<span class="tetes">'+avs.map(a=>'<i>'+(clean(a)||'\ud83d\ude42')+'</i>').join('')+'</span>':'')
+      +(bouts.length?'<span>'+bouts.join(' \u00b7 ')+'</span>':'')+'</div>':'')
+    +'<button class="go" onclick="'+(hote?'reprendreHote()':'reprendrePartie()')+'">'
+    +(hote?'Reprendre ma table':'Reprendre ma partie')+'</button></div>';
 }
 function reprendrePartie(){
   const t=tableAReprendre();if(!t)return afficherReprise();
@@ -4095,7 +4471,7 @@ function quitterPartie(){
 }
 function scr(n){['home','solo','join','room','train'].forEach(x=>$('sc-'+x).hidden=x!==n);
   document.body.classList.toggle('toile',n==='home');voile(true);phase=n;
-  if(n==='home')afficherReprise()}
+  if(n==='home'){videCode();afficherReprise();peindreAccueil()}}
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='tcin'){
     e.preventDefault();envoyerTchat();return;
@@ -4107,7 +4483,8 @@ if(window.matchMedia)window.matchMedia('(min-width:900px)').addEventListener('ch
   peindreLog();
   if(P)render();
 });
-function voile(ouvert){$('intro').hidden=!ouvert;document.body.classList.toggle('accueil',!!ouvert)}
+function voile(ouvert){$('intro').hidden=!ouvert;document.body.classList.toggle('accueil',!!ouvert);
+  if(!ouvert)document.body.classList.remove('attend')}
 const TRNOM={UTG:'premier de parole',HJ:'milieu de table',CO:'juste avant le bouton',
              BTN:'au bouton',SB:'petite blinde'};
 /* 169 mains classees par equite all-in contre une main au hasard (calcul exhaustif :
@@ -4808,7 +5185,7 @@ function apply(){
   const r=document.documentElement.style;
   r.setProperty('--felt',U.felt);r.setProperty('--rail',U.rail);r.setProperty('--back',U.back);
   const a=document.documentElement;a.dataset.cs=U.cs;a.dataset.dk=U.dk;a.dataset.bk=U.bk;a.dataset.theme=U.th;
-  a.dataset.crou=U.crou?'1':'0';
+  a.dataset.crou=U.crou?'1':'0';a.dataset.anim=String(U.anim);
   if(P){render();if(pend)controls()}
 }
 const AVC=['🙂','😎','🦁','🐯','🐺','🦅','👑','🎩','🍀','🔥','🌵','🐙'];
