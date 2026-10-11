@@ -326,7 +326,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 body.accueil h1,body.accueil #sub{visibility:hidden}
 /* l'accueil occupe tout l'ecran : la colonne de droite n'a rien a y faire */
 body.accueil #tchat,body.accueil #tcfond,body.accueil #cote,body.accueil #log{display:none!important}
-body.toile #intro{align-items:flex-start}
+body.toile #intro{align-items:stretch}
+body.toile #ibox{margin-top:auto;margin-bottom:auto;
+  padding-top:calc(16px + env(safe-area-inset-top,0px));
+  padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
 #intro{background:#0a0708}
 body.toile #ibox{padding-top:0}
 #sc-home .tapis{margin-top:0}
@@ -914,12 +917,12 @@ body.toile #ibox{position:relative;z-index:1}
   border:1px solid #f3ebda80;box-shadow:0 6px 14px -4px #000000a6;
   animation:ac-donne 4.6s cubic-bezier(.22,.8,.3,1) infinite}
 .ac-croup .vole.b{animation-name:ac-donne-d}
-@keyframes ac-donne{0%{transform:translate(0,0) rotate(-4deg) scale(.72);opacity:0}
-  14%{opacity:.62}52%{transform:translate(-112px,104px) rotate(-17deg) scale(1);opacity:.62}
-  70%,100%{transform:translate(-112px,104px) rotate(-17deg) scale(1);opacity:0}}
-@keyframes ac-donne-d{0%{transform:translate(0,0) rotate(4deg) scale(.72);opacity:0}
-  24%{opacity:0}38%{opacity:.62}74%{transform:translate(112px,104px) rotate(17deg) scale(1);opacity:.62}
-  90%,100%{transform:translate(112px,104px) rotate(17deg) scale(1);opacity:0}}
+@keyframes ac-donne{0%{transform:translate(0,0) rotate(-4deg) scale(.74);opacity:0}
+  16%{opacity:.5}46%{transform:translate(-118px,42px) rotate(-19deg) scale(1);opacity:.5}
+  62%,100%{transform:translate(-118px,42px) rotate(-19deg) scale(1);opacity:0}}
+@keyframes ac-donne-d{0%{transform:translate(0,0) rotate(4deg) scale(.74);opacity:0}
+  26%{opacity:0}40%{opacity:.5}70%{transform:translate(118px,42px) rotate(19deg) scale(1);opacity:.5}
+  86%,100%{transform:translate(118px,42px) rotate(19deg) scale(1);opacity:0}}
 [data-anim="0"] .ac-croup .vole{animation:none;opacity:0}
 @media (prefers-reduced-motion:reduce){.ac-croup .vole{animation:none;opacity:0}}
 .ac-eventail{position:relative;display:inline-flex;align-items:flex-end;margin-bottom:8px}
@@ -946,7 +949,7 @@ body.toile #ibox{position:relative;z-index:1}
 #ac-carte:empty,#ac-derniere:empty{display:none}
 
 /* la plaque de nom, comme a la table */
-.ac-moi{display:flex;align-items:center;gap:9px;padding:5px 16px 5px 5px;border-radius:999px;
+.ac-moi{position:relative;z-index:1;display:flex;align-items:center;gap:9px;padding:5px 16px 5px 5px;border-radius:999px;
   background:linear-gradient(180deg,#24201ff5,#110e0ff8);border:1px solid #ffffff24;border-top-color:#ffffff42;
   box-shadow:0 8px 20px -7px #000000cc}
 #sc-home .ac-moi .tete{flex:0 0 auto;width:42px;height:42px;padding:2px;border-radius:50%;border:0;
@@ -960,7 +963,7 @@ body.toile #ibox{position:relative;z-index:1}
 #sc-home .avp{margin:0;padding:10px 8px;background:#00000057;border:1px solid #ffffff1f;border-radius:13px}
 
 /* les actions */
-.ac-actes{display:flex;flex-direction:column;gap:8px}
+.ac-actes{position:relative;z-index:1;display:flex;flex-direction:column;gap:8px}
 .ac-actes button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 16px;
   border-radius:15px;font-weight:400}
 .ac-actes button b{display:block;font-size:16px;font-weight:700;line-height:1.2}
@@ -992,7 +995,7 @@ body.toile #ibox{position:relative;z-index:1}
 #ibox #sc-home .ac-code .note{margin:8px 0 0;text-align:left}
 
 /* ce que l'appli sait de toi */
-.ac-bloc{border:1px solid #ffffff29;border-radius:15px;padding:11px 14px 12px;
+.ac-bloc{position:relative;z-index:1;border:1px solid #ffffff29;border-radius:15px;padding:11px 14px 12px;
   background:linear-gradient(180deg,#14221ac7,#08120de0);
   box-shadow:0 10px 24px -14px #000000e6}
 .ac-bloc .tete{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
@@ -1033,13 +1036,13 @@ body.toile #ibox{position:relative;z-index:1}
 .ac-bilan .marque{margin-left:auto}
 
 /* les pastilles */
-.ac-pills{display:flex;flex-wrap:wrap;gap:7px}
+.ac-pills{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:7px}
 #sc-home .ac-pills button{flex:0 0 auto;padding:9px 13px;border-radius:999px;border:1px solid #ffffff2e;
   background:#08160f8c;color:#dad3c6;font-size:13px;font-weight:500}
 #sc-home .ac-pills .p1{border-color:#e3b95c73;background:#e3b95c26;color:var(--gold);font-weight:600}
 
 /* le bandeau de reprise : ce qui compte quand une partie attend */
-#reprise{margin:0 0 12px}
+#reprise{position:relative;z-index:2;margin:0 0 12px}
 #reprise[hidden]{display:none}
 .ac-rep{border:1px solid #e3b95c9e;border-radius:16px;padding:13px 15px 14px;
   background:linear-gradient(180deg,#3a2d12eb,#1a1409f2);box-shadow:0 12px 26px -12px #000000e6;
@@ -1074,7 +1077,7 @@ body.attend .ac-solo b{font-size:15px}
 body.attend #ac-derniere{display:none}
 
 /* ecrans peu hauts : on resserre pour que tout tienne sans scroller */
-@media (max-width:899px) and (max-height:830px){
+@media (max-width:899px) and (max-height:890px){
   .ac-tapis{padding-top:6px;margin-bottom:9px}
   .ac-eventail .ac-hc{width:34px;height:48px;font-size:13px;margin-right:-10px}
   .ac-eventail .ac-hc i{font-size:10px}
@@ -1092,6 +1095,15 @@ body.attend #ac-derniere{display:none}
   .ac-succ{margin-top:8px;padding-top:7px}
   #ibox{padding-top:calc(10px + env(safe-area-inset-top,0px))}
 }
+@media (max-width:899px) and (max-height:800px){
+  .ac-tapis{padding-top:2px;margin-bottom:7px}
+  .ac-colonnes{gap:8px}
+  .ac-bloc{padding:8px 12px 9px}
+  .ac-actes button{padding:10px 14px}
+  .ac-code{padding:7px 11px 8px}
+  .ac-code .cases input,.ac-code .cases button{height:36px}
+  #sc-home .ac-pills button{padding:8px 12px}
+}
 @media (max-width:899px) and (max-height:720px){
   .ac-eventail .ac-hc{width:27px;height:38px;font-size:11px;margin-right:-8px}
   .ac-eventail .ac-hc i{font-size:8px}
@@ -1101,7 +1113,16 @@ body.attend #ac-derniere{display:none}
   .ac-colonnes{gap:7px}
   .ac-chiffres .gros{font-size:23px}
   .ac-actes button small{font-size:11.5px}
-  #sc-home .ac-pills button{padding:8px 11px;font-size:12.5px}
+  #sc-home .ac-pills button{padding:7px 10px;font-size:12.5px}
+  .ac-moi{padding:3px 14px 3px 3px}
+  #sc-home .ac-moi .tete{width:36px;height:36px;font-size:17px}
+  #ibox #sc-home .ac-champ input{font-size:15px}
+  .ac-actes button{padding:9px 13px}
+  .ac-actes button b{font-size:14px}
+  .ac-bloc{padding:7px 11px 8px}
+  .ac-succ{margin-top:6px;padding-top:6px}
+  .ac-dm .mc{width:17px;height:23px}
+  .ac-dm .mienne{width:19px;height:26px}
 }
 
 /* grand ecran : deux colonnes */
