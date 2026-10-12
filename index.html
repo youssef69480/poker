@@ -1145,6 +1145,65 @@ body.attend #ac-derniere{display:none}
   .ac-chiffres .gros{font-size:36px}
   .ac-droite:empty{display:none}
 }
+
+/* ======================= v51 : le club ======================= */
+.tabs.sous{gap:5px;margin:2px 0 12px}
+.tabs.sous button{padding:7px 9px;font-size:12.5px}
+.cb-tete{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:11px 13px;
+  border:1px solid var(--line);border-radius:14px;background:var(--soft)}
+.cb-id{flex:1 1 auto;min-width:0}
+.cb-id b{display:block;font-size:16px;font-family:Fraunces,Georgia,serif;font-weight:700;line-height:1.2}
+.cb-id span{display:block;font-size:11.5px;color:var(--dim);margin-top:2px;letter-spacing:.02em}
+.cb-id u{text-decoration:none;color:var(--gold);font-weight:700;letter-spacing:.14em}
+.cb-tete .petit{flex:0 0 auto}
+.cb-neuf{margin-bottom:12px}
+.cb-form{display:flex;gap:7px;margin-bottom:4px}
+.cb-form input{flex:1 1 auto;min-width:0;padding:11px 12px;border-radius:11px;border:1px solid var(--line);
+  background:var(--soft);color:var(--ink);font:inherit}
+.cb-form button{flex:0 0 auto;padding:11px 16px;border-radius:11px}
+.cb-ou{text-align:center;color:var(--dim);font-size:12px;margin:9px 0;letter-spacing:.06em}
+.cb-prop{display:flex;align-items:center;gap:9px;width:100%;margin-bottom:6px;padding:11px 13px;
+  border-radius:12px;border:1px solid #e3b95c5c;background:#e3b95c1a;color:var(--ink);text-align:left}
+.cb-prop b{flex:1 1 auto;font-size:14.5px}
+.cb-prop span{flex:0 0 auto;font-size:12.5px;color:var(--gold);font-weight:600}
+.cb-mois{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin:0 0 10px;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent);
+  mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent)}
+.cb-mois::-webkit-scrollbar{display:none}
+.cb-mois button{flex:0 0 auto;padding:6px 11px;font-size:12px;font-weight:500;border-radius:999px;
+  background:var(--soft);color:var(--dim);border:1px solid var(--line);text-transform:capitalize}
+.cb-mois button[aria-pressed=true]{background:var(--gold);color:#16130f;font-weight:700;border-color:var(--gold)}
+.cb-champ{display:flex;align-items:center;gap:11px;padding:11px 13px;margin:0 0 10px;border-radius:13px;
+  border:1px solid #e3b95c6b;background:linear-gradient(180deg,#3a2d1259,#1a140933)}
+.cb-champ .ic{font-size:24px;line-height:1}
+.cb-champ small{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.cb-champ b{font-size:15px}
+.cb-champ .cb-elo{margin-left:auto;font-size:17px;font-weight:700;color:var(--gold)}
+.clsrow[role=button]{cursor:pointer}
+.clsrow[role=button]:hover{background:var(--soft)}
+.cb-recs{display:flex;flex-direction:column;gap:7px;margin:4px 0 14px}
+.cb-rec{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--soft);
+  border:1px solid var(--line)}
+.cb-rec .ic{flex:0 0 auto;font-size:20px;line-height:1}
+.cb-rec .tx{flex:1 1 auto;min-width:0}
+.cb-rec .tx b{display:block;font-size:13px}
+.cb-rec .tx span{display:block;font-size:12px;color:var(--dim)}
+.cb-rec .qui{flex:0 0 auto;font-size:12px;color:var(--gold);text-align:right;max-width:40%;line-height:1.3}
+.cb-soir{padding:10px 0;border-top:1px solid var(--line)}
+.cb-soir .l1{display:flex;align-items:baseline;gap:8px}
+.cb-soir .l1 b{font-size:14px}
+.cb-soir .l1 .ct{margin-left:auto;font-size:11.5px;color:var(--dim)}
+.cb-soir .l2{display:flex;align-items:center;gap:7px;margin-top:5px}
+.cb-soir .l2 i{width:22px;height:22px;border-radius:50%;font-style:normal;font-size:12px;
+  background:radial-gradient(circle at 38% 32%,#3b3337,#141113);display:flex;align-items:center;justify-content:center}
+.cb-soir .l2 i+i{margin-left:-6px}
+.cb-soir .l2 span{font-size:12px;color:var(--dim);margin-left:4px}
+.cb-soir .l3{margin-top:5px;font-size:12.5px}
+.cb-fiche{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:0 0 12px;border-radius:14px;
+  border:1px solid var(--line);background:var(--soft)}
+.cb-fiche .av{font-size:32px;line-height:1}
+.cb-fiche b{display:block;font-size:17px;font-family:Fraunces,Georgia,serif;font-weight:700}
+.cb-fiche span{display:block;font-size:12.5px;color:var(--gold);margin-top:2px}
 </style></head><body><div id="app">
 <h1>Hold'em <span></span><button id="bhome" onclick="accueil()" aria-label="Accueil"><i>⌂</i><u>Accueil</u></button><button onclick="openH()" aria-label="Historique"><i>◷</i><u>Historique</u></button><button onclick="openP()" aria-label="Réglages"><i>⚙</i><u>Réglages</u></button></h1>
 <div class="sub" id="sub">Jetons fictifs · blinds 10/20</div>
@@ -1222,7 +1281,7 @@ body.attend #ac-derniere{display:none}
 
     <div class="ac-pills">
      <button class="p1" onclick="openTrain()">🎯 S’entraîner</button>
-     <button onclick="openH()">Palmarès</button>
+     <button onclick="openH();setTimeout(()=>tab('w'),0)">Club</button>
      <button onclick="openR()">Règles</button>
      <button onclick="openI()">Installer</button>
     </div>
@@ -1316,10 +1375,18 @@ body.attend #ac-derniere{display:none}
 </div></div>
 
 <div id="hv" hidden><div id="hpanel">
-<div class="tabs"><button id="tb-h" onclick="tab('h')">Mes mains</button><button id="tb-s" onclick="tab('s')">Statistiques</button><button id="tb-w" onclick="tab('w')">Palmarès</button><button id="tb-a" onclick="tab('a')">Succès</button></div>
+<div class="tabs"><button id="tb-h" onclick="tab('h')">Mes mains</button><button id="tb-s" onclick="tab('s')">Statistiques</button><button id="tb-w" onclick="tab('w')">Club</button><button id="tb-a" onclick="tab('a')">Succès</button></div>
 <div id="pane-h"><p id="hsum"></p><div class="tabs" id="hfiltre"></div><div id="hl"></div></div>
 <div id="pane-s" hidden><div id="stats"></div></div>
-<div id="pane-w" hidden><div id="welo"></div><p id="wsum"></p><div id="wtop"></div><div id="wl"></div></div>
+<div id="pane-w" hidden>
+<div id="cb-tete"></div>
+<div class="tabs sous" id="cb-onglets" hidden>
+ <button id="cb-t-s" onclick="ongletClub('s')">Saison</button>
+ <button id="cb-t-p" onclick="ongletClub('p')">Soirées</button>
+ <button id="cb-t-j" onclick="ongletClub('j')">Joueurs</button>
+</div>
+<div id="cb-corps"></div>
+</div>
 <div id="pane-a" hidden><div id="succes"></div></div>
 <button class="p" onclick="$('hv').hidden=true">Fermer</button>
 </div></div>
@@ -1444,6 +1511,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v51 — le club : code à partager, saisons mensuelles, soirées, fiches joueurs, records */
 /* v50 — accueil sur le feutre : nom en premier, code de table en direct, ta carte de joueur */
 /* v49 — revoir une main sur la table, coup par coup */
 /* v48 — cartes chiffrées pour chaque joueur, reprise de la table quand l'hôte recharge */
@@ -1585,7 +1653,7 @@ const pot=()=>P.reduce((a,p)=>a+p.tot,0);
 const net=()=>MODE==='net';
 function nxt(i,f){for(let k=1;k<=P.length;k++){const j=(i+k)%P.length;if(f(P[j]))return j}}
 function fmt(n){return U.bb?(Math.round(n/BB*10)/10)+' BB':''+n}
-function clean(v){return String(v==null?'':v).replace(/[<>&"'\\\\]/g,'').slice(0,14)}
+function clean(v,n){return String(v==null?'':v).replace(/[<>&"'\\\\]/g,'').slice(0,n||14)}
 function log(t){L.push(t);if(L.length>40)L.shift();peindreLog()}
 /* au telephone les deux dernieres lignes ; sur grand ecran, tout le fil de la main */
 function peindreLog(){
@@ -1607,7 +1675,7 @@ let sauveT=null;
 function aGarder(n){
   return{v:1,m43:1,u:U,g:G,lv:lvAll,fill:botFill,
          tr:trScore,trs:trStats,trn:trNiv,trt:trTheme,pl:NSEAT,
-         su:SU,cpt:CPT,hist:HIST.slice(-(n||60)).map((h,k,l)=>(h&&h.rj&&k<l.length-(n?6:14))?Object.assign({},h,{rj:null}):h),wins:WINS.slice(-(n||60)),pa:PARTIES.slice(-(n?40:200))};
+         cb:CLUB,su:SU,cpt:CPT,hist:HIST.slice(-(n||60)).map((h,k,l)=>(h&&h.rj&&k<l.length-(n?6:14))?Object.assign({},h,{rj:null}):h),wins:WINS.slice(-(n||60)),pa:PARTIES.slice(-(n?40:200))};
 }
 function ecrire(){
   if(!memoOK)return;
@@ -1638,6 +1706,8 @@ function charger(){
   if(Array.isArray(d.hist))HIST=d.hist.filter(h=>h&&typeof h==='object');
   if(Array.isArray(d.wins))WINS=d.wins.filter(w=>w&&w.at&&w.winner);
   if(Array.isArray(d.pa))PARTIES=d.pa.filter(partieValide);
+  if(d.cb&&typeof d.cb==='object'&&typeof d.cb.id==='string'&&/^[a-z0-9]{4,6}$/.test(d.cb.id))
+    CLUB={id:d.cb.id,n:clean(d.cb.n,24)||('Club '+d.cb.id.toUpperCase())};
   if(d.su&&typeof d.su==='object')SUCCES.forEach(x=>{if(typeof d.su[x[0]]==='number')SU[x[0]]=d.su[x[0]]});
   if(d.cpt&&typeof d.cpt==='object')Object.keys(CPT).forEach(k=>{if(typeof d.cpt[k]==='number'&&d.cpt[k]>=0)CPT[k]=Math.floor(d.cpt[k])});
 }
@@ -1686,7 +1756,7 @@ function newGame(seats){
   lastSeats=seats;ended=false;niveau=0;mainsNiveau=0;appliquerNiveau();
   ANIM.hn=-1;enCours=false;banque=BANQUE_MAX;banqueH={};preAct=null;   /* nouvelle partie : la premiere donne doit etre jouee, meme numero de main ou pas */
   injecte=seats.filter(o=>!o.empty).length*G.cave;
-  P=seats.map(mkPlayer);dealer=P.length-1;L=[];
+  P=seats.map(mkPlayer);dealer=P.length-1;L=[];STAT=P.map(statNeuve);cashEnregistre=false;
   if(HIST.length)HIST.push({sep:true});handNo=0;startHand();
 }
 function put(p,a){a=Math.min(a,p.chips);p.chips-=a;p.bet+=a;p.tot+=a;if(!p.chips)p.allin=true}
@@ -1782,7 +1852,7 @@ function startHand(){
       put(P[st],2*BB);curBet=2*BB;minR=2*BB;strSeat=st;cur=nxt(st,canAct);log(P[st].n+' straddle à '+fmt(2*BB))}
   }
   mainGagnante=null;
-  ouvrirPiste();
+  ouvrirPiste();statDonne();
   if(G.ante){const a=valeurAnte();P.forEach((q,i)=>{if(!q.fold&&q.tot>0)noter({t:'m',i:i,a:Math.min(a,q.tot),an:1})})}
   noter({t:'m',i:sb,a:P[sb].bet});noter({t:'m',i:bb,a:P[bb].bet});
   if(strSeat!=null)noter({t:'m',i:strSeat,a:P[strSeat].bet});
@@ -1823,6 +1893,7 @@ function nextStage(){
   else if(stage<4){board.push(deck.pop());street(stage==2?'Turn':'River');son('carte')}
   else return showdown();
   noter({t:'b',b:board.map(enc)});
+  if(stage===1)statFlop();
   if(runout)equities();
   cur=nxt(dealer,canAct);render();sync();
   setTimeout(step,Math.max(runout?1700:800,dureeBoard(stage===1?3:1)));
@@ -1844,6 +1915,7 @@ function act(p,t,to){
     if(add>0)son('jeton')
   }
   noter({t:'a',i:i,k:t==='f'?'f':(t==='c'?'c':'r'),to:p.bet});
+  statAction(i,t==='f'?'f':(t==='c'?'c':'r'),need);
   p.acted=true;cur=nxt(i,canAct);step();
 }
 function neufMoi(pos){moi={vpip:false,pfr:false,flop:false,agg:0,pas:0,pos:pos||''}}
@@ -2217,7 +2289,8 @@ function showdown(){
   end();
 }
 function win1(ws,amt){
-  ws.forEach(w=>{const i=P.indexOf(w);     /* le pot qui file vers lui est dessine par l'animateur */
+  ws.forEach(w=>{const i=P.indexOf(w);statGain(i,Math.round(amt/ws.length));
+    /* le pot qui file vers lui est dessine par l'animateur */
     setTimeout(()=>talk(i,'w', i===mySeat ? 0 : .55),700);
   });
   if(ws.indexOf(P[mySeat])>=0){son('gain');if(amt>=10*BB)setTimeout(cheer,250)}
@@ -2805,7 +2878,7 @@ function hcards(a){return a.map(c=>'<span class="s'+c.s+'">'+R[c.r-2]+S[c.s]+'</
 function tab(t){
   curTab=t;
   ['h','s','w','a'].forEach(x=>{$('pane-'+x).hidden=t!==x;$('tb-'+x).setAttribute('aria-pressed',t===x)});
-  if(t==='w'){paintWins();chargerClassement()}
+  if(t==='w'){peindreClub();chargerClassement()}
   if(t==='s')paintStats();
   if(t==='a')peindreSucces();
 }
@@ -3044,50 +3117,6 @@ function texteAnalyse(h){
   return tete+corps+pied;
 }
 function dstr(ms){const d=new Date(ms);return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}
-function paintWins(){
-  peindreElo();
-  const w=WINS.slice().sort((a,b)=>b.at-a.at);
-  const tot={};
-  w.forEach(g=>{const k=g.winner;if(!tot[k])tot[k]={n:0,av:g.av,bot:g.bot};tot[k].n++});
-  const top=Object.keys(tot).map(k=>[k,tot[k]]).sort((a,b)=>b[1].n-a[1].n).slice(0,6);
-  $('wsum').textContent=w.length?w.length+' partie'+(w.length>1?'s':'')+' terminée'+(w.length>1?'s':''):'';
-  $('wtop').innerHTML=top.length?top.map((e,i)=>'<div class="tro"><span class="rk">'+(i+1)+'</span><span>'+(e[1].av||'🙂')+'</span>'
-    +'<span class="nm">'+e[0]+(e[1].bot?' <span class="ct">bot</span>':'')+'</span><span class="ct">'+e[1].n+' victoire'+(e[1].n>1?'s':'')+'</span></div>').join(''):'';
-  const cls={};
-  w.forEach(g=>{
-    const places={};(g.cl||[]).forEach(x=>places[x.n]=x.p);
-    (g.tous||[]).forEach(j=>{
-      const k=j.n;
-      if(!cls[k])cls[k]={av:j.av,bot:j.bot,parties:0,vict:0,jetons:0,best:0,
-                         podiums:0,classees:0,sommePlaces:0};
-      const c=cls[k];
-      c.parties++;c.jetons+=j.j||0;
-      if(j.j>c.best)c.best=j.j||0;
-      if(g.winner===k)c.vict++;
-      const pl=places[k];
-      if(pl){c.classees++;c.sommePlaces+=pl;if(pl<=3)c.podiums++}
-    });
-  });
-  const noms=Object.keys(cls).sort((a,b)=>
-    cls[b].vict-cls[a].vict||cls[b].podiums-cls[a].podiums||cls[b].jetons-cls[a].jetons);
-  $('wtop').innerHTML+=noms.length?'<p class="hr" style="margin:16px 0 2px">Classement des joueurs</p>'
-    +noms.slice(0,10).map((k,i)=>{
-      const c=cls[k],taux=c.parties?Math.round(100*c.vict/c.parties):0;
-      return'<div class="clsrow"><span class="r">'+(i+1)+'</span><span>'+(c.av||'🙂')+'</span>'
-        +'<span class="n">'+k+(c.bot?' <span class="ct">bot</span>':'')+'</span>'
-        +'<span class="inf">'+c.vict+' sur '+c.parties+' · '+taux+' %'
-        +(c.classees?' · '+c.podiums+' podium'+(c.podiums>1?'s':''):'')
-        +'<br>meilleur tapis '+c.best
-        +(c.classees?' · place moyenne '+(c.sommePlaces/c.classees).toFixed(1).replace('.',','):'')
-        +'</span></div>';
-    }).join('')
-    :'';
-  $('wl').innerHTML=w.length?'<p class="hr" style="margin:14px 0 0">Dernières parties</p>'+w.slice(0,30).map(g=>
-    '<div class="tro"><span>'+(g.av||'🙂')+'</span><span class="nm">'+g.winner+'<div class="ct">'+dstr(g.at)+' · '+(g.code||'—')+' · '+(g.players||[]).length+' joueurs · '+(g.hands||0)+' mains'
-    +((g.cl&&g.cl.length>1)?'<br>puis '+g.cl.slice(1,3).map(x=>x.p+'. '+x.n).join(' · '):'')
-    +'</div></span></div>').join('')
-    :'<p class="hr">Aucune partie terminée pour l\'instant. Le palmarès se remplit quand un joueur rafle tous les jetons.</p>';
-}
 /* ===================== options de table : ante, straddle, run it twice ===================== */
 const XOPTS=[['ante','Ante'],['str','Straddle'],['rit','Run it twice']];
 function setX(k){G[k]=G[k]?0:1;paint();sauver()}
@@ -3253,7 +3282,7 @@ function stockageCommun(){
 }
 function partieValide(r){
   return!!r&&typeof r.at==='number'&&Array.isArray(r.joueurs)&&r.joueurs.length>=2&&r.joueurs.length<=10
-    &&r.joueurs.every(x=>x&&typeof x.p==='number'&&x.p>=1&&x.p<=10);
+    &&r.joueurs.every(x=>x&&typeof x.p==='number'&&x.p>=0&&x.p<=10);
 }
 function ajouterPartieLocale(r){
   if(!partieValide(r))return false;
@@ -3262,13 +3291,32 @@ function ajouterPartieLocale(r){
   if(PARTIES.length>300)PARTIES.splice(0,PARTIES.length-300);
   return true;
 }
+function joueurDuSiege(i,nom,av,place){
+  const hum=P[i]&&!P[i].bot&&!P[i].empty;
+  const j={id:hum?(i===mySeat?JOUEUR:(seatJ[i]||null)):null,n:nom,av:av,p:place,bot:!hum};
+  if(P[i])j.j=Math.max(0,P[i].chips);
+  const s=statDe(i);if(s&&hum)Object.assign(j,s);
+  return j;
+}
 function enregistrerPartie(cl){
-  const joueurs=cl.map(x=>{
-    const hum=P[x.i]&&!P[x.i].bot;
-    return{id:hum?(x.i===mySeat?JOUEUR:(seatJ[x.i]||null)):null,n:x.n,av:x.av,p:x.p,bot:!hum};
-  });
+  const joueurs=cl.map(x=>joueurDuSiege(x.i,x.n,x.av,x.p));
   if(joueurs.filter(x=>x.id).length<2)return null;            /* contre des bots seulement : ca ne compte pas */
-  const rec={v:1,at:Date.now(),code:(tcode||'').toUpperCase(),mains:handNo,joueurs:joueurs};
+  const rec={v:2,at:Date.now(),code:(tcode||'').toUpperCase(),mains:handNo,mo:'tournoi',
+    cb:CLUB?{id:CLUB.id,n:CLUB.n}:null,joueurs:joueurs};
+  ajouterPartieLocale(rec);sauver();
+  const st=stockageCommun();
+  if(st)Promise.resolve().then(()=>st.ajouter(rec)).catch(()=>{classementSource='erreur'});
+  return rec;
+}
+/* le cash n'a pas de fin : la soiree est enregistree quand l'hote range la table */
+let cashEnregistre=false;
+function enregistrerCash(){
+  if(cashEnregistre||!net()||!isHost||!P||!cash()||handNo<5)return null;
+  const joueurs=P.map((p,i)=>p.empty?null:joueurDuSiege(i,p.n,p.av,0)).filter(Boolean);
+  if(joueurs.filter(x=>x.id).length<2)return null;
+  cashEnregistre=true;
+  const rec={v:2,at:Date.now(),code:(tcode||'').toUpperCase(),mains:handNo,mo:'cash',
+    cb:CLUB?{id:CLUB.id,n:CLUB.n}:null,joueurs:joueurs};
   ajouterPartieLocale(rec);sauver();
   const st=stockageCommun();
   if(st)Promise.resolve().then(()=>st.ajouter(rec)).catch(()=>{classementSource='erreur'});
@@ -3284,51 +3332,330 @@ async function chargerClassement(){
     if(neuf)sauver();
     classementSource='partage';
   }catch(e){classementSource='erreur'}
-  if(curTab==='w'&&!$('hv').hidden)peindreElo();
+  if(curTab==='w'&&!$('hv').hidden)peindreClub();
 }
-function calculerElo(){
+/* ---- ce que l'hote observe de chaque siege, pendant la partie ----
+   Toutes les actions passent par lui : il peut donc tenir, pour chacun, le style
+   de jeu qu'on affiche ailleurs dans les fiches. Rien n'est echange en plus. */
+function statNeuve(){return{m:0,vp:0,pf:0,fl:0,ag:0,ps:0,n:0,g:0,bp:0,hv:false,hp:false}}
+function statSiege(i){
+  if(!STAT)STAT=[];
+  if(!STAT[i])STAT[i]=statNeuve();
+  return STAT[i];
+}
+function statDonne(){
+  if(!P)return;
+  P.forEach((p,i)=>{
+    const s=statSiege(i);s.hv=false;s.hp=false;
+    if(!p.empty&&p.h&&p.h.length===2&&!p.fold){s.m++;s.n++}
+  });
+}
+function statAction(i,t,avant){
+  const s=statSiege(i);
+  if(stage===0){
+    if(t==='r'){if(!s.hp){s.pf++;s.hp=true}if(!s.hv){s.vp++;s.hv=true}}
+    else if(t==='c'&&avant>0&&!s.hv){s.vp++;s.hv=true}
+  }else{
+    if(t==='r')s.ag++;else if(t==='c')s.ps++;
+  }
+}
+function statFlop(){
+  if(!P)return;
+  P.forEach((p,i)=>{if(!p.fold&&!p.empty&&p.h&&p.h.length)statSiege(i).fl++});
+}
+function statGain(i,amt){
+  const s=statSiege(i);s.g++;if(amt>s.bp)s.bp=amt;
+}
+function statDe(i){
+  const s=STAT&&STAT[i];
+  if(!s||!s.n)return null;
+  return{m:s.m,g:s.g,bp:s.bp,st:{vp:s.vp,pf:s.pf,fl:s.fl,ag:s.ag,ps:s.ps,n:s.n}};
+}
+let STAT=null;
+/* ===================== le club =====================
+   Les parties ne sont plus des soirees isolees : elles appartiennent a un club,
+   decoupe en saisons d'un mois. Le classement, les records et la fiche de chaque
+   joueur se recalculent a la volee depuis les parties enregistrees -- rien n'est
+   fige, donc on peut regarder n'importe quel mois sans rien avoir stocke de plus. */
+let CLUB=null;                 /* {id,n} : mon club, garde sur cet appareil */
+let cbOnglet='s';              /* s saison · p soirees · j joueurs */
+let cbFiche=null;              /* l'identifiant du joueur dont on regarde la fiche */
+let cbMois=null;               /* le mois affiche, null = celui en cours */
+function codeClub(){const a='abcdefghjkmnpqrstuvwxyz23456789';let s='';for(let i=0;i<5;i++)s+=a[Math.random()*a.length|0];return s}
+function moisDe(t){const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function nomMois(m){
+  const [a,n]=String(m).split('-');
+  const N=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  return(N[+n-1]||'')+' '+a;
+}
+function moisPrec(m){const [a,n]=m.split('-').map(Number);return(n===1?a-1:a)+'-'+String(n===1?12:n-1).padStart(2,'0')}
+/* les parties de mon club ; sans club, celles ou je figure */
+function partiesClub(){
+  return PARTIES.filter(g=>CLUB?(g.cb&&g.cb.id===CLUB.id)
+    :(!g.cb&&g.joueurs.some(x=>x.id===JOUEUR)));
+}
+function moisDisponibles(){
+  const s={};partiesClub().forEach(g=>s[moisDe(g.at)]=1);
+  return Object.keys(s).sort().reverse();
+}
+function saisonCourante(){return moisDe(Date.now())}
+function partiesDe(mois){
+  const l=partiesClub();
+  return mois?l.filter(g=>moisDe(g.at)===mois):l;
+}
+/* ---- le classement, recalcule sur la periode demandee ---- */
+function calculerElo(mois){
   const R={},I={};
-  PARTIES.forEach(g=>{
+  partiesDe(mois).forEach(g=>{
     const vus={},hs=g.joueurs.filter(x=>x.id&&!x.bot&&typeof x.id==='string'&&!vus[x.id]&&(vus[x.id]=1));
     if(hs.length<2)return;
-    const K=32/(hs.length-1),d={};
     hs.forEach(x=>{
-      if(R[x.id]==null)R[x.id]=1000;d[x.id]=0;
-      const f=I[x.id]||(I[x.id]={parties:0,vict:0,podiums:0});
-      f.n=clean(x.n)||'Joueur';f.av=clean(x.av)||'🙂';f.parties++;
-      if(x.p===1)f.vict++;if(x.p<=3)f.podiums++;
+      const f=I[x.id]||(I[x.id]={parties:0,vict:0,podiums:0,mains:0,pots:0,jetons:0,
+                                 vp:0,pf:0,fl:0,agg:0,pas:0,nst:0,bp:0,soirs:0});
+      f.n=clean(x.n)||'Joueur';f.av=clean(x.av)||'🙂';f.soirs++;
+      if(x.m)f.mains+=x.m;if(x.g)f.pots+=x.g;if(typeof x.j==='number')f.jetons+=x.j;
+      if(x.bp&&x.bp>f.bp)f.bp=x.bp;
+      if(x.st){f.vp+=x.st.vp||0;f.pf+=x.st.pf||0;f.fl+=x.st.fl||0;
+               f.agg+=x.st.ag||0;f.pas+=x.st.ps||0;f.nst+=x.st.n||0}
     });
+    if(g.mo==='cash')return;                 /* pas de classement final : rien a classer */
+    const K=32/(hs.length-1),d={};
+    hs.forEach(x=>{if(R[x.id]==null)R[x.id]=1000;d[x.id]=0;
+      I[x.id].parties++;if(x.p===1)I[x.id].vict++;if(x.p<=3)I[x.id].podiums++});
     for(let a=0;a<hs.length;a++)for(let b=a+1;b<hs.length;b++){
-      const A=hs[a],B=hs[b],ea=1/(1+Math.pow(10,(R[B.id]-R[A.id])/400));
+      const A=hs[a],B=hs[b],ea=1/(1+Math.pow(10,((R[B.id]||1000)-(R[A.id]||1000))/400));
       const sa=A.p<B.p?1:A.p>B.p?0:.5;
       d[A.id]+=K*(sa-ea);d[B.id]-=K*(sa-ea);
     }
     hs.forEach(x=>{R[x.id]+=d[x.id]});
   });
-  return Object.keys(I).map(id=>Object.assign({id:id,elo:Math.round(R[id])},I[id]))
-    .sort((a,b)=>b.elo-a.elo||b.vict-a.vict||b.parties-a.parties);
+  return Object.keys(I).map(id=>Object.assign({id:id,elo:R[id]==null?null:Math.round(R[id])},I[id]))
+    .sort((a,b)=>(b.elo==null?-1:b.elo)-(a.elo==null?-1:a.elo)||b.vict-a.vict||b.soirs-a.soirs);
 }
-function peindreElo(){
-  const z=$('welo');if(!z)return;
-  const l=calculerElo();
+/* ---- les records du groupe ---- */
+function recordsClub(mois){
+  const l=partiesDe(mois),out=[];
+  const qui=id=>{const g=l.find(x=>x.joueurs.some(y=>y.id===id));const j=g&&g.joueurs.find(y=>y.id===id);
+    return j?{n:clean(j.n)||'Joueur',av:clean(j.av)||'🙂'}:null};
+  let gros=null;
+  l.forEach(g=>g.joueurs.forEach(x=>{if(x.id&&x.bp&&(!gros||x.bp>gros.v))gros={v:x.bp,id:x.id,at:g.at}}));
+  if(gros)out.push({ic:'💰',t:'Plus gros pot',v:fmtN(gros.v)+' jetons',q:qui(gros.id)});
+  /* la plus longue serie de victoires, en suivant les tournois dans l'ordre */
+  const serie={},best={};
+  l.filter(g=>g.mo!=='cash').slice().sort((a,b)=>a.at-b.at).forEach(g=>{
+    g.joueurs.forEach(x=>{if(!x.id)return;
+      serie[x.id]=x.p===1?(serie[x.id]||0)+1:0;
+      if((serie[x.id]||0)>(best[x.id]||0))best[x.id]=serie[x.id]});
+  });
+  let sMax=null;Object.keys(best).forEach(id=>{if(best[id]>=2&&(!sMax||best[id]>sMax.v))sMax={v:best[id],id:id}});
+  if(sMax)out.push({ic:'🔥',t:'Plus longue série',v:sMax.v+' victoires d’affilée',q:qui(sMax.id)});
+  /* le plus assidu */
+  const nb={};l.forEach(g=>g.joueurs.forEach(x=>{if(x.id)nb[x.id]=(nb[x.id]||0)+1}));
+  let aMax=null;Object.keys(nb).forEach(id=>{if(!aMax||nb[id]>aMax.v)aMax={v:nb[id],id:id}});
+  if(aMax&&aMax.v>=2)out.push({ic:'🪑',t:'Le plus assidu',v:aMax.v+' soirées',q:qui(aMax.id)});
+  /* la plus longue soiree */
+  let lng=null;l.forEach(g=>{if(g.mains&&(!lng||g.mains>lng.mains))lng=g});
+  if(lng)out.push({ic:'🕰️',t:'Plus longue soirée',v:lng.mains+' mains',q:null,
+    s:(lng.joueurs.filter(x=>x.id).length)+' joueurs · '+dstr(lng.at)});
+  return out;
+}
+/* ---- création et adhésion ---- */
+function creerClub(){
+  const n=clean(($('cb-nom')||{}).value||'',24).trim();
+  if(!n){const e=$('cb-err');if(e){e.textContent='Donne un nom à ton club.';e.hidden=false}return}
+  CLUB={id:codeClub(),n:n};sauver();cbOnglet='s';peindreClub();
+}
+function rejoindreClub(){
+  const c=String((($('cb-code')||{}).value||'')).toLowerCase().replace(/[^a-z0-9]/g,'');
+  const e=$('cb-err');
+  if(c.length<4){if(e){e.textContent='Le code fait 5 caractères.';e.hidden=false}return}
+  const g=PARTIES.filter(x=>x.cb&&x.cb.id===c).pop();
+  CLUB={id:c,n:(g&&g.cb&&clean(g.cb.n,24))||('Club '+c.toUpperCase())};
+  sauver();cbOnglet='s';peindreClub();
+  chargerClassement();
+}
+function quitterClub(){
+  if(!cbQuitArme){cbQuitArme=setTimeout(()=>{cbQuitArme=null;peindreClub()},4000);peindreClub();return}
+  clearTimeout(cbQuitArme);cbQuitArme=null;CLUB=null;sauver();peindreClub();
+}
+let cbQuitArme=null;
+async function partagerClub(){
+  if(!CLUB)return;
+  const t='Rejoins « '+CLUB.n+' » sur le poker : code '+CLUB.id.toUpperCase()+'\n'+location.href;
+  const b=$('cb-part'),dire=x=>{if(!b)return;const v=b.textContent;b.textContent=x;setTimeout(()=>{b.textContent=v},1800)};
+  if(navigator.share){try{await navigator.share({title:CLUB.n,text:t});return}catch(e){if(e&&e.name==='AbortError')return}}
+  try{await navigator.clipboard.writeText(t);dire('Copié')}catch(e){dire(CLUB.id.toUpperCase())}
+}
+/* si je joue dans le club de quelqu'un d'autre, on me le propose */
+function clubDesParties(){
+  const vus={};
+  PARTIES.forEach(g=>{if(g.cb&&g.cb.id&&g.joueurs.some(x=>x.id===JOUEUR))vus[g.cb.id]=clean(g.cb.n,24)||g.cb.id});
+  return Object.keys(vus).map(id=>({id:id,n:vus[id]}));
+}
+function adopterClub(id,n){CLUB={id:id,n:n};sauver();peindreClub()}
+/* ---- l'écran ---- */
+function ongletClub(t){cbOnglet=t;cbFiche=null;peindreClub()}
+function voirFiche(id){cbFiche=id;peindreClub()}
+function voirMois(m){cbMois=m||null;peindreClub()}
+function peindreClub(){
+  const z=$('cb-corps');if(!z)return;
+  $('cb-tete').innerHTML=teteClub();
+  const ong=$('cb-onglets');
+  if(ong){ong.hidden=!CLUB&&!partiesClub().length;
+    ['s','p','j'].forEach(x=>{const b=$('cb-t-'+x);if(b)b.setAttribute('aria-pressed',cbOnglet===x)})}
+  if(!CLUB&&!partiesClub().length){z.innerHTML='';return}
+  z.innerHTML=cbFiche?ficheJoueur(cbFiche)
+    :cbOnglet==='p'?sectionSoirees()
+    :cbOnglet==='j'?sectionJoueurs():sectionSaison();
+}
+function teteClub(){
+  if(!CLUB){
+    const prop=clubDesParties();
+    return'<div class="cb-neuf">'
+      +(prop.length?'<p class="gsous" style="margin-bottom:9px">Tu as déjà joué dans '
+        +(prop.length>1?'ces clubs':'ce club')+' :</p>'
+        +prop.map(c=>'<button class="cb-prop" onclick="adopterClub(\''+c.id+'\',\''+c.n.replace(/'/g,"\\'")+'\')">'
+          +'<b>'+c.n+'</b><span>Rejoindre</span></button>').join(''):'')
+      +'<div class="gtitre" style="margin-top:'+(prop.length?'14px':'2px')+'">Crée ton club</div>'
+      +'<p class="gsous">Un classement par saison, les records du groupe et la fiche de chaque joueur. '
+      +'Tu donnes le code à tes potes, ils te rejoignent.</p>'
+      +'<div class="cb-form"><input id="cb-nom" maxlength="24" placeholder="Nom du club" autocomplete="off" aria-label="Nom du club">'
+      +'<button class="p" onclick="creerClub()">Créer</button></div>'
+      +'<div class="cb-ou">ou</div>'
+      +'<div class="cb-form"><input id="cb-code" maxlength="5" placeholder="Code reçu" autocomplete="off" aria-label="Code du club">'
+      +'<button onclick="rejoindreClub()">Rejoindre</button></div>'
+      +'<p class="note" id="cb-err" hidden></p></div>';
+  }
+  return'<div class="cb-tete"><div class="cb-id"><b>'+CLUB.n+'</b>'
+    +'<span>code <u>'+CLUB.id.toUpperCase()+'</u></span></div>'
+    +'<button id="cb-part" class="petit" onclick="partagerClub()">'+(navigator.share?'Inviter':'Copier le code')+'</button>'
+    +'<button class="petit'+(cbQuitArme?' p':'')+'" onclick="quitterClub()">'+(cbQuitArme?'Confirmer':'Quitter')+'</button></div>';
+}
+function barreMois(){
+  const l=moisDisponibles(),cur=cbMois||saisonCourante();
+  if(l.indexOf(saisonCourante())<0)l.unshift(saisonCourante());
+  return'<div class="cb-mois">'+l.slice(0,8).map(m=>'<button aria-pressed="'+(m===cur)+'" onclick="voirMois(\''+m+'\')">'
+    +(m===saisonCourante()?'En cours':nomMois(m).replace(/ \d{4}$/,''))+'</button>').join('')
+    +'<button aria-pressed="'+(cbMois==='*')+'" onclick="voirMois(\'*\')">Tout</button></div>';
+}
+function moisAffiche(){return(cbMois==='*')?null:(cbMois||saisonCourante())}
+function sectionSaison(){
+  const m=moisAffiche(),l=calculerElo(m);
+  const prec=calculerElo(moisPrec(saisonCourante()));
+  const champ=(!cbMois||cbMois===saisonCourante())&&prec.length&&prec[0].elo!=null?prec[0]:null;
+  const rec=recordsClub(m);
+  const n=partiesDe(m).length;
+  return barreMois()
+    +'<div class="gtitre" style="margin-top:4px">'+(m?nomMois(m):'Depuis le début')+'</div>'
+    +'<p class="gsous">'+(n?n+' soirée'+(n>1?'s':''):'Aucune soirée')
+    +' · tout le monde part de 1000, battre un mieux classé rapporte plus. Le cash game ne change pas l’Elo.</p>'
+    +(champ?'<div class="cb-champ"><span class="ic">🏆</span><span><small>Champion de '
+      +nomMois(moisPrec(saisonCourante())).replace(/ \d{4}$/,'')+'</small><b>'+champ.n+'</b></span>'
+      +'<span class="cb-elo">'+champ.elo+'</span></div>':'')
+    +(l.length?l.slice(0,20).map((x,k)=>ligneClassement(x,k)).join('')
+      :'<p class="hr">Rien pour cette saison. La première soirée l’ouvrira.</p>')
+    +(rec.length?'<div class="gtitre">Les records</div>'
+      +'<div class="cb-recs">'+rec.map(r=>'<div class="cb-rec"><span class="ic">'+r.ic+'</span>'
+        +'<span class="tx"><b>'+r.t+'</b><span>'+r.v+'</span></span>'
+        +(r.q?'<span class="qui">'+r.q.av+' '+r.q.n+'</span>':(r.s?'<span class="qui">'+r.s+'</span>':''))
+        +'</div>').join('')+'</div>':'')
+    +noteSource();
+}
+function ligneClassement(x,k){
+  return'<div class="clsrow'+(x.id===JOUEUR?' moi':'')+'" onclick="voirFiche(\''+x.id+'\')" role="button" tabindex="0">'
+    +'<span class="r">'+(x.elo==null?'—':k+1)+'</span><span>'+x.av+'</span>'
+    +'<span class="n">'+x.n+(x.id===JOUEUR?' <span class="ct">toi</span>':'')+'</span>'
+    +'<span class="inf"><b class="elo">'+(x.elo==null?'·':x.elo)+'</b><br>'+x.vict+' victoire'+(x.vict>1?'s':'')
+    +' · '+x.soirs+' soirée'+(x.soirs>1?'s':'')+'</span></div>';
+}
+function sectionSoirees(){
+  const l=partiesDe(moisAffiche()).slice().sort((a,b)=>b.at-a.at);
+  if(!l.length)return barreMois()+'<p class="hr">Aucune soirée enregistrée.</p>';
+  return barreMois()+l.slice(0,40).map(g=>{
+    const hum=g.joueurs.filter(x=>x.id);
+    const cl=g.joueurs.slice().sort((a,b)=>(a.p||99)-(b.p||99));
+    return'<div class="cb-soir"><div class="l1"><b>'+(g.mo==='cash'?'Cash game':'Tournoi')+'</b>'
+      +'<span class="ct">'+dstr(g.at)+(g.code?' · '+g.code:'')+'</span></div>'
+      +'<div class="l2">'+hum.slice(0,6).map(x=>'<i>'+(clean(x.av)||'🙂')+'</i>').join('')
+      +'<span>'+hum.length+' joueur'+(hum.length>1?'s':'')+' · '+(g.mains||0)+' mains</span></div>'
+      +(g.mo!=='cash'&&cl[0]?'<div class="l3">🥇 '+clean(cl[0].n)
+        +(cl[1]?' <span class="ct">puis '+clean(cl[1].n)+(cl[2]?', '+clean(cl[2].n):'')+'</span>':'')+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+function sectionJoueurs(){
+  const l=calculerElo(moisAffiche());
+  if(!l.length)return barreMois()+'<p class="hr">Personne n’a encore joué.</p>';
+  return barreMois()+l.map(x=>{
+    const st=x.nst?'VPIP '+Math.round(x.vp/x.nst*100)+' % · PFR '+Math.round(x.pf/x.nst*100)+' %':
+      x.mains?x.mains+' mains':'';
+    return'<div class="clsrow" onclick="voirFiche(\''+x.id+'\')" role="button" tabindex="0">'
+      +'<span class="r">'+x.av+'</span>'
+      +'<span class="n">'+x.n+(x.id===JOUEUR?' <span class="ct">toi</span>':'')+'<br><span class="ct">'+st+'</span></span>'
+      +'<span class="inf"><b class="elo">'+(x.elo==null?'·':x.elo)+'</b></span></div>';
+  }).join('');
+}
+function ficheJoueur(id){
+  const m=moisAffiche(),l=calculerElo(m),x=l.find(y=>y.id===id);
+  if(!x)return'<p class="hr">Ce joueur n’a pas joué sur cette période.</p>'
+    +'<button class="petit" onclick="voirFiche(null)">Retour</button>';
+  const rang=l.findIndex(y=>y.id===id)+1;
+  const pc=v=>x.nst?Math.round(v/x.nst*100)+' %':'—';
+  const agg=(x.agg+x.pas)?Math.round(x.agg/(x.agg+x.pas)*100)+' %':'—';
+  const style=x.nst<30?'':styleTexte(x.vp/x.nst,x.pf/x.nst,x.agg/Math.max(1,x.agg+x.pas));
+  /* la courbe d'Elo, soiree apres soiree */
+  const pts=[1000];
+  partiesDe(m).filter(g=>g.mo!=='cash').slice().sort((a,b)=>a.at-b.at).forEach(g=>{
+    if(!g.joueurs.some(y=>y.id===id))return;
+    const jusque=calculerEloJusque(g.at,id);if(jusque!=null)pts.push(jusque);
+  });
+  return'<button class="petit" onclick="voirFiche(null)" style="margin-bottom:10px">← Retour au classement</button>'
+    +'<div class="cb-fiche"><span class="av">'+x.av+'</span><div><b>'+x.n+'</b>'
+    +'<span>'+(x.elo==null?'pas encore classé':x.elo+' points · '+rang+'<sup>e</sup>')+'</span></div></div>'
+    +'<div class="tuiles">'
+    +tuile(x.soirs,'soirée'+(x.soirs>1?'s':''))
+    +tuile(x.vict,'victoire'+(x.vict>1?'s':''))
+    +tuile(x.podiums,'podium'+(x.podiums>1?'s':''))
+    +tuile(fmtN(x.mains),'mains jouées')
+    +tuile(fmtN(x.pots),'pots gagnés')
+    +tuile(x.bp?fmtN(x.bp):'—','plus gros pot')
+    +'</div>'
+    +(x.nst?'<div class="gtitre">Son jeu</div>'
+      +'<p class="gsous">Sur '+fmtN(x.nst)+' main'+(x.nst>1?'s':'')+' observée'+(x.nst>1?'s':'')+'.</p>'
+      +'<div class="tuiles">'+tuile(pc(x.vp),'mains jouées')+tuile(pc(x.pf),'relance préflop')
+      +tuile(agg,'agression')+tuile(pc(x.fl),'flops vus')+'</div>'
+      +(style?'<p class="gsous">'+style+'</p>':''):'')
+    +(pts.length>2?'<div class="gtitre">Son Elo, soirée après soirée</div>'+courbe(pts):'');
+}
+/* l'Elo d'un joueur en ne comptant que les parties jusqu'a une date */
+function calculerEloJusque(t,id){
+  const sauv=PARTIES;
+  PARTIES=sauv.filter(g=>g.at<=t);
+  const l=calculerElo(moisAffiche());
+  PARTIES=sauv;
+  const x=l.find(y=>y.id===id);
+  return x?x.elo:null;
+}
+function styleTexte(vp,pf,ag){
+  const serre=vp<.22,large=vp>.38,agr=ag>.45,pass=ag<.25;
+  if(serre&&agr)return'Serré et agressif : il attend, et quand il entre, il met la pression.';
+  if(serre&&pass)return'Serré et passif : il joue peu de mains et les joue doucement. Un roc.';
+  if(large&&agr)return'Large et agressif : il joue beaucoup et mise fort. Difficile à lire, mais il se met en danger.';
+  if(large&&pass)return'Large et passif : il voit beaucoup de flops et suit plus qu’il ne mise.';
+  if(agr)return'Plutôt agressif : il prend souvent l’initiative.';
+  if(pass)return'Plutôt passif : il suit plus souvent qu’il ne relance.';
+  return'Un jeu équilibré, ni trop serré ni trop large.';
+}
+function noteSource(){
   const note={
-    local:'Gardé sur cet appareil seulement.',
+    local:'Gardé sur cet appareil seulement : ton Supabase n’est pas configuré.',
     attente:'Chargement du classement partagé…',
-    partage:'Partagé entre tous ceux qui jouent sur ton appli.',
+    partage:'Partagé entre les membres du club.',
     erreur:window.STOCKAGE_RESEAU
-      ?'Le classement partagé ne répond pas : la table « poker_parties » existe-t-elle sur ton Supabase ? En attendant, voici ce que cet appareil connaît.'
+      ?'Le classement partagé ne répond pas : la table « poker_parties » existe-t-elle sur ton Supabase ?'
       :'Le classement partagé ne répond pas. En attendant, voici ce que cet appareil connaît.'
   }[classementSource]||'';
-  z.innerHTML='<div class="gtitre" style="margin-top:2px">Classement entre potes</div>'
-    +'<p class="gsous">Elo : tout le monde part de 1000, et battre un joueur mieux classé rapporte plus. '
-    +'Seuls les tournois joués à plusieurs humains comptent.</p>'
-    +(l.length?l.slice(0,20).map((x,k)=>'<div class="clsrow'+(x.id===JOUEUR?' moi':'')+'">'
-        +'<span class="r">'+(k+1)+'</span><span>'+x.av+'</span>'
-        +'<span class="n">'+x.n+(x.id===JOUEUR?' <span class="ct">toi</span>':'')+'</span>'
-        +'<span class="inf"><b class="elo">'+x.elo+'</b><br>'+x.vict+' victoire'+(x.vict>1?'s':'')
-        +' · '+x.parties+' partie'+(x.parties>1?'s':'')+'</span></div>').join('')
-      :'<p class="hr">Aucun tournoi entre potes terminé pour l’instant.</p>')
-    +'<p class="an-note" style="margin-bottom:14px">'+note+'</p>';
+  return'<p class="an-note" style="margin-bottom:14px">'+note+'</p>';
 }
 async function loadWins(){
   if(!db)return;
@@ -3336,7 +3663,7 @@ async function loadWins(){
     const s=await db.collection('games').orderBy('at','desc').limit(60).get();
     const seen={};WINS.forEach(w=>seen[w.at+'|'+w.winner]=1);
     s.docs.forEach(d=>{const g=d.data();if(g&&g.at&&!seen[g.at+'|'+g.winner]){seen[g.at+'|'+g.winner]=1;WINS.push(g)}});
-    if(curTab==='w')paintWins();
+    if(curTab==='w')peindreClub();
   }catch(e){}
 }
 function montrerPodium(){
@@ -3512,6 +3839,7 @@ function accueillirNouveaux(){
     const vieux=P[i].empty?0:Math.max(0,P[i].chips);
     injecte+=G.cave-vieux;
     P[i]=mkPlayer({name:clean(v.presence&&v.presence.n)||'Joueur',av:clean(v.presence&&v.presence.a)||'🙂'});
+    if(STAT)STAT[i]=statNeuve();        /* nouveau joueur, nouvelles statistiques */
     seatPeer[i]=v.peer;seatDev[i]=(v.presence&&v.presence.d)||null;
     seatJ[i]=(v.presence&&typeof v.presence.j==='string'&&v.presence.j.slice(0,40))||null;delete partiDepuis[i];absents[i]=false;
     log(P[i].n+' rejoint la table');
@@ -4477,6 +4805,7 @@ function reprendrePartie(){
 }
 function quitterPartie(){
   stopClock();clearTimeout(actTimer);clearTimeout(syncT);clearInterval(watch);
+  enregistrerCash();
   oublierTable();oublierTableHote();   /* il a quitte expres : on ne lui propose pas d'y retourner */
   ANIM.hn=-1;ANIM.recu=null;enCours=false;banque=BANQUE_MAX;preAct=null;strSeat=null;board2=null;ritDe=null;
   if(table){try{table.leave()}catch(e){}}
@@ -5137,6 +5466,7 @@ async function joinTable(){
   if(await openTable(c,false)){scr('room');roomList();paint()}
 }
 function leaveTable(){
+  enregistrerCash();
   oublierTable();oublierTableHote();   /* depart volontaire : rien a reprendre */
   try{if(table)table.leave()}catch(e){}
   table=null;hostPeer=null;MODE='solo';isHost=true;clearInterval(watch);scr('home');
