@@ -62,6 +62,19 @@
         return (r.data || []).map(function (x) { return x.donnees; });
       }
     };
+
+    /* ---- le croupier distant : c'est Postgres qui bat les cartes ----
+       Voir supabase-croupier.sql. Chaque joueur appelle ces fonctions pour
+       lui-meme : l'hote ne passe jamais au milieu, c'est tout l'interet. */
+    window.CROUPIER_RESEAU = {
+      rpc: async function (fn, args) {
+        var cl = obtenirClient();
+        if (!cl) throw { code: "bibliotheque reseau absente" };
+        var r = await cl.rpc(fn, args || {});
+        if (r.error) throw r.error;
+        return r.data;
+      }
+    };
   }
 
   /* identifiant unique de cet onglet, le temps de la session */

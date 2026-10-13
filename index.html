@@ -1511,6 +1511,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v52 — croupier distant : le serveur bat les cartes, même l’hôte ne voit plus les mains */
 /* v51 — le club : code à partager, saisons mensuelles, soirées, fiches joueurs, records */
 /* v50 — accueil sur le feutre : nom en premier, code de table en direct, ta carte de joueur */
 /* v49 — revoir une main sur la table, coup par coup */
@@ -1744,12 +1745,12 @@ function appliquerNiveau(){SB=PALIERS[niveau][0];BB=PALIERS[niveau][1]}
 function sousTitre(){
   const base=net()?'Table '+tcode.toUpperCase():(P?P.length+' joueurs':'6 joueurs');
   let t=base+' · blinds '+SB+'/'+BB+extrasTxt();
-  if(cash()){$('sub').textContent=t+' · cash game';return}
+  if(cash()){$('sub').textContent=t+' · cash game'+crTexte();return}
   if(G.rythme&&niveau<PALIERS.length-1){
     const reste=Math.max(0,G.rythme-mainsNiveau);
     t+=' · niveau '+(niveau+1)+', montée dans '+reste+' main'+(reste>1?'s':'');
   }else if(G.rythme)t+=' · niveau '+(niveau+1);
-  $('sub').textContent=t;
+  $('sub').textContent=t+crTexte();
 }
 function newGame(seats){
   sbSeat=bbSeat=null;sortis=[];classement=null;
@@ -1757,6 +1758,7 @@ function newGame(seats){
   ANIM.hn=-1;enCours=false;banque=BANQUE_MAX;banqueH={};preAct=null;   /* nouvelle partie : la premiere donne doit etre jouee, meme numero de main ou pas */
   injecte=seats.filter(o=>!o.empty).length*G.cave;
   P=seats.map(mkPlayer);dealer=P.length-1;L=[];STAT=P.map(statNeuve);cashEnregistre=false;
+  crNeuf();
   if(HIST.length)HIST.push({sep:true});handNo=0;startHand();
 }
 function put(p,a){a=Math.min(a,p.chips);p.chips-=a;p.bet+=a;p.tot+=a;if(!p.chips)p.allin=true}
@@ -1822,6 +1824,7 @@ function startHand(){
     }
   }
   enCours=true;$('ctl').innerHTML=attente('Distribution…');pend=false;
+  const distant=net()&&isHost&&crPret();   /* qui bat les cartes : le serveur, ou nous */
   deck=[];for(let s=0;s<4;s++)for(let r=2;r<=14;r++)deck.push({r,s});
   for(let i=51;i>0;i--){const j=Math.random()*(i+1)|0;[deck[i],deck[j]]=[deck[j],deck[i]]}
   if(!cash()&&G.rythme&&mainsNiveau>=G.rythme&&niveau<PALIERS.length-1){
@@ -1832,7 +1835,9 @@ function startHand(){
   absents[mySeat]=absent;hStart=P[mySeat].chips;res=[];
   P.forEach(p=>{p.agresseur=false;p.derMise=-1});
   P.forEach(p=>{p.bet=p.tot=0;p.fold=p.empty||p.chips<=0;p.allin=false;p.acted=false;p.show=false;p.eq=null;
-                p.h=p.fold?[]:[deck.pop(),deck.pop()]});
+                p.nh=p.fold?0:2;
+                p.h=(p.fold||distant)?[]:[deck.pop(),deck.pop()]});
+  CR.servi=distant?P.map((p,i)=>i).filter(i=>!P[i].fold):null;
   dealer=nxt(dealer,live);
   const duel=P.filter(live).length===2;
   // en duel, le bouton poste la petite blinde et parle en premier avant le flop
@@ -1856,11 +1861,14 @@ function startHand(){
   if(G.ante){const a=valeurAnte();P.forEach((q,i)=>{if(!q.fold&&q.tot>0)noter({t:'m',i:i,a:Math.min(a,q.tot),an:1})})}
   noter({t:'m',i:sb,a:P[sb].bet});noter({t:'m',i:bb,a:P[bb].bet});
   if(strSeat!=null)noter({t:'m',i:strSeat,a:P[strSeat].bet});
-  blobs=null;if(net()&&isHost)chiffrerMains();
+  CR.attente=false;CR.tab2=null;CR.abat=-1;CR.revele=-1;CR.enAbat=-1;
+  if(distant){CR.attente=true;CR.t0=Date.now();crDonne()}
+  else{CR.servi=null;blobs=null;if(net()&&isHost)chiffrerMains()}
   /* on montre la donne (et on la transmet) avant que quiconque ne parle */
   render();sync();
   const donne=dureeDonne();
-  if(donne>0)setTimeout(()=>{if(P&&phase==='play'&&!etatFini)step()},donne);else step();
+  if(donne>0)setTimeout(()=>{if(!CR.attente)crPartir()},donne);
+  else if(!CR.attente)crPartir();
 }
 function step(){
   if(!P||phase!=='play')return;
@@ -1870,8 +1878,17 @@ function step(){
   const able=lv.filter(p=>!p.allin);
   if(able.every(p=>(p.acted||able.length==1)&&p.bet==curBet)){
     if(!runout&&lv.length>1&&able.length<=1&&stage<4){
-      runout=true;ritDe=board.length;pend=false;$('ctl').innerHTML='';lv.forEach(p=>p.show=true);
-      equities();log('Tapis — cartes retournées');render();sync();
+      runout=true;ritDe=board.length;pend=false;$('ctl').innerHTML='';
+      log('Tapis — cartes retournées');
+      /* tapis : les cartes se retournent pour de vrai, donc chacun montre la
+         sienne au croupier avant qu'on affiche les chances */
+      if(crActif()&&CR.servi&&!crAbattu()){
+        render();sync();
+        return crAbattage(()=>{P.filter(live).forEach(p=>p.show=true);equities();
+          render();sync();setTimeout(nextStage,1700)});
+      }
+      lv.forEach(p=>p.show=true);
+      equities();render();sync();
       return setTimeout(nextStage,1700);
     }
     return nextStage();
@@ -1889,9 +1906,17 @@ function step(){
 function nextStage(){
   if(!P||phase!=='play')return;
   pend=false;$('ctl').innerHTML='';P.forEach(p=>{p.bet=0;p.acted=false});curBet=0;minR=BB;stage++;
-  if(stage==1){board.push(deck.pop(),deck.pop(),deck.pop());street('Flop');son('carte')}
-  else if(stage<4){board.push(deck.pop());street(stage==2?'Turn':'River');son('carte')}
-  else return showdown();
+  if(stage>=4)return showdown();
+  /* le croupier distant garde le paquet : on lui demande la rue, puis on finit */
+  if(crActif()&&CR.servi)return crRue(stage===1?3:board.length+1);
+  if(stage==1)board.push(deck.pop(),deck.pop(),deck.pop());
+  else board.push(deck.pop());
+  finirRue();
+}
+/* la rue est posee sur la table, d'ou que viennent les cartes */
+function finirRue(){
+  if(!P||phase!=='play')return;
+  street(stage==1?'Flop':stage==2?'Turn':'River');son('carte');
   noter({t:'b',b:board.map(enc)});
   if(stage===1)statFlop();
   if(runout)equities();
@@ -2261,12 +2286,18 @@ function award(w){const t=pot();w.chips+=t;res.push({w:w.n,amt:t});
   noter({t:'w',w:[P.indexOf(w)],a:t,hn:''});
   log(w.n+' remporte '+fmt(t)+' (les autres se sont couchés)');win1([w],t);end()}
 function showdown(){
+  /* avec le croupier distant, on ne connait aucune main : chacun retourne la
+     sienne, et seules celles qui sont sur la table peuvent gagner le pot */
+  if(crActif()&&CR.servi&&!crAbattu())return crAbattage(()=>showdown());
   const lv=P.filter(live);lv.forEach(p=>{p.show=true;p.sc=best(p.h.concat(board));
     noter({t:'s',i:P.indexOf(p),h:p.h.map(enc)})});
   /* run it twice : la fin du tableau est redistribuee, chaque tableau rapporte la moitie de chaque pot */
-  const deux=!!G.rit&&runout&&ritDe!=null&&ritDe<5&&lv.length>=2&&deck.length>=5-ritDe;
+  const dispo=(crActif()&&CR.servi)?((CR.tab2||[]).length>=5-ritDe):(deck.length>=5-ritDe);
+  const deux=!!G.rit&&runout&&ritDe!=null&&ritDe<5&&lv.length>=2&&dispo;
   board2=null;
-  if(deux){board2=board.slice(0,ritDe);while(board2.length<5)board2.push(deck.pop());log('Run it twice : deuxième tableau')}
+  if(deux){board2=board.slice(0,ritDe);let k2=0;
+    while(board2.length<5)board2.push((crActif()&&CR.servi)?CR.tab2[k2++]:deck.pop());
+    log('Run it twice : deuxième tableau')}
   const tabs=deux?[board,board2]:[board];
   const lvls=[...new Set(lv.map(p=>p.tot))].sort((a,b)=>a-b);let prev=0;
   lvls.forEach(l=>{
@@ -3889,15 +3920,22 @@ function card(c,fresh,cls,style){
 }
 function flipStyle(t){return'--fd:-'+Math.max(0,Date.now()-t)+'ms;--fdur:'+Math.round(380/(vitesse()||1))+'ms'}
 function hand(p,i){
-  if(!p.h.length)return'';
+  /* on tient peut-etre une main sans la connaitre : un joueur en face, ou,
+     avec le croupier distant, n'importe qui -- l'hote compris. Dans ce cas on
+     dessine le bon nombre de dos. */
+  const vraies=p.h.length,n=vraies||p.nh||0;
+  if(!n)return'';
   if(p.fold&&!p.show&&i!==mySeat)return'';      /* couche : ses cartes sont reparties au croupier */
-  const voit=(i===mySeat&&!spectateur)||p.show;
+  const voit=!!vraies&&((i===mySeat&&!spectateur)||p.show);
   const recu=ANIM.recu?ANIM.recu[i]:2,ft=ANIM.flipMain.get(i);
-  return p.h.map((c,k)=>{
-    if(k>=recu)return'<div class="c b cache"></div>';
-    if(!voit)return'<div class="c b"></div>';
-    return card(c,false,surligne(c)+(ft!=null?' flip':''),ft!=null?flipStyle(ft):'');
-  }).join('');
+  let out='';
+  for(let k=0;k<n;k++){
+    if(k>=recu){out+='<div class="c b cache"></div>';continue}
+    if(!voit){out+='<div class="c b"></div>';continue}
+    const c=p.h[k];
+    out+=card(c,false,surligne(c)+(ft!=null?' flip':''),ft!=null?flipStyle(ft):'');
+  }
+  return out;
 }
 function ancrage(v){
   /* colles au bord haut ou bas : sinon, sur un ecran peu haut, ils en sortent */
@@ -4415,7 +4453,10 @@ function etatAu(t,k){
     else if(e.t==='s'){const p=P2[e.i];if(p){p.show=true;if(e.h)p.h=e.h.map(dec)}}
     else if(e.t==='w'){
       P2.forEach(p=>{p.bet=0});o.cur=null;o.fini=true;
+      /* pot partage : le jeton impair revient au premier nomme, comme a la
+         table -- sans quoi la relecture perdait un jeton de temps en temps */
       (e.w||[]).forEach(i=>{if(P2[i])P2[i].chips+=Math.floor(e.a/e.w.length)});
+      if((e.w||[]).length&&P2[e.w[0]])P2[e.w[0]].chips+=e.a%e.w.length;
       o.res.push({w:(e.w||[]).map(i=>P2[i]?P2[i].n:'?').join(' et '),m:(e.w||[]).length>1,amt:e.a,hn:e.hn||''});
     }
   }
@@ -4507,7 +4548,11 @@ function etatTable(){
     ab:P?P.map((q,i)=>absents[i]?1:0):[],
     p:P?P.map(p=>({n:p.n,av:p.av,b:p.bot?1:0,e:p.empty?1:0,lv:p.lv,c:p.chips,be:p.bet,t:p.tot,
       f:p.fold?1:0,a:p.allin?1:0,ac:p.acted?1:0,sh:p.show?1:0,po:p.pos||'',ag:p.agresseur?1:0,
-      dm:p.derMise,rb:p.rebuy?1:0,rp:p.remplace||null,h:p.h.map(enc)})):[]};
+      dm:p.derMise,rb:p.rebuy?1:0,rp:p.remplace||null,h:p.h.map(enc),nh:p.nh||0})):[],
+    /* le croupier distant : de quoi redemander la main en cours apres un
+       rechargement. Les secrets des bots sont a nous, ils restent ici. */
+    cr:{m:CR.mode,p:CR.partie,s:CR.servi,b:CR.bots,r:CR.revele,a:CR.abat,
+        t2:CR.tab2?CR.tab2.map(enc):null}};
 }
 function ecrireTable(){
   if(!net()||!isHost||!P||phase!=='play'||!memoOK)return;
@@ -4545,7 +4590,16 @@ function restaurerTable(t){
   (t.ab||[]).forEach((v,i)=>{if(v)absents[i]=true});
   P=t.p.map(x=>({n:x.n,av:x.av,bot:!!x.b,empty:!!x.e,lv:x.lv,chips:x.c,bet:x.be,tot:x.t,
     fold:!!x.f,allin:!!x.a,acted:!!x.ac,show:!!x.sh,pos:x.po,agresseur:!!x.ag,derMise:x.dm,
-    rebuy:!!x.rb,remplace:x.rp||undefined,h:(x.h||[]).map(dec),eq:null,outs:null,outsC:[]}));
+    rebuy:!!x.rb,remplace:x.rp||undefined,h:(x.h||[]).map(dec),nh:x.nh||0,eq:null,outs:null,outsC:[]}));
+  if(t.cr&&typeof t.cr==='object'){
+    CR.mode=t.cr.m==='oui'?'oui':'non';CR.partie=String(t.cr.p||'');
+    CR.servi=Array.isArray(t.cr.s)?t.cr.s.slice():null;
+    CR.bots=(t.cr.b&&typeof t.cr.b==='object')?t.cr.b:{};
+    CR.revele=typeof t.cr.r==='number'?t.cr.r:-1;
+    CR.abat=typeof t.cr.a==='number'?t.cr.a:-1;
+    CR.tab2=Array.isArray(t.cr.t2)?t.cr.t2.map(dec):null;
+    CR.attente=false;CR.lance=handNo;CR.essais=0;CR.alerte='';
+  }else{CR.mode='non';CR.servi=null}
   seatPeer=P.map(()=>null);seatPeer[mySeat]=myPeer;
   seatDev.length=P.length;seatJ.length=P.length;
   moi=moi||{vpip:false,pfr:false,flop:false,agg:0,pas:0,pos:P[mySeat]?P[mySeat].pos:''};
@@ -4553,7 +4607,9 @@ function restaurerTable(t){
   ANIM.hn=handNo;ANIM.bd=board.length;ANIM.stage=stage;
   ANIM.bets=P.map(p=>p.bet);ANIM.shows=P.map(p=>!!p.show);
   banque=BANQUE_MAX;banqueH={};preAct=null;preEnCours='';blobs=null;
-  sousTitre();render();chiffrerMains();sync();
+  sousTitre();render();
+  if(crActif()&&CR.servi)crReprise();else chiffrerMains();
+  sync();
   log('La table est de retour.');
   /* on reprend la partie la ou elle s'etait arretee */
   if(ended)showNew('Partie terminée',null);
@@ -4637,11 +4693,285 @@ function dechiffrerMain(blob,hn,i,pub){
   }).catch(()=>{});
 }
 
+/* ===================== le croupier distant =====================
+   Jusqu'ici c'etait le telephone de l'hote qui battait les cartes : il ne
+   montrait les mains de personne, mais il les connaissait toutes. Ici le
+   paquet est melange par le serveur et n'en sort jamais. Chacun presente un
+   secret que lui seul detient et recoit ses deux cartes, l'hote compris. Le
+   tableau s'ouvre rue par rue, et a l'abattage chacun retourne sa main.
+   Si le croupier ne repond pas, la table repasse a l'ancienne distribution :
+   on prefere une partie qui continue a une partie bloquee. */
+let CR={mode:'?',      /* ? pas encore su · oui croupier distant · non l'hote distribue */
+        partie:'',     /* tire au sort par l'hote : deux parties sur le meme code ne se melangent pas */
+        secret:'',cle:'',          /* mon secret, et son empreinte publique */
+        servi:null,                /* les sieges servis a cette main */
+        bots:{},                   /* hote : un secret par bot, il les tient pour eux */
+        hn:-1,mesC:null,           /* la main pour laquelle j'ai mes cartes */
+        attente:false,lance:-1,t0:0,
+        abat:-1,montre:-1,revele:-1,enAbat:-1,tab2:null,
+        essais:0,recup:0,alerte:''};
+const CR_ESSAIS=8;
+function crDispo(){return!!(window.CROUPIER_RESEAU&&SC&&net())}
+function crActif(){return CR.mode==='oui'&&!!CR.partie}
+function crCode(){return(tcode||'').toLowerCase()+'-'+CR.partie}
+function crHex(n){const u=new Uint8Array(n);crypto.getRandomValues(u);
+  return Array.from(u).map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function crSha(t){
+  const d=await SC.digest('SHA-256',new TextEncoder().encode(String(t)));
+  return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+/* mon secret vit sur cet appareil : un rechargement en pleine main ne me prive
+   pas de mes cartes */
+async function crMoi(){
+  if(CR.secret&&CR.cle)return true;
+  if(!SC)return false;
+  let s='';try{s=localStorage.getItem('poker.cr')||''}catch(e){}
+  if(!/^[0-9a-f]{32}$/.test(s)){s=crHex(16);try{localStorage.setItem('poker.cr',s)}catch(e){}}
+  CR.secret=s;CR.cle=await crSha(s);return true;
+}
+function crAppel(fn,args){
+  const c=window.CROUPIER_RESEAU;
+  if(!c||!c.rpc)return Promise.reject(new Error('aucun croupier'));
+  return c.rpc(fn,args);
+}
+/* y a-t-il un croupier au bout du fil ? On demande une donne qui n'existe pas :
+   s'il repond « connais pas », c'est qu'il est bien la. */
+async function crSonder(){
+  if(!crDispo()){CR.mode='non';return false}
+  try{
+    const r=await crAppel('poker_controle',{p_code:'sonde-0000',p_main:0});
+    CR.mode=(r&&typeof r==='object'&&'ok'in r)?'oui':'non';
+  }catch(e){CR.mode='non'}
+  if(CR.mode==='oui')await crMoi();
+  sousTitre();if(P)render();
+  return CR.mode==='oui';
+}
+/* une nouvelle partie : un nom tire au sort pour ses donnes */
+function crNeuf(){
+  CR.partie=SC?crHex(5):'';CR.servi=null;CR.bots={};CR.hn=-1;CR.mesC=null;
+  CR.attente=false;CR.lance=-1;CR.abat=-1;CR.montre=-1;CR.revele=-1;CR.enAbat=-1;CR.tab2=null;
+  CR.essais=0;CR.recup=0;CR.alerte='';
+  if(net()&&isHost)crSonder();
+}
+/* l'empreinte publiee par le joueur assis la */
+function crCleDe(i){
+  const pe=seatPeer[i];if(!pe||!table)return'';
+  const v=table.peers().find(x=>x.peer===pe);
+  const k=v&&v.presence&&v.presence.x;
+  return(typeof k==='string'&&/^[0-9a-f]{64}$/.test(k))?k:'';
+}
+/* tout le monde a-t-il de quoi recevoir ses cartes ? Sinon on distribue
+   a l'ancienne : mieux vaut jouer que d'exclure quelqu'un. */
+function crPret(){
+  if(!crActif()||!P||!CR.cle)return false;
+  return P.every((p,i)=>p.fold||p.bot||p.empty||i===mySeat||!!crCleDe(i));
+}
+function crMonSiege(){
+  /* servi : je m'annonce par mon siege ; sinon par ma cle d'hote (l'hote tient
+     encore la table quand il est elimine) */
+  return(CR.servi&&CR.servi.indexOf(mySeat)>=0)?mySeat:-1;
+}
+function crAbattu(){return CR.revele===handNo}
+/* le jeu ne part qu'une fois, que les cartes viennent d'ici ou du serveur */
+function crPartir(){
+  if(!P||phase!=='play'||etatFini)return;
+  if(CR.lance===handNo)return;
+  CR.lance=handNo;step();
+}
+/* ---- la donne ---- */
+async function crDonne(){
+  const hn=handNo;
+  await crMoi();
+  const sieges=(CR.servi||[]).slice(),cles=[],aMoi=[],secs=[];
+  for(const i of sieges){
+    if(i===mySeat){cles.push(CR.cle);aMoi.push(i);secs.push(CR.secret)}
+    else if(P[i].bot){const s=crHex(16);CR.bots[i]=s;cles.push(await crSha(s));aMoi.push(i);secs.push(s)}
+    else cles.push(crCleDe(i));
+  }
+  try{
+    const r=await crAppel('poker_donne',{p_code:crCode(),p_main:hn,
+      p_sieges:sieges,p_cles:cles,p_hote:CR.cle});
+    if(handNo!==hn||!P)return;
+    if(!r||!r.ok){
+      /* quelqu'un s'est mis sur ce numero : on rouvre la partie ailleurs */
+      if(r&&r.err==='pris'){CR.partie=crHex(5);return crDonne()}
+      throw new Error((r&&r.err)||'donne');
+    }
+    const m=await crAppel('poker_mains',{p_code:crCode(),p_main:hn,
+      p_sieges:aMoi,p_secrets:secs});
+    if(handNo!==hn||!P)return;
+    const mains=(m&&m.mains)||{};
+    aMoi.forEach(i=>{
+      const c=mains[i];
+      if(c&&c.length===2&&P[i]){P[i].h=c.map(dec);
+        if(i===mySeat){CR.hn=hn;CR.mesC=P[i].h.slice()}}
+    });
+    if(aMoi.length&&aMoi.some(i=>!P[i].h.length))throw new Error('mains');
+    CR.attente=false;CR.essais=0;CR.alerte='';
+    render();sync();
+    setTimeout(crPartir,Math.max(0,dureeDonne()-(Date.now()-CR.t0)));
+  }catch(e){crEchec('la donne',()=>crDonne())}
+}
+/* ---- le tableau, rue par rue ---- */
+async function crRue(n){
+  const hn=handNo;
+  try{
+    const r=await crAppel('poker_tableau',{p_code:crCode(),p_main:hn,p_tab:1,
+      p_n:n,p_siege:crMonSiege(),p_secret:CR.secret});
+    if(handNo!==hn||!P)return;
+    if(!r||!r.ok||!Array.isArray(r.cartes)||r.cartes.length<n)throw new Error('tableau');
+    board=r.cartes.slice(0,n).map(dec);
+    CR.essais=0;CR.alerte='';
+    finirRue();
+  }catch(e){crEchec('le tableau',()=>crRue(n))}
+}
+/* le second tableau du run it twice : cinq cartes a part, prises plus loin
+   dans le paquet, donc jamais en double avec le premier */
+async function crTableau2(){
+  const hn=handNo;
+  try{
+    const r=await crAppel('poker_tableau',{p_code:crCode(),p_main:hn,p_tab:2,
+      p_n:5,p_siege:crMonSiege(),p_secret:CR.secret});
+    if(r&&r.ok&&Array.isArray(r.cartes)&&r.cartes.length===5)CR.tab2=r.cartes.map(dec);
+  }catch(e){}
+}
+/* ---- l'abattage : chacun retourne sa main lui-meme ---- */
+async function crAbattage(suite){
+  const hn=handNo;
+  /* une seule fois par main : sans ce verrou, deux abattages en vol finissent
+     par distribuer le pot deux fois */
+  if(CR.enAbat===hn)return;
+  CR.enAbat=hn;
+  CR.abat=hn;sync();            /* les invites voient la demande et se montrent */
+  const dedans=P.map((p,i)=>i).filter(i=>live(P[i]));
+  /* l'hote retourne pour lui et pour ses bots : il detient leurs secrets */
+  const miens=dedans.filter(i=>i===mySeat?!!CR.secret:(P[i].bot&&CR.bots[i]));
+  try{
+    await Promise.all(miens.map(i=>crAppel('poker_montre',{p_code:crCode(),p_main:hn,
+      p_siege:i,p_secret:i===mySeat?CR.secret:CR.bots[i]}).catch(()=>null)));
+    if(G.rit&&runout&&ritDe!=null&&ritDe<5&&dedans.length>=2&&!CR.tab2)await crTableau2();
+    const attendus=dedans.filter(i=>miens.indexOf(i)<0);
+    let mains={};
+    for(let essai=0;essai<18;essai++){
+      if(handNo!==hn||!P)return;
+      const r=await crAppel('poker_montrees',{p_code:crCode(),p_main:hn,
+        p_siege:crMonSiege(),p_secret:CR.secret}).catch(()=>null);
+      if(r&&r.ok&&r.mains)mains=r.mains;
+      if(attendus.every(i=>mains[i]))break;
+      await new Promise(f=>setTimeout(f,350));
+    }
+    if(handNo!==hn||!P)return;
+    dedans.forEach(i=>{
+      const c=mains[i];
+      if(c&&c.length===2){P[i].h=c.map(dec);P[i].show=true}
+      else if(!P[i].h.length){
+        /* personne n'a retourne cette main : elle ne peut pas gagner le pot.
+           C'est la regle du casino, et ici c'est aussi la seule facon de ne
+           jamais avoir a faire confiance a l'hote. */
+        P[i].fold=true;log(P[i].n+' n’a pas retourné sa main');
+      }
+    });
+    CR.revele=hn;CR.essais=0;CR.alerte='';CR.enAbat=-1;
+    suite();
+  }catch(e){CR.enAbat=-1;crEchec('l’abattage',()=>crAbattage(suite))}
+}
+/* ---- invite : mes cartes, et ma main retournee ---- */
+async function crMesCartes(hn,siege){
+  if(CR.recup>10)return;
+  CR.recup++;
+  try{
+    await crMoi();
+    const r=await crAppel('poker_mes_cartes',{p_code:crCode(),p_main:hn,
+      p_siege:siege,p_secret:CR.secret});
+    if(r&&r.ok&&Array.isArray(r.cartes)&&r.cartes.length===2){
+      CR.hn=hn;CR.mesC=r.cartes.map(dec);CR.recup=0;CR.alerte='';
+      if(P&&P[siege]&&!P[siege].show){P[siege].h=CR.mesC.slice();render();if(pend)controls()}
+      return;
+    }
+    if(r&&(r.err==='cle'||r.err==='siege'))return crCleVolee(hn,siege);
+    setTimeout(()=>{if(handNo===hn)crMesCartes(hn,siege)},400);
+  }catch(e){setTimeout(()=>{if(handNo===hn)crMesCartes(hn,siege)},500)}
+}
+/* le croupier refuse ma cle : soit la main n'est pas encore ouverte, soit
+   l'hote a transmis autre chose que ma cle. On regarde, et on le dit. */
+async function crCleVolee(hn,siege){
+  try{
+    const c=await crAppel('poker_controle',{p_code:crCode(),p_main:hn});
+    if(!c||!c.ok){setTimeout(()=>{if(handNo===hn)crMesCartes(hn,siege)},500);return}
+    const k=(c.sieges||[]).indexOf(siege);
+    if(k>=0&&(c.cles||[])[k]!==CR.cle){
+      CR.alerte='L’hôte a donné une autre clé que la tienne pour ton siège : tu ne peux pas recevoir tes cartes.';
+      log('⚠ '+CR.alerte);render();
+    }else setTimeout(()=>{if(handNo===hn)crMesCartes(hn,siege)},500);
+  }catch(e){}
+}
+async function crMontrer(hn,siege){
+  try{
+    await crMoi();
+    await crAppel('poker_montre',{p_code:crCode(),p_main:hn,p_siege:siege,p_secret:CR.secret});
+  }catch(e){setTimeout(()=>{if(handNo===hn)crMontrer(hn,siege)},400)}
+}
+/* ---- quand ca ne repond pas ---- */
+function crEchec(quoi,refaire){
+  CR.essais++;
+  if(CR.essais<=CR_ESSAIS){
+    CR.alerte='Le croupier ne répond pas ('+quoi+')… nouvel essai';
+    if(P)render();
+    return setTimeout(()=>{if(P&&phase==='play')refaire()},300*CR.essais);
+  }
+  CR.mode='non';CR.attente=false;CR.essais=0;CR.tab2=null;
+  CR.alerte='Croupier injoignable : main annulée, l’hôte reprend la distribution.';
+  log('⚠ '+CR.alerte);sousTitre();
+  annulerMain();
+}
+/* une main qu'on ne peut pas finir proprement : on rend les mises, personne
+   ne perd rien, et la suivante repart */
+function annulerMain(){
+  if(!P)return;
+  P.forEach(p=>{p.chips+=p.tot;p.bet=0;p.tot=0;p.allin=false});
+  res=[];mainGagnante=null;runout=false;
+  stopClock();clearTimeout(actTimer);
+  log('Main annulée — les mises sont rendues.');
+  end();
+}
+/* ---- l'hote recharge sa page en pleine main : il doit retrouver ses cartes,
+        celles de ses bots et le tableau deja ouvert ---- */
+async function crReprise(){
+  if(!crActif()||!P||CR.servi==null)return;
+  await crMoi();
+  const aMoi=CR.servi.filter(i=>P[i]&&(i===mySeat||(P[i].bot&&CR.bots[i])));
+  const secs=aMoi.map(i=>i===mySeat?CR.secret:CR.bots[i]);
+  try{
+    if(aMoi.length){
+      const m=await crAppel('poker_mains',{p_code:crCode(),p_main:handNo,
+        p_sieges:aMoi,p_secrets:secs});
+      const mains=(m&&m.mains)||{};
+      aMoi.forEach(i=>{const c=mains[i];
+        if(c&&c.length===2&&P[i]&&!P[i].h.length){P[i].h=c.map(dec);
+          if(i===mySeat){CR.hn=handNo;CR.mesC=P[i].h.slice()}}});
+    }
+    if(board.length){
+      const r=await crAppel('poker_tableau',{p_code:crCode(),p_main:handNo,p_tab:1,
+        p_n:board.length,p_siege:crMonSiege(),p_secret:CR.secret});
+      if(r&&r.ok&&Array.isArray(r.cartes)&&r.cartes.length>=board.length)
+        board=r.cartes.slice(0,board.length).map(dec);
+    }
+    CR.alerte='';render();sync();
+  }catch(e){CR.alerte='Le croupier n’a pas rendu la main en cours.';render()}
+}
+function crTexte(){
+  if(CR.alerte)return' · ⚠ '+CR.alerte;
+  if(!net())return'';
+  return CR.mode==='oui'?' · croupier distant':'';
+}
+
 function snapshot(){
   return{cl:classement,sbs:sbSeat,bbs:bbSeat,hn:handNo,fin:ended||etatFini,dl:startStacks.length?P.map((q,i)=>q.chips-(startStacks[i]||0)):null,po:P.map(q=>q.pos||''),res:res.slice(),ck:U.clock,sb:SB,bb:BB,nv:niveau,mn:mainsNiveau,ry:G.rythme,sp:seatPeer,s:stage,c:cur,d:dealer,cb:curBet,mr:minR,ro:runout,ex:eqExact,en:ended,mo:G.mode,rj:(etatFini&&derPiste&&derPiste.hn===handNo)?derPiste.t:null,xo:[G.ante,G.str,G.rit],st2:strSeat,b2:board2?board2.map(enc):null,rd:ritDe,ab:P.map((q,i)=>absents[i]?1:0),b:board.map(enc),lg:L.slice(-14),mg:mainGagnante,
     hk:maPub,hc:(blobs&&blobs.hn===handNo)?blobs.par:null,
+    cp:CR.partie,cr:(crActif()&&CR.servi)?1:0,ab2:CR.abat,
     p:P.map((p,i)=>[p.n,p.av,p.lv,p.chips,p.bet,p.tot,
-      (p.fold?1:0)|(p.allin?2:0)|(p.show?4:0)|(p.empty?8:0)|(p.bot?16:0),mainVisible(p,i),p.eq==null?-1:Math.round(p.eq*1000),p.outs==null?-1:p.outs,(p.outsC||[]).map(enc)])};
+      (p.fold?1:0)|(p.allin?2:0)|(p.show?4:0)|(p.empty?8:0)|(p.bot?16:0),mainVisible(p,i),p.eq==null?-1:Math.round(p.eq*1000),p.outs==null?-1:p.outs,(p.outsC||[]).map(enc),
+      p.fold?0:(p.h.length||p.nh||0)])};
 }
 /* ce que les autres ont le droit de voir de cette main : rien, sauf si elle est retournee */
 function mainVisible(p,i){
@@ -4671,7 +5001,19 @@ function applyState(s){
   if(bl&&s.p[monSiege]&&!(s.p[monSiege][6]&4)&&(bl!==monBlob||!mesCartes)){
     monBlob=bl;dechiffrerMain(bl,s.hn,monSiege,hotePub);
   }
-  const mesH=(bl&&mesCartes&&mesCartes.b===bl)?mesCartes.h:null;
+  /* croupier distant : mes cartes ne passent plus par l'hote, je les demande
+     moi-meme, et je retourne ma main moi-meme a l'abattage */
+  if(typeof s.cp==='string'&&s.cp&&s.cp!==CR.partie){CR.partie=s.cp;CR.hn=-1;CR.mesC=null;CR.recup=0}
+  if(!isHost){
+    CR.mode=s.cr?'oui':(CR.mode==='oui'?'non':CR.mode);
+    if(s.cr&&monSiege>=0){
+      CR.servi=[monSiege];
+      if(CR.hn!==s.hn&&!(s.p[monSiege][6]&4)){CR.recup=0;crMesCartes(s.hn,monSiege)}
+      if(s.ab2===s.hn&&CR.montre!==s.hn){CR.montre=s.hn;crMontrer(s.hn,monSiege)}
+    }
+  }
+  const mesH=(s.cr&&CR.hn===s.hn&&CR.mesC)?CR.mesC
+            :((bl&&mesCartes&&mesCartes.b===bl)?mesCartes.h:null);
 
   etatFini=!!s.fin;                    /* ferme les boutons des que la main est close */
   if(phase!=='play'){phase='play';voile(false);MODE='net'}
@@ -4717,7 +5059,7 @@ function applyState(s){
   P=s.p.map((a,i)=>({n:a[0],av:a[1],lv:a[2],chips:a[3],bet:a[4],tot:a[5],
     fold:!!(a[6]&1),allin:!!(a[6]&2),show:!!(a[6]&4),empty:!!(a[6]&8),bot:!!(a[6]&16),
     h:(i===monSiege&&mesH&&!(a[6]&4))?mesH:(a[7]||[]).map(dec),eq:a[8]<0?null:a[8]/1000,acted:false,
-    outs:(a[9]==null||a[9]<0)?null:a[9],outsC:(a[10]||[]).map(dec)}));
+    outs:(a[9]==null||a[9]<0)?null:a[9],outsC:(a[10]||[]).map(dec),nh:a[11]||0}));
   board=(s.b||[]).map(dec);stage=s.s;cur=s.c;dealer=s.d;curBet=s.cb;minR=s.mr;runout=s.ro;eqExact=s.ex;
   L=s.lg||[];peindreLog();sousTitre();mainGagnante=s.mg||null;
   /* de quoi se decrire a l'accueil si on revient plus tard */
@@ -5344,9 +5686,12 @@ async function openTable(c,asHost){
     const me=table.peers().filter(p=>p.isMe&&p.sameTab);
     myPeer=me.length?me[0].peer:null;
     if(asHost)hostPeer=myPeer;
-    /* d : empreinte de cet appareil pour CETTE table ; t : heure d'arrivee */
+    /* d : empreinte de cet appareil pour CETTE table ; t : heure d'arrivee ;
+       x : l'empreinte de mon secret, par laquelle le croupier me reconnaitra */
     await preparerCles();
-    table.presence({n:U.name,a:U.av,d:empreinte(c),j:JOUEUR,k:maPub,t:Date.now()});
+    await crMoi();
+    crSonder();
+    table.presence({n:U.name,a:U.av,d:empreinte(c),j:JOUEUR,k:maPub,x:CR.cle,t:Date.now()});
     if(!asHost)memoTable(c);     /* apres un rechargement, on proposera de revenir ici */
     table.onPeers(()=>{
       const m=table.peers().filter(p=>p.isMe&&p.sameTab);if(m.length)myPeer=m[0].peer;
