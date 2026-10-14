@@ -75,6 +75,9 @@
         return r.data;
       }
     };
+    /* le meme pont, sous un nom general : les comptes joueurs s'en servent
+       aussi (voir supabase-comptes.sql) */
+    window.RPC_RESEAU = window.CROUPIER_RESEAU;
   }
 
   /* identifiant unique de cet onglet, le temps de la session */

@@ -1231,6 +1231,18 @@ button.cfbtn{flex:1 1 0;padding:9px 10px;font-size:13px;font-weight:600;
     border:1px solid var(--line);border-radius:5px;padding:0 5px;margin:0 1px}
 }
 
+/* ======================= v54 : le compte joueur ======================= */
+.cpt-code{display:flex;align-items:center;gap:9px}
+.cpt-code u{flex:1 1 auto;min-width:0;text-decoration:none;font-weight:700;letter-spacing:.14em;
+  font-size:16px;color:var(--gold);background:var(--soft);border:1px solid var(--line);
+  border-radius:10px;padding:9px 11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cpt-form{display:flex;gap:7px;margin-top:9px}
+.cpt-form input{flex:1 1 auto;min-width:0;padding:10px 12px;border-radius:10px;
+  border:1px solid var(--line);background:var(--soft);color:var(--ink);font:inherit}
+.cpt-form button{flex:0 0 auto;padding:10px 15px;border-radius:10px}
+#g-compte .opts{margin-top:9px}
+#g-compte .hint{line-height:1.5}
+
 </style></head><body><div id="app">
 <h1>Hold'em <span></span><button id="bhome" onclick="accueil()" aria-label="Accueil"><i>⌂</i><u>Accueil</u></button><button onclick="openH()" aria-label="Historique"><i>◷</i><u>Historique</u></button><button onclick="openP()" aria-label="Réglages"><i>⚙</i><u>Réglages</u></button></h1>
 <div class="sub" id="sub">Jetons fictifs · blinds 10/20</div>
@@ -1509,6 +1521,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 </div></div>
 <div id="ov" hidden><div id="panel">
 <h2>Réglages</h2>
+<div class="grp"><span>Ton compte</span><div id="g-compte"></div></div>
 <div class="grp"><span>Thème</span><div class="opts" id="g-th"></div></div>
 <div class="grp"><span>Sons</span><div class="opts" id="g-sn"></div></div>
 <div class="grp"><span>Musique de fond</span><div class="opts" id="g-mu"></div>
@@ -1538,6 +1551,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v54 — compte joueur : un code qui te suit d’un appareil à l’autre, et fusionne tes appareils */
 /* v53 — confort : pots étagés, revoir la main, rabbit hunt, clavier */
 /* v52 — croupier distant : le serveur bat les cartes, même l’hôte ne voit plus les mains */
 /* v51 — le club : code à partager, saisons mensuelles, soirées, fiches joueurs, records */
@@ -1632,7 +1646,7 @@ function empreinte(code){
 }
 let seatDev=[];          /* hote : siege -> empreinte de l'appareil qui l'occupe */
 let seatJ=[];            /* hote : siege -> identifiant de joueur, pour le classement */
-const JOUEUR=empreinte('classement');   /* le meme a chaque table, sans rien reveler du jeton */
+let JOUEUR=empreinte('classement');   /* par defaut cet appareil ; un compte le remplace */
 let partiDepuis={};      /* hote : siege -> heure ou sa connexion a disparu */
 let GRACE_DEPART=90000;  /* cash : delai avant qu'un bot tienne la place d'un absent */
 const U={felt:'#12452c',rail:'#5a3a1e',back:'#7a1f2b',bk:'casino',cs:'classic',dk:'four',bb:false,name:'Toi',av:'🙂',th:'dark',clock:30,vibr:true,son:true,
@@ -1702,7 +1716,7 @@ const memoOK=(()=>{try{localStorage.setItem(CLE+'.t','1');localStorage.removeIte
                    catch(e){return false}})();
 let sauveT=null;
 function aGarder(n){
-  return{v:1,m43:1,u:U,g:G,lv:lvAll,fill:botFill,
+  return{v:1,m43:1,u:U,g:G,lv:lvAll,fill:botFill,cj:cpteActif()?{c:CPTE.code,i:CPTE.id,a:CPTE.alias.slice(0,20)}:null,
          tr:trScore,trs:trStats,trn:trNiv,trt:trTheme,pl:NSEAT,
          cb:CLUB,su:SU,cpt:CPT,hist:HIST.slice(-(n||60)).map((h,k,l)=>(h&&h.rj&&k<l.length-(n?6:14))?Object.assign({},h,{rj:null}):h),wins:WINS.slice(-(n||60)),pa:PARTIES.slice(-(n?40:200))};
 }
@@ -1735,6 +1749,12 @@ function charger(){
   if(Array.isArray(d.hist))HIST=d.hist.filter(h=>h&&typeof h==='object');
   if(Array.isArray(d.wins))WINS=d.wins.filter(w=>w&&w.at&&w.winner);
   if(Array.isArray(d.pa))PARTIES=d.pa.filter(partieValide);
+  if(d.cj&&typeof d.cj==='object'&&typeof d.cj.c==='string'&&/^[a-z0-9]{10,24}$/.test(d.cj.c)
+     &&typeof d.cj.i==='string'&&/^[0-9a-f]{12}$/.test(d.cj.i)){
+    CPTE={code:d.cj.c,id:d.cj.i,
+          alias:(Array.isArray(d.cj.a)?d.cj.a:[]).filter(x=>typeof x==='string'&&/^[a-z0-9]{4,24}$/.test(x)).slice(0,20)};
+    JOUEUR=CPTE.id;cpteSemer();
+  }
   if(d.cb&&typeof d.cb==='object'&&typeof d.cb.id==='string'&&/^[a-z0-9]{4,6}$/.test(d.cb.id))
     CLUB={id:d.cb.id,n:clean(d.cb.n,24)||('Club '+d.cb.id.toUpperCase())};
   if(d.su&&typeof d.su==='object')SUCCES.forEach(x=>{if(typeof d.su[x[0]]==='number')SU[x[0]]=d.su[x[0]]});
@@ -1823,6 +1843,7 @@ function finishGame(sansPodium){
     tous:seated.map(p=>({n:p.n,av:p.av,bot:!!p.bot,j:p.chips})),cl:cl});
   if(net()&&isHost)enregistrerPartie(cl);
   verifierPartie(cl,net());
+  cpteEcrire();                 /* le compte garde tes succes et tes compteurs */
   log('🏆 '+cl[0].n+' remporte la partie.');son(w===P[mySeat]?'gain':'fin');
   if(!sansPodium)setTimeout(montrerPodium,350);
 }
@@ -3389,6 +3410,7 @@ function enregistrerCash(){
   return rec;
 }
 async function chargerClassement(){
+  chargerAlias();                     /* qui est qui, avant de compter */
   const st=stockageCommun();
   if(!st){classementSource='local';return}
   if(classementSource!=='partage')classementSource='attente';
@@ -3458,7 +3480,7 @@ function moisPrec(m){const [a,n]=m.split('-').map(Number);return(n===1?a-1:a)+'-
 /* les parties de mon club ; sans club, celles ou je figure */
 function partiesClub(){
   return PARTIES.filter(g=>CLUB?(g.cb&&g.cb.id===CLUB.id)
-    :(!g.cb&&g.joueurs.some(x=>x.id===JOUEUR)));
+    :(!g.cb&&g.joueurs.some(x=>estMoi(x.id))));
 }
 function moisDisponibles(){
   const s={};partiesClub().forEach(g=>s[moisDe(g.at)]=1);
@@ -3473,7 +3495,9 @@ function partiesDe(mois){
 function calculerElo(mois){
   const R={},I={};
   partiesDe(mois).forEach(g=>{
-    const vus={},hs=g.joueurs.filter(x=>x.id&&!x.bot&&typeof x.id==='string'&&!vus[x.id]&&(vus[x.id]=1));
+    /* deux appareils d'un meme joueur ne font qu'un : on passe par son compte */
+    const vus={},hs=g.joueurs.map(x=>(x.id&&!x.bot&&typeof x.id==='string')?Object.assign({},x,{id:idDe(x.id)}):x)
+      .filter(x=>x.id&&!x.bot&&typeof x.id==='string'&&!vus[x.id]&&(vus[x.id]=1));
     if(hs.length<2)return;
     hs.forEach(x=>{
       const f=I[x.id]||(I[x.id]={parties:0,vict:0,podiums:0,mains:0,pots:0,jetons:0,
@@ -3501,22 +3525,22 @@ function calculerElo(mois){
 /* ---- les records du groupe ---- */
 function recordsClub(mois){
   const l=partiesDe(mois),out=[];
-  const qui=id=>{const g=l.find(x=>x.joueurs.some(y=>y.id===id));const j=g&&g.joueurs.find(y=>y.id===id);
+  const qui=id=>{const g=l.find(x=>x.joueurs.some(y=>idDe(y.id)===id));const j=g&&g.joueurs.find(y=>idDe(y.id)===id);
     return j?{n:clean(j.n)||'Joueur',av:clean(j.av)||'🙂'}:null};
   let gros=null;
-  l.forEach(g=>g.joueurs.forEach(x=>{if(x.id&&x.bp&&(!gros||x.bp>gros.v))gros={v:x.bp,id:x.id,at:g.at}}));
+  l.forEach(g=>g.joueurs.forEach(x=>{if(x.id&&x.bp&&(!gros||x.bp>gros.v))gros={v:x.bp,id:idDe(x.id),at:g.at}}));
   if(gros)out.push({ic:'💰',t:'Plus gros pot',v:fmtN(gros.v)+' jetons',q:qui(gros.id)});
   /* la plus longue serie de victoires, en suivant les tournois dans l'ordre */
   const serie={},best={};
   l.filter(g=>g.mo!=='cash').slice().sort((a,b)=>a.at-b.at).forEach(g=>{
-    g.joueurs.forEach(x=>{if(!x.id)return;
-      serie[x.id]=x.p===1?(serie[x.id]||0)+1:0;
-      if((serie[x.id]||0)>(best[x.id]||0))best[x.id]=serie[x.id]});
+    g.joueurs.forEach(x=>{if(!x.id)return;const k=idDe(x.id);
+      serie[k]=x.p===1?(serie[k]||0)+1:0;
+      if((serie[k]||0)>(best[k]||0))best[k]=serie[k]});
   });
   let sMax=null;Object.keys(best).forEach(id=>{if(best[id]>=2&&(!sMax||best[id]>sMax.v))sMax={v:best[id],id:id}});
   if(sMax)out.push({ic:'🔥',t:'Plus longue série',v:sMax.v+' victoires d’affilée',q:qui(sMax.id)});
   /* le plus assidu */
-  const nb={};l.forEach(g=>g.joueurs.forEach(x=>{if(x.id)nb[x.id]=(nb[x.id]||0)+1}));
+  const nb={};l.forEach(g=>g.joueurs.forEach(x=>{if(x.id)nb[idDe(x.id)]=(nb[idDe(x.id)]||0)+1}));
   let aMax=null;Object.keys(nb).forEach(id=>{if(!aMax||nb[id]>aMax.v)aMax={v:nb[id],id:id}});
   if(aMax&&aMax.v>=2)out.push({ic:'🪑',t:'Le plus assidu',v:aMax.v+' soirées',q:qui(aMax.id)});
   /* la plus longue soiree */
@@ -3555,7 +3579,7 @@ async function partagerClub(){
 /* si je joue dans le club de quelqu'un d'autre, on me le propose */
 function clubDesParties(){
   const vus={};
-  PARTIES.forEach(g=>{if(g.cb&&g.cb.id&&g.joueurs.some(x=>x.id===JOUEUR))vus[g.cb.id]=clean(g.cb.n,24)||g.cb.id});
+  PARTIES.forEach(g=>{if(g.cb&&g.cb.id&&g.joueurs.some(x=>estMoi(x.id)))vus[g.cb.id]=clean(g.cb.n,24)||g.cb.id});
   return Object.keys(vus).map(id=>({id:id,n:vus[id]}));
 }
 function adopterClub(id,n){CLUB={id:id,n:n};sauver();peindreClub()}
@@ -3672,7 +3696,7 @@ function ficheJoueur(id){
   /* la courbe d'Elo, soiree apres soiree */
   const pts=[1000];
   partiesDe(m).filter(g=>g.mo!=='cash').slice().sort((a,b)=>a.at-b.at).forEach(g=>{
-    if(!g.joueurs.some(y=>y.id===id))return;
+    if(!g.joueurs.some(y=>idDe(y.id)===id))return;
     const jusque=calculerEloJusque(g.at,id);if(jusque!=null)pts.push(jusque);
   });
   return'<button class="petit" onclick="voirFiche(null)" style="margin-bottom:10px">← Retour au classement</button>'
@@ -4736,6 +4760,183 @@ function dechiffrerMain(blob,hn,i,pub){
     mesCartes={b:blob,h:h};
     if(P&&P[i]&&!P[i].show&&!P[i].h.length){P[i].h=h;render();if(pend)controls()}
   }).catch(()=>{});
+}
+
+/* ===================== le compte joueur =====================
+   Jusqu'ici, ton identite etait ton telephone : changer d'appareil, c'etait
+   repartir a 1000 d'Elo sous un nouveau nom, et jouer sur deux appareils,
+   c'etait compter double dans le club. Un compte, c'est juste un code que tu
+   gardes. L'identifiant public du joueur en est derive :
+
+       id = les 12 premiers caracteres de sha256(code)
+
+   Donc presenter le code prouve qu'on est le proprietaire de la ligne, et
+   l'identifiant tout seul ne dit rien du code. Les anciens identifiants
+   d'appareil sont gardes comme alias, pour recoller l'historique.
+
+   Attention : qui detient le code EST le compte. C'est dit a l'ecran. */
+const CPT_ALPH='abcdefghjkmnpqrstuvwxyz23456789';   /* ni i, ni l, ni o, ni 0, ni 1 */
+let CPTE={code:'',id:'',alias:[]};
+let ALIAS={};                 /* ancien identifiant -> identifiant de compte */
+let cpteVu=false;             /* le code est-il affiche en clair */
+let cpteMsg='';
+
+function cpteDispo(){return!!SC}
+function cpteActif(){return!!(CPTE.id&&CPTE.code)}
+function cpteCode(){
+  let s='';const u=new Uint8Array(12);
+  try{crypto.getRandomValues(u)}catch(e){for(let i=0;i<12;i++)u[i]=Math.random()*256|0}
+  for(let i=0;i<12;i++)s+=CPT_ALPH[u[i]%CPT_ALPH.length];
+  return s;
+}
+async function cpteIdDe(code){
+  const d=await SC.digest('SHA-256',new TextEncoder().encode(String(code)));
+  return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,12);
+}
+/* l'identifiant sous lequel ce joueur doit etre compte */
+function idDe(id){return(id&&ALIAS[id])||id}
+function estMoi(id){return idDe(id)===JOUEUR}
+function cpteNettoyer(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
+/* on accepte le code nu, ou le lien de transfert entier */
+function cpteDuTexte(t){
+  const s=String(t||'');
+  const m=s.match(/compte=([a-zA-Z0-9]+)/);
+  const c=cpteNettoyer(m?m[1]:s);
+  return(c.length>=10&&c.length<=24)?c:'';
+}
+function cpteLien(){
+  if(!cpteActif())return'';
+  const base=location.origin+location.pathname;
+  return base+'#compte='+CPTE.code;
+}
+/* ---- ce qu'on garde, et ce qu'on remet ---- */
+function cpteDonnees(){
+  return{n:clean(U.name,24)||'Joueur',av:clean(U.av,8)||'🙂',
+         alias:CPTE.alias.slice(0,20),
+         su:Object.assign({},SU),cpt:Object.assign({},CPT)};
+}
+function cpteRpc(fn,args){
+  const c=window.RPC_RESEAU||window.CROUPIER_RESEAU;   /* le pont vers les fonctions Supabase */
+  if(!c||!c.rpc)return Promise.reject(new Error('aucun serveur'));
+  return c.rpc(fn,args);
+}
+async function cpteEcrire(){
+  if(!cpteActif())return null;
+  try{return await cpteRpc('poker_compte_ecrire',{p_code:CPTE.code,p_donnees:cpteDonnees()})}
+  catch(e){return null}
+}
+/* ---- creer, adopter, oublier ---- */
+async function cpteCreer(){
+  if(!cpteDispo()){cpteMsg='Il faut une page sécurisée (https) pour créer un compte.';return peindreCompte()}
+  const code=cpteCode();
+  const id=await cpteIdDe(code);
+  /* l'identite de cet appareil devient le premier alias : les soirees deja
+     jouees ici restent les tiennes */
+  const ancien=JOUEUR;
+  CPTE={code:code,id:id,alias:(ancien&&ancien!==id)?[ancien]:[]};
+  JOUEUR=id;cpteSemer();
+  sauver();cpteEcrire();
+  cpteVu=true;cpteMsg='';
+  peindreCompte();peindreClub();
+}
+async function cpteAdopter(txt){
+  const code=cpteDuTexte(txt);
+  if(!code){cpteMsg='Ce code ne ressemble à rien — 12 caractères, ou colle le lien.';return peindreCompte()}
+  if(!cpteDispo()){cpteMsg='Il faut une page sécurisée (https) pour utiliser un compte.';return peindreCompte()}
+  const id=await cpteIdDe(code);
+  const ancien=JOUEUR;
+  let dist=null;
+  try{const r=await cpteRpc('poker_compte_lire',{p_id:id});if(r&&r.ok)dist=r.donnees||null}catch(e){}
+  const alias=(dist&&Array.isArray(dist.alias))?dist.alias.slice(0,20):[];
+  if(ancien&&ancien!==id&&alias.indexOf(ancien)<0)alias.push(ancien);
+  CPTE={code:code,id:id,alias:alias};
+  JOUEUR=id;cpteSemer();
+  /* on reprend ce que le compte sait de toi, sans rien perdre d'ici */
+  if(dist){
+    if(dist.n&&!U.name)U.name=clean(dist.n,24);
+    if(dist.av)U.av=clean(dist.av,8)||U.av;
+    /* un succes se garde a la date la plus ancienne : c'est la qu'il a ete gagne */
+    if(dist.su)SUCCES.forEach(x=>{
+      const v=+dist.su[x[0]];
+      if(v>0&&(!SU[x[0]]||v<SU[x[0]]))SU[x[0]]=v;});
+    if(dist.cpt)Object.keys(CPT).forEach(k=>{
+      const v=+dist.cpt[k];if(v>CPT[k])CPT[k]=v});     /* on garde le plus avance des deux */
+  }
+  sauver();cpteEcrire();
+  cpteMsg=dist?'Compte retrouvé. Tes parties te suivent.':'Compte ouvert sur cet appareil.';
+  cpteVu=false;
+  if($('nm'))$('nm').value=U.name;
+  paint();peindreCompte();peindreClub();
+  chargerClassement();
+}
+function cpteOublier(){
+  if(!cpteArme){cpteArme=setTimeout(()=>{cpteArme=null;peindreCompte()},4000);return peindreCompte()}
+  clearTimeout(cpteArme);cpteArme=null;
+  CPTE={code:'',id:'',alias:[]};
+  JOUEUR=empreinte('classement');
+  ALIAS={};cpteMsg='Cet appareil est redevenu anonyme. Ton compte existe toujours.';
+  sauver();peindreCompte();peindreClub();
+}
+let cpteArme=null;
+/* mes propres alias valent meme sans serveur : au moins MA fusion marche */
+function cpteSemer(){
+  ALIAS={};
+  if(cpteActif())CPTE.alias.forEach(a=>{if(a&&a!==CPTE.id)ALIAS[a]=CPTE.id});
+}
+/* les alias de tout le monde, pour que le club recolle les appareils */
+async function chargerAlias(){
+  cpteSemer();
+  try{
+    const r=await cpteRpc('poker_alias',{});
+    if(!Array.isArray(r))return;
+    r.forEach(x=>{
+      if(!x||typeof x.id!=='string'||!Array.isArray(x.a))return;
+      x.a.forEach(a=>{if(typeof a==='string'&&a!==x.id)ALIAS[a]=x.id});
+    });
+  }catch(e){}
+}
+/* ---- l'ecran ---- */
+function montrerCode(){cpteVu=!cpteVu;peindreCompte()}
+async function copierLien(){
+  const t=cpteLien();if(!t)return;
+  const b=$('cpt-lien'),dire=x=>{if(!b)return;const v=b.textContent;b.textContent=x;setTimeout(()=>{b.textContent=v},1800)};
+  try{await navigator.clipboard.writeText(t);dire('Lien copié')}catch(e){dire('Copie refusée')}
+}
+function groupes(c){return String(c).replace(/(.{4})(?=.)/g,'$1-')}
+function peindreCompte(){
+  const z=$('g-compte');if(!z)return;
+  if(!cpteActif()){
+    z.innerHTML='<p class="hint" style="margin-top:0">Pour l’instant ton classement, tes succès et ton club '
+      +'sont attachés à <b>cet appareil</b>. Un compte les emporte avec toi.</p>'
+      +'<div class="opts"><button class="p" onclick="cpteCreer()">Créer mon compte</button></div>'
+      +'<div class="cpt-form"><input id="cpt-in" maxlength="60" placeholder="Code ou lien reçu" autocomplete="off" aria-label="Code de compte">'
+      +'<button onclick="cpteAdopter($(\'cpt-in\').value)">Utiliser</button></div>'
+      +(cpteMsg?'<p class="note">'+cpteMsg+'</p>':'');
+    return;
+  }
+  z.innerHTML='<div class="cpt-code"><u>'+(cpteVu?groupes(CPTE.code):'••••-••••-••••')+'</u>'
+    +'<button class="petit" onclick="montrerCode()">'+(cpteVu?'Masquer':'Montrer')+'</button></div>'
+    +'<p class="hint" style="margin-top:6px">Ce code <b>est</b> ton compte : qui l’a, l’a. '
+    +'Envoie-le à ton autre téléphone, à personne d’autre.</p>'
+    +'<div class="opts"><button id="cpt-lien" class="petit" onclick="copierLien()">Copier le lien de transfert</button>'
+    +'<button class="petit'+(cpteArme?' p':'')+'" onclick="cpteOublier()">'
+    +(cpteArme?'Confirmer l’oubli':'Oublier sur cet appareil')+'</button></div>'
+    +(CPTE.alias.length?'<p class="hint">'+CPTE.alias.length+' ancien'+(CPTE.alias.length>1?'s':'')
+      +' appareil'+(CPTE.alias.length>1?'s':'')+' rattaché'+(CPTE.alias.length>1?'s':'')+' à ce compte.</p>':'')
+    +(cpteMsg?'<p class="hint">'+cpteMsg+'</p>':'');
+}
+/* un lien de transfert ouvert : on propose, on n'impose pas */
+function cpteDepuisLien(){
+  const h=String(location.hash||'');
+  const m=h.match(/compte=([a-zA-Z0-9]+)/);
+  if(!m)return;
+  try{history.replaceState(null,'',location.pathname+location.search)}catch(e){location.hash=''}
+  const code=cpteDuTexte(m[1]);
+  if(!code)return;
+  setTimeout(()=>{
+    if(confirm('Utiliser ce compte sur cet appareil ?\n\nTon classement, tes succès et ton club te suivront.'))
+      cpteAdopter(code);
+  },300);
 }
 
 /* ===================== le confort de jeu =====================
@@ -6199,7 +6400,7 @@ function openR(){
       +'<span class="txt"><b>'+r[1]+'</b><span>'+r[2]+'</span></span></div>').join('');
   $('rv').hidden=false;
 }
-function openP(){$('nm2').value=U.name;paint();$('ov').hidden=false}
+function openP(){$('nm2').value=U.name;paint();peindreCompte();$('ov').hidden=false}
 function closeP(){$('ov').hidden=true}
 $('ov').addEventListener('click',e=>{if(e.target.id=='ov')closeP()});
 $('iv').addEventListener('click',e=>{if(e.target.id=='iv')$('iv').hidden=true});
@@ -6208,7 +6409,7 @@ $('rv').addEventListener('click',e=>{if(e.target.id=='rv')$('rv').hidden=true});
 $('hv').addEventListener('click',e=>{if(e.target.id=='hv')$('hv').hidden=true});
 $('cv').addEventListener('click',e=>{if(e.target.id=='cv')$('cv').hidden=true});
 charger();
-apply();paint();initCroupier();scr('home');tab('h');
+apply();paint();initCroupier();scr('home');tab('h');cpteSemer();cpteDepuisLien();
 if($('nm'))$('nm').value=U.name==='Toi'?'':U.name;
 /* on ecrit tout de suite quand l'appli passe en arriere-plan ou se ferme */
 addEventListener('pagehide',()=>{clearTimeout(sauveT);ecrire();ecrireTable()});
