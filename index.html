@@ -1243,6 +1243,44 @@ button.cfbtn{flex:1 1 0;padding:9px 10px;font-size:13px;font-weight:600;
 #g-compte .opts{margin-top:9px}
 #g-compte .hint{line-height:1.5}
 
+/* ======================= v55 : ton personnage ======================= */
+svg.fig{display:block;width:100%;height:100%}
+.avh{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+  width:1.75em;height:1.75em;border-radius:50%;overflow:hidden;vertical-align:-.5em;line-height:1}
+.avh.gros{width:2.4em;height:2.4em}
+.cb-fiche .avh{font-size:19px}
+.seat .disque .av svg.fig{border-radius:50%}
+.pot .sp i svg.fig{width:13px;height:13px;border-radius:50%;display:inline-block;vertical-align:-2px}
+.pot .sp i{display:inline-flex;gap:1px;align-items:center}
+.cb-soir .l2 i svg.fig{width:100%;height:100%}
+#fpodium .tete svg.fig{width:46px;height:46px;border-radius:50%;margin:0 auto}
+#fpodium .m1 .tete svg.fig{width:58px;height:58px}
+.pl .avh{font-size:15px}
+/* l'atelier -- les selecteurs portent .avp : sans ca les anciennes regles
+   « .avp button » gagnent et rendent les pastilles carrees */
+.avp{display:block;text-align:left}
+.at-haut{display:flex;align-items:center;gap:12px;margin:0 0 13px}
+.at-vue{flex:0 0 auto;width:76px;height:76px;border-radius:50%;overflow:hidden;background:var(--soft);
+  display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px -6px #000a}
+.at-vue .at-emo{font-size:42px;font-style:normal;font-weight:400}
+.at-act{display:flex;flex-wrap:wrap;gap:6px;flex:1 1 auto;min-width:0;align-content:center}
+.avp .at-act button{flex:1 1 auto;width:auto;min-width:96px;padding:9px 12px;font-size:13px;border-radius:10px}
+.at-rub{margin-bottom:10px}
+.at-rub>span{display:block;color:var(--dim);font-size:11.5px;margin:0 0 5px;letter-spacing:.03em}
+.at-l{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent);
+  mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent)}
+.at-l::-webkit-scrollbar{display:none}
+.avp .at-c{flex:0 0 auto;width:32px;height:32px;padding:0;border-radius:50%;background-clip:padding-box;
+  border:2px solid transparent;box-shadow:inset 0 0 0 1px #00000040}
+.avp .at-c[aria-pressed=true]{border-color:var(--gold);transform:none}
+.avp .at-f{flex:0 0 auto;width:44px;height:44px;padding:0;border-radius:50%;overflow:hidden;
+  background:none;border:2px solid transparent}
+.avp .at-f[aria-pressed=true]{border-color:var(--gold);background:none;transform:none}
+.avp .at-e{flex:0 0 auto;width:38px;height:38px;padding:0;font-size:19px;background:var(--soft);
+  color:var(--ink);border-radius:10px;text-align:center}
+.avp .at-e[aria-pressed=true]{background:var(--gold);transform:none}
+
 </style></head><body><div id="app">
 <h1>Hold'em <span></span><button id="bhome" onclick="accueil()" aria-label="Accueil"><i>⌂</i><u>Accueil</u></button><button onclick="openH()" aria-label="Historique"><i>◷</i><u>Historique</u></button><button onclick="openP()" aria-label="Réglages"><i>⚙</i><u>Réglages</u></button></h1>
 <div class="sub" id="sub">Jetons fictifs · blinds 10/20</div>
@@ -1551,6 +1589,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v55 — ton personnage : un petit bonhomme à composer, à la place de l’emoji */
 /* v54 — compte joueur : un code qui te suit d’un appareil à l’autre, et fusionne tes appareils */
 /* v53 — confort : pots étagés, revoir la main, rabbit hunt, clavier */
 /* v52 — croupier distant : le serveur bat les cartes, même l’hôte ne voit plus les mains */
@@ -1922,6 +1961,12 @@ function startHand(){
 }
 function step(){
   if(!P||phase!=='play')return;
+  /* Avec le croupier distant, deux moments sont des creux : la donne qui n'est
+     pas encore arrivee, et l'abattage qui attend que chacun retourne sa main.
+     Un minuteur parti plus tot relancait le jeu dans ces creux -- les bots
+     parlaient sans cartes, et showdown() etait reappele en boucle. Personne ne
+     parle tant que le croupier n'a pas fini. */
+  if(CR.attente||CR.enAbat===handNo)return;
   render();
   const lv=P.filter(live);
   if(lv.length==1)return award(lv[0]);
@@ -2242,6 +2287,7 @@ function botRequin(p){
 }
 function bot(p){
   if(!P||P[cur]!==p)return;
+  if(!p.h||p.h.length<2)return;        /* pas encore servi : on ne joue pas a l'aveugle */
   if(p.lv===3)return botRequin(p);
   if(stage===0)return preflop(p);
   const V=LV[p.lv]||LV[1],need=curBet-p.bet,pt=pot();
@@ -2398,7 +2444,7 @@ function marques(){
   return f;
 }
 function end(){
-  etatFini=true;enCours=false;
+  etatFini=true;enCours=false;CR.enAbat=-1;CR.attente=false;
   const rj=fermerPiste();derPiste=rj?{hn:handNo,t:rj}:null;
   HIST.push({n:handNo,at:Date.now(),rj:rj,me:P[mySeat].h.slice(),bd:board.slice(),d:P[mySeat].chips-hStart,
              res:res.slice(),lg:logMain(),st:moi?Object.assign({},moi):null,fl:marques(),
@@ -3647,13 +3693,13 @@ function sectionSaison(){
     +(rec.length?'<div class="gtitre">Les records</div>'
       +'<div class="cb-recs">'+rec.map(r=>'<div class="cb-rec"><span class="ic">'+r.ic+'</span>'
         +'<span class="tx"><b>'+r.t+'</b><span>'+r.v+'</span></span>'
-        +(r.q?'<span class="qui">'+r.q.av+' '+r.q.n+'</span>':(r.s?'<span class="qui">'+r.s+'</span>':''))
+        +(r.q?'<span class="qui">'+avHtml(r.q.av)+' '+r.q.n+'</span>':(r.s?'<span class="qui">'+r.s+'</span>':''))
         +'</div>').join('')+'</div>':'')
     +noteSource();
 }
 function ligneClassement(x,k){
   return'<div class="clsrow'+(x.id===JOUEUR?' moi':'')+'" onclick="voirFiche(\''+x.id+'\')" role="button" tabindex="0">'
-    +'<span class="r">'+(x.elo==null?'—':k+1)+'</span><span>'+x.av+'</span>'
+    +'<span class="r">'+(x.elo==null?'—':k+1)+'</span>'+avHtml(x.av)
     +'<span class="n">'+x.n+(x.id===JOUEUR?' <span class="ct">toi</span>':'')+'</span>'
     +'<span class="inf"><b class="elo">'+(x.elo==null?'·':x.elo)+'</b><br>'+x.vict+' victoire'+(x.vict>1?'s':'')
     +' · '+x.soirs+' soirée'+(x.soirs>1?'s':'')+'</span></div>';
@@ -3666,7 +3712,7 @@ function sectionSoirees(){
     const cl=g.joueurs.slice().sort((a,b)=>(a.p||99)-(b.p||99));
     return'<div class="cb-soir"><div class="l1"><b>'+(g.mo==='cash'?'Cash game':'Tournoi')+'</b>'
       +'<span class="ct">'+dstr(g.at)+(g.code?' · '+g.code:'')+'</span></div>'
-      +'<div class="l2">'+hum.slice(0,6).map(x=>'<i>'+(clean(x.av)||'🙂')+'</i>').join('')
+      +'<div class="l2">'+hum.slice(0,6).map(x=>'<i>'+figurine(clean(x.av)||'🙂')+'</i>').join('')
       +'<span>'+hum.length+' joueur'+(hum.length>1?'s':'')+' · '+(g.mains||0)+' mains</span></div>'
       +(g.mo!=='cash'&&cl[0]?'<div class="l3">🥇 '+clean(cl[0].n)
         +(cl[1]?' <span class="ct">puis '+clean(cl[1].n)+(cl[2]?', '+clean(cl[2].n):'')+'</span>':'')+'</div>':'')
@@ -3680,7 +3726,7 @@ function sectionJoueurs(){
     const st=x.nst?'VPIP '+Math.round(x.vp/x.nst*100)+' % · PFR '+Math.round(x.pf/x.nst*100)+' %':
       x.mains?x.mains+' mains':'';
     return'<div class="clsrow" onclick="voirFiche(\''+x.id+'\')" role="button" tabindex="0">'
-      +'<span class="r">'+x.av+'</span>'
+      +'<span class="r">'+avHtml(x.av)+'</span>'
       +'<span class="n">'+x.n+(x.id===JOUEUR?' <span class="ct">toi</span>':'')+'<br><span class="ct">'+st+'</span></span>'
       +'<span class="inf"><b class="elo">'+(x.elo==null?'·':x.elo)+'</b></span></div>';
   }).join('');
@@ -3700,7 +3746,7 @@ function ficheJoueur(id){
     const jusque=calculerEloJusque(g.at,id);if(jusque!=null)pts.push(jusque);
   });
   return'<button class="petit" onclick="voirFiche(null)" style="margin-bottom:10px">← Retour au classement</button>'
-    +'<div class="cb-fiche"><span class="av">'+x.av+'</span><div><b>'+x.n+'</b>'
+    +'<div class="cb-fiche">'+avHtml(x.av,'gros')+'<div><b>'+x.n+'</b>'
     +'<span>'+(x.elo==null?'pas encore classé':x.elo+' points · '+rang+'<sup>e</sup>')+'</span></div></div>'
     +'<div class="tuiles">'
     +tuile(x.soirs,'soirée'+(x.soirs>1?'s':''))
@@ -3767,7 +3813,7 @@ function montrerPodium(){
   if(maPlace===1)$('ftitre').textContent='\uD83C\uDFC6 Tu gagnes la partie';
   const tr=[2,1,3].filter(k=>cl[k-1]);       /* 2e a gauche, 1er au centre, 3e a droite */
   $('fpodium').innerHTML=tr.map(k=>{const j=cl[k-1];
-    return'<div class="marche m'+k+'"><div class="tete">'+(j.av||'\uD83D\uDE42')+'</div>'
+    return'<div class="marche m'+k+'"><div class="tete">'+figurine(j.av||'\uD83D\uDE42')+'</div>'
       +'<div class="qui">'+j.n+'</div><div class="socle">'+k+'</div></div>'}).join('');
   $('fliste').innerHTML=cl.map(j=>
     '<div class="rang'+(j.n===moi?' moi':'')+'"><span class="pl">'+j.p+'</span>'
@@ -4024,7 +4070,7 @@ function seat(p,i){
   }
   const won=gagnantsNoms().indexOf(p.n)>=0;
   const plaque='<div class="plaque">'
-    +'<span class="'+disque+'"'+st+'><span class="av">'+p.av+'</span>'
+    +'<span class="'+disque+'"'+st+'><span class="av">'+figurine(p.av)+'</span>'
       +(p.bot?'<i class="lv" title="'+lvl.n+'">'+lvl.k+'</i>':'')+'</span>'
     +'<span class="lignes"><b class="nom">'+p.n+'</b>'
       +'<span class="chips">'+jetons+(tag?'<em class="tag">'+tag+'</em>':'')+'</span></span>'
@@ -4762,6 +4808,178 @@ function dechiffrerMain(blob,hn,i,pub){
   }).catch(()=>{});
 }
 
+/* ===================== ton personnage =====================
+   Un petit bonhomme vectoriel qu'on compose soi-meme, a la place de l'emoji.
+   Tout tient dans neuf caracteres -- « ~ » puis huit chiffres en base 36 --
+   et ce code prend la place de l'avatar partout : il part dans la presence,
+   se range dans les parties enregistrees, suit le compte d'un appareil a
+   l'autre. Rien de nouveau ne circule, c'est le meme champ qu'avant.
+
+   Dessine dans un carre de 100, recadre en rond : a 28 px seules la
+   silhouette et les couleurs se lisent, c'est elles qui portent l'identite. */
+const FIG_MARQUE='~';
+const FIG_TEINT=['#f7d9c0','#efc49d','#dca371','#bb7d50','#8f5726','#5d351a'];
+const FIG_CHEV =['#241812','#4a2c18','#8a5a2b','#c8974a','#e6ce9b','#9b9b9b','#ececec','#b5452f'];
+const FIG_FOND =['#2e6b4f','#8c2230','#2b4a7a','#6b4a86','#8a6a1f','#2f6f7a','#7a3f2a','#3a3f45'];
+const FIG_HAUT =['#1d1a1b','#f1ece0','#b3261e','#1d7a4c','#1763b8','#c79b35','#5e3a86','#4a4f55'];
+/* combien d'options par rubrique, dans l'ordre du code */
+const FIG_RUB=[
+  ['te','Teint',      FIG_TEINT.length],
+  ['ch','Cheveux',    12],
+  ['cc','Couleur',    FIG_CHEV.length],
+  ['ye','Yeux',       6],
+  ['bo','Bouche',     6],
+  ['pi','Barbe',      5],
+  ['ac','Accessoire', 7],
+  ['fo','Fond',       FIG_FOND.length],
+  ['ha','Haut',       FIG_HAUT.length]
+];
+function figVide(){return[0,1,0,0,0,0,0,0,1]}
+function estFigure(v){return typeof v==='string'&&v.charAt(0)===FIG_MARQUE&&v.length===FIG_RUB.length+1}
+function figLire(v){
+  if(!estFigure(v))return null;
+  const o=[];
+  for(let i=0;i<FIG_RUB.length;i++){
+    const n=parseInt(v.charAt(i+1),36);
+    if(isNaN(n))return null;
+    o.push(n%FIG_RUB[i][2]);
+  }
+  return o;
+}
+function figEcrire(o){
+  let s=FIG_MARQUE;
+  for(let i=0;i<FIG_RUB.length;i++)s+=((o[i]|0)%FIG_RUB[i][2]).toString(36);
+  return s;
+}
+function figHasard(){
+  const o=[];for(let i=0;i<FIG_RUB.length;i++)o.push(Math.random()*FIG_RUB[i][2]|0);
+  return o;
+}
+/* ---- les pieces ---- */
+function figCheveux(n,c){
+  /* dessines par-dessus le crane : la forme est ce qui se voit de loin */
+  switch(n){
+    case 0: return'';                                             /* chauve */
+    case 1: return'<path d="M23 44c0-17 12-27 27-27s27 10 27 27c0-9-9-13-27-13S23 35 23 44z" fill="'+c+'"/>';
+    case 2: return'<path d="M23 42c2-16 13-25 27-25s25 9 27 25c-3-6-8-9-12-6-3-7-8-9-15-9s-12 2-15 9c-4-3-9 0-12 6z" fill="'+c+'"/>';
+    case 3: return'<path d="M22 46c-2-19 11-29 28-29s30 10 28 29c-2-7-5-10-8-7-2-6-6-8-10-5-3-6-8-8-10-3-2-5-7-3-10 3-4-3-8-1-10 5-3-3-6 0-8 7z" fill="'+c+'"/>';
+    case 4: return'<g fill="'+c+'"><circle cx="31" cy="30" r="10"/><circle cx="45" cy="24" r="11"/><circle cx="59" cy="26" r="10"/><circle cx="70" cy="34" r="9"/><circle cx="25" cy="41" r="8"/><circle cx="75" cy="44" r="8"/></g>';
+    case 5: return'<g fill="'+c+'"><ellipse cx="50" cy="28" rx="33" ry="24"/><circle cx="20" cy="42" r="10"/><circle cx="80" cy="42" r="10"/></g>';
+    case 6: return'<path d="M20 44c0-18 13-28 30-28s30 10 30 28v22c0-4-4-6-7-6V36c-6 5-14 7-23 7s-17-2-23-7v24c-3 0-7 2-7 6z" fill="'+c+'"/>';
+    case 7: return'<path d="M19 48c0-20 14-31 31-31s31 11 31 31v30c-2-6-6-9-9-9V38c-7 5-14 7-22 7s-15-2-22-7v31c-3 0-7 3-9 9z" fill="'+c+'"/>';
+    case 8: return'<g fill="'+c+'"><path d="M23 44c0-17 12-27 27-27s27 10 27 27c0-9-9-13-27-13S23 35 23 44z"/><path d="M74 40c8 2 13 10 11 19-2 8-7 12-12 11 4-8 4-20 1-30z"/></g>';
+    case 9: return'<g fill="'+c+'"><path d="M23 44c0-17 12-27 27-27s27 10 27 27c0-9-9-13-27-13S23 35 23 44z"/><circle cx="50" cy="11" r="9"/></g>';
+    case 10:return'<path d="M22 45c1-16 12-26 28-26s27 10 28 26c-4-8-10-11-16-11-3-5-7-7-12-7s-9 2-12 7c-6 0-12 3-16 11z" fill="'+c+'"/>';
+    default:  /* crete : rien sur les cotes, une bande haute au milieu */
+      return'<g fill="'+c+'"><path d="M50 12c7 0 12 7 13 16 1 7 0 12-1 16-2-10-5-14-12-14s-10 4-12 14c-1-4-2-9-1-16 1-9 6-16 13-16z"/>'
+        +'<path d="M44 14c2-5 10-5 12 0 2 4 2 8 1 11-2-5-4-7-7-7s-5 2-7 7c-1-3-1-7 1-11z" opacity=".55"/></g>';
+  }
+}
+function figYeux(n){
+  const o='#2a2320';
+  switch(n){
+    case 0: return'<g fill="'+o+'"><circle cx="39" cy="47" r="3.4"/><circle cx="61" cy="47" r="3.4"/></g>';
+    case 1: return'<g fill="'+o+'"><ellipse cx="39" cy="47" rx="3.2" ry="4.4"/><ellipse cx="61" cy="47" rx="3.2" ry="4.4"/></g>';
+    case 2: return'<g fill="none" stroke="'+o+'" stroke-width="2.6" stroke-linecap="round"><path d="M34 48c3-4 7-4 10 0"/><path d="M56 48c3-4 7-4 10 0"/></g>';
+    case 3: return'<g fill="'+o+'"><circle cx="39" cy="47" r="3.4"/></g>'
+      +'<path d="M56 48c3-4 7-4 10 0" fill="none" stroke="'+o+'" stroke-width="2.6" stroke-linecap="round"/>';
+    case 4: return'<g><circle cx="39" cy="47" r="5.2" fill="#fff"/><circle cx="61" cy="47" r="5.2" fill="#fff"/>'
+      +'<circle cx="39.8" cy="47.6" r="2.8" fill="'+o+'"/><circle cx="61.8" cy="47.6" r="2.8" fill="'+o+'"/></g>';
+    default:return'<g fill="none" stroke="'+o+'" stroke-width="2.6" stroke-linecap="round">'
+      +'<path d="M34 46c3 3 7 3 10 0"/><path d="M56 46c3 3 7 3 10 0"/></g>';
+  }
+}
+function figSourcils(n,c){
+  if(n===2||n===5)return'';
+  return'<g fill="none" stroke="'+c+'" stroke-width="2.6" stroke-linecap="round" opacity=".9">'
+    +'<path d="M33 39c4-3 8-3 12-1"/><path d="M55 38c4-2 8-2 12 1"/></g>';
+}
+function figBouche(n){
+  const l='#7d3b35';
+  switch(n){
+    case 0: return'<path d="M42 62c3 4 13 4 16 0" fill="none" stroke="'+l+'" stroke-width="3" stroke-linecap="round"/>';
+    case 1: return'<g><path d="M39 60h22c0 7-5 11-11 11s-11-4-11-11z" fill="'+l+'"/>'
+      +'<path d="M41 61h18c0 2-1 3-2 3H43c-1 0-2-1-2-3z" fill="#fff"/></g>';
+    case 2: return'<path d="M41 63c5 3 12 2 15-3" fill="none" stroke="'+l+'" stroke-width="3" stroke-linecap="round"/>';
+    case 3: return'<path d="M42 63h16" fill="none" stroke="'+l+'" stroke-width="3" stroke-linecap="round"/>';
+    case 4: return'<path d="M42 65c3-4 13-4 16 0" fill="none" stroke="'+l+'" stroke-width="3" stroke-linecap="round"/>';
+    default:return'<ellipse cx="50" cy="64" rx="7" ry="6" fill="'+l+'"/>';
+  }
+}
+function figBarbe(n,c){
+  switch(n){
+    case 0: return'';
+    case 1: return'<path d="M40 57c3-2 17-2 20 0-2 3-5 4-10 4s-8-1-10-4z" fill="'+c+'"/>';
+    case 2: return'<g fill="'+c+'"><path d="M40 57c3-2 17-2 20 0-2 3-5 4-10 4s-8-1-10-4z"/>'
+      +'<path d="M44 68h12c0 5-2 8-6 8s-6-3-6-8z"/></g>';
+    case 3: return'<path d="M24 50c0 16 11 26 26 26s26-10 26-26c2 10 0 18-4 23-5 6-13 9-22 9s-17-3-22-9c-4-5-6-13-4-23z" fill="'+c+'"/>';
+    default:return'<g fill="'+c+'"><path d="M23 46c0 22 12 34 27 34s27-12 27-34c3 14 1 27-5 34-6 7-13 10-22 10s-16-3-22-10c-6-7-8-20-5-34z"/>'
+      +'<path d="M40 57c3-2 17-2 20 0-2 3-5 4-10 4s-8-1-10-4z"/></g>';
+  }
+}
+function figAccessoire(n,haut){
+  const cerne='#00000038';      /* un lisere sombre : l'objet se detache de tous les fonds */
+  switch(n){
+    case 0: return'';
+    case 1: return'<g fill="none" stroke="#2a2320" stroke-width="2.4" opacity=".92">'
+      +'<circle cx="39" cy="47" r="8.5"/><circle cx="61" cy="47" r="8.5"/><path d="M47.5 46h5"/>'
+      +'<path d="M30.5 45l-6-2"/><path d="M69.5 45l6-2"/></g>';
+    case 2: return'<g><path d="M29 41h42l-2 7c-1 5-5 8-10 8s-8-3-9-7l-1-3h-6l-1 3c-1 4-4 7-9 7s-9-3-10-8z" fill="#1d1a1b"/>'
+      +'<path d="M24 41h52" stroke="#1d1a1b" stroke-width="3" stroke-linecap="round"/></g>';
+    case 3:  /* casquette : calotte sur le crane, visiere qui depasse d'un cote */
+      return'<g stroke="'+cerne+'" stroke-width="1.6"><path d="M22 38c0-17 12-26 28-26s28 9 28 26z" fill="'+haut+'"/>'
+        +'<path d="M78 38H50c0-5 6-8 15-8 8 0 13 3 13 8z" fill="'+haut+'" opacity=".85"/>'
+        +'<path d="M22 38h56" fill="none"/><circle cx="50" cy="13" r="3" fill="'+haut+'"/></g>';
+    case 4:  /* casque : l'arceau passe devant les cheveux, les coques sur les oreilles */
+      return'<g fill="'+haut+'" stroke="'+cerne+'" stroke-width="1.6">'
+        +'<path d="M17 52v-8c0-18 15-29 33-29s33 11 33 29v8h-7v-8c0-14-11-22-26-22s-26 8-26 22v8z"/>'
+        +'<rect x="10" y="46" width="14" height="22" rx="7"/><rect x="76" y="46" width="14" height="22" rx="7"/></g>';
+    case 5: return'<g fill="#e3b95c" stroke="'+cerne+'" stroke-width="1.2">'
+      +'<circle cx="24" cy="58" r="3.6"/><circle cx="76" cy="58" r="3.6"/></g>';
+    default:  /* bandeau */
+      return'<path d="M21 39c6-6 17-9 29-9s23 3 29 9l-2 8c-7-5-16-8-27-8s-20 3-27 8z" fill="'+haut+'" '
+        +'stroke="'+cerne+'" stroke-width="1.6"/>';
+  }
+}
+/* ---- le dessin complet ---- */
+const FIG_CACHE=new Map();
+function figSVG(v){
+  if(FIG_CACHE.has(v))return FIG_CACHE.get(v);
+  const o=figLire(v)||figVide();
+  const peau=FIG_TEINT[o[0]],chev=FIG_CHEV[o[2]],fond=FIG_FOND[o[7]];
+  const haut=FIG_HAUT[o[8]];
+  const ombre='rgba(0,0,0,.16)';
+  const s='<svg class="fig" viewBox="0 0 100 100" aria-hidden="true" focusable="false">'
+    +'<circle cx="50" cy="50" r="50" fill="'+fond+'"/>'
+    /* buste : ce qui donne l'impression d'un personnage et pas d'une tete flottante */
+    +'<path d="M50 74c16 0 29 10 32 26H18c3-16 16-26 32-26z" fill="'+haut+'"/>'
+    +'<path d="M42 68h16v12c0 4-4 6-8 6s-8-2-8-6z" fill="'+peau+'"/>'
+    +'<ellipse cx="24" cy="49" rx="5" ry="6" fill="'+peau+'"/>'
+    +'<ellipse cx="76" cy="49" rx="5" ry="6" fill="'+peau+'"/>'
+    +'<ellipse cx="50" cy="46" rx="26" ry="29" fill="'+peau+'"/>'
+    +'<path d="M50 17c14 0 25 11 25 25 0 4-1 8-2 11 1-16-9-25-23-25s-24 9-23 25c-1-3-2-7-2-11 0-14 11-25 25-25z" fill="'+ombre+'"/>'
+    +figCheveux(o[1],chev)
+    +figSourcils(o[3],chev)
+    +figYeux(o[3])
+    +'<path d="M50 50v7c0 2-1 3-3 3" fill="none" stroke="'+ombre+'" stroke-width="2.4" stroke-linecap="round"/>'
+    +figBouche(o[4])
+    +figBarbe(o[5],chev)
+    +figAccessoire(o[6],haut)
+    +'</svg>';
+  if(FIG_CACHE.size>400)FIG_CACHE.clear();
+  FIG_CACHE.set(v,s);
+  return s;
+}
+/* ce qu'on affiche a la place d'un avatar : le personnage, ou l'emoji */
+function figurine(av){
+  return estFigure(av)?figSVG(av):String(av==null?'':av);
+}
+
+/* un avatar dans une pastille ronde, quelle que soit sa nature */
+function avHtml(av,cls){
+  return'<span class="avh'+(cls?' '+cls:'')+'">'+figurine(av)+'</span>';
+}
+
 /* ===================== le compte joueur =====================
    Jusqu'ici, ton identite etait ton telephone : changer d'appareil, c'etait
    repartir a 1000 d'Elo sous un nouveau nom, et jouer sur deux appareils,
@@ -4811,7 +5029,7 @@ function cpteLien(){
 }
 /* ---- ce qu'on garde, et ce qu'on remet ---- */
 function cpteDonnees(){
-  return{n:clean(U.name,24)||'Joueur',av:clean(U.av,8)||'🙂',
+  return{n:clean(U.name,24)||'Joueur',av:clean(U.av,12)||'🙂',
          alias:CPTE.alias.slice(0,20),
          su:Object.assign({},SU),cpt:Object.assign({},CPT)};
 }
@@ -4854,7 +5072,7 @@ async function cpteAdopter(txt){
   /* on reprend ce que le compte sait de toi, sans rien perdre d'ici */
   if(dist){
     if(dist.n&&!U.name)U.name=clean(dist.n,24);
-    if(dist.av)U.av=clean(dist.av,8)||U.av;
+    if(dist.av)U.av=clean(dist.av,12)||U.av;
     /* un succes se garde a la date la plus ancienne : c'est la qu'il a ete gagne */
     if(dist.su)SUCCES.forEach(x=>{
       const v=+dist.su[x[0]];
@@ -4969,7 +5187,7 @@ function etagesHTML(){
   const ps=potsEtages();
   if(ps.length<2)return'';          /* un seul pot : le total suffit */
   const puce=(t,m,qui)=>'<span class="sp"><u>'+t+'</u>'+fmt(m)
-    +(qui?'<i>'+qui.map(i=>P[i]?P[i].av:'').join('')+'</i>':'')+'</span>';
+    +(qui?'<i>'+qui.map(i=>P[i]?figurine(P[i].av):'').join('')+'</i>':'')+'</span>';
   /* a dix joueurs on peut avoir huit etages : au-dela de trois on resume,
      sinon les puces mangent le feutre */
   if(ps.length>3){
@@ -5462,7 +5680,7 @@ function roomList(){
   const ps=table.peers().filter(p=>p.kind==='viewer');
   $('rlist').innerHTML=ps.slice(0,NSEAT).map(p=>{
     const tags=[];if(p.isMe)tags.push('toi');if(p.peer===hostPeer)tags.push('hôte');
-    return'<div class="pl"><span>'+(clean(p.presence.a)||'🙂')+'</span><span>'+(clean(p.presence.n)||'Joueur')+'</span><span class="tag">'+tags.join(' · ')+'</span></div>';
+    return'<div class="pl">'+avHtml(clean(p.presence.a)||'🙂')+'<span>'+(clean(p.presence.n)||'Joueur')+'</span><span class="tag">'+tags.join(' · ')+'</span></div>';
   }).join('')+(ps.length>NSEAT?'<p class="note">Trop de joueurs : seuls les 6 premiers seront assis.</p>':'');
   const nJ=Math.min(ps.length,NSEAT);
   $('r-go').disabled=!isHost||(!botFill&&nJ<2);
@@ -6269,7 +6487,64 @@ function setAv(e){U.av=e;paint();sauver();if($('i-tete'))$('i-tete').textContent
 function ouvrirAv(){
   const g=$('i-av'),t=$('i-tete');
   g.hidden=!g.hidden;t.setAttribute('aria-expanded',String(!g.hidden));
+  if(!g.hidden)g.innerHTML=atelierHTML();
 }
+/* ---- l'atelier : on compose son personnage avant de lancer une partie ----
+   Les rubriques de couleur montrent des pastilles, les rubriques de forme
+   montrent le personnage EN COURS avec seulement cette piece changee : on voit
+   ce qu'on choisit, pas une etiquette. */
+let atelier=null;
+const FIG_PAL={0:FIG_TEINT,2:FIG_CHEV,7:FIG_FOND,8:FIG_HAUT};
+function atelierEtat(){
+  if(!atelier)atelier=figLire(U.av)||figVide();
+  return atelier;
+}
+function figAppliquer(){
+  U.av=figEcrire(atelierEtat());
+  sauver();paint();
+  if(table)table.presence({a:U.av});
+  if(P&&P[mySeat]&&!net()){P[mySeat].av=U.av;render()}
+  if(cpteActif())cpteEcrire();
+}
+function figChoix(i,k){atelierEtat()[i]=k;figAppliquer()}
+/* on quitte l'emoji : plutot qu'un bonhomme par defaut, on en tire un au sort,
+   c'est un meilleur point de depart pour bricoler */
+function figPerso(){if(!estFigure(U.av))atelier=figHasard();figAppliquer()}
+function figAuHasard(){atelier=figHasard();figAppliquer()}
+function figEmoji(e){U.av=e||AVC[0];atelier=null;sauver();paint();
+  if(table)table.presence({a:U.av});
+  if(P&&P[mySeat]&&!net()){P[mySeat].av=U.av;render()}
+  if(cpteActif())cpteEcrire();
+}
+function atelierHTML(){
+  const perso=estFigure(U.av);
+  const o=perso?atelierEtat():(figLire(U.av)||figVide());
+  let h='<div class="at-haut">'
+    +'<span class="at-vue">'+(perso?figSVG(figEcrire(o)):'<b class="at-emo">'+U.av+'</b>')+'</span>'
+    +'<div class="at-act">'
+    +(perso?'':'<button class="petit p" onclick="figPerso()">Prendre un personnage</button>')
+    +'<button class="petit" onclick="figAuHasard()">Au hasard</button></div></div>';
+  if(perso)FIG_RUB.forEach((r,i)=>{
+    const pal=FIG_PAL[i];
+    h+='<div class="at-rub"><span>'+r[1]+'</span><div class="at-l">';
+    for(let k=0;k<r[2];k++){
+      const sel=(o[i]===k)?' aria-pressed="true"':'';
+      if(pal)h+='<button class="at-c" style="background:'+pal[k]+'"'+sel
+        +' onclick="figChoix('+i+','+k+')" aria-label="'+r[1]+' '+(k+1)+'"></button>';
+      else{
+        const c=o.slice();c[i]=k;
+        h+='<button class="at-f"'+sel+' onclick="figChoix('+i+','+k+')" aria-label="'
+          +r[1]+' '+(k+1)+'">'+figSVG(figEcrire(c))+'</button>';
+      }
+    }
+    h+='</div></div>';
+  });
+  h+='<div class="at-rub"><span>Ou juste un emoji</span><div class="at-l at-emos">'
+    +AVC.map(e=>'<button class="at-e" aria-pressed="'+(U.av===e)+'" onclick="figEmoji(\''+e+'\')">'+e+'</button>').join('')
+    +'</div></div>';
+  return h;
+}
+
 function avRow(){return AVC.map(e=>'<button aria-pressed="'+(U.av===e)+'" onclick="setAv(\''+e+'\')">'+e+'</button>').join('')}
 function lvRow(label,on,fn){return'<div class="lvrow"><span>'+label+'</span>'+LV.map((v,l)=>'<button aria-pressed="'+(on===l)+'" onclick="'+fn+'('+l+')">'+v.n+'</button>').join('')+'</div>'}
 function setAll(l){lvAll=l;if(P)P.forEach(p=>{if(p.bot)p.lv=l});paint();sauver();if(P){render();sync()}}
@@ -6307,7 +6582,10 @@ function paint(){
     +'<button onclick="basculerAbsence()" title="'+(absent?'Revenir à la table':'S\'absenter')
     +'" aria-label="'+(absent?'Revenir':'S\'absenter')+'"'+(absent?' style="background:var(--gold)"':'')
     +'>'+(absent?'▶️':'⏸️')+'</button></div>';
-  $('i-av').innerHTML=avRow();$('g-av').innerHTML=avRow();$('i-tete').textContent=U.av;
+  /* l'atelier est lourd a reconstruire : on ne le refait que s'il est visible */
+  if($('i-av')&&!$('i-av').hidden)$('i-av').innerHTML=atelierHTML();
+  if($('g-av')&&$('ov')&&!$('ov').hidden)$('g-av').innerHTML=atelierHTML();
+  if($('i-tete'))$('i-tete').innerHTML=figurine(U.av);
   const lvBtns=LV.map((v,l)=>'<button aria-pressed="'+(lvAll===l)+'" onclick="setAll('+l+')">'+v.n+'</button>').join('');
   $('i-lv').innerHTML=lvBtns;$('r-lv').innerHTML=lvBtns;
   $('i-nb').innerHTML=[1,2,3,4,5,6,7,8,9].map(k=>'<button aria-pressed="'+(G.bots===k)+'" onclick="setBots('+k+')">'
@@ -6400,7 +6678,7 @@ function openR(){
       +'<span class="txt"><b>'+r[1]+'</b><span>'+r[2]+'</span></span></div>').join('');
   $('rv').hidden=false;
 }
-function openP(){$('nm2').value=U.name;paint();peindreCompte();$('ov').hidden=false}
+function openP(){$('nm2').value=U.name;$('ov').hidden=false;paint();peindreCompte()}
 function closeP(){$('ov').hidden=true}
 $('ov').addEventListener('click',e=>{if(e.target.id=='ov')closeP()});
 $('iv').addEventListener('click',e=>{if(e.target.id=='iv')$('iv').hidden=true});
