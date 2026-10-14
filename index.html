@@ -1204,6 +1204,33 @@ body.attend #ac-derniere{display:none}
 .cb-fiche .av{font-size:32px;line-height:1}
 .cb-fiche b{display:block;font-size:17px;font-family:Fraunces,Georgia,serif;font-weight:700}
 .cb-fiche span{display:block;font-size:12.5px;color:var(--gold);margin-top:2px}
+/* ======================= v53 : le confort de jeu ======================= */
+/* les pots etages, sous le total : qui peut gagner quoi */
+.pot{flex-wrap:wrap}
+.pot .pots{flex:0 0 100%;display:flex;gap:6px;justify-content:center;margin-top:4px;flex-wrap:wrap}
+.pot .sp{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#f3ecdd;
+  background:#00000059;border:1px solid #ffffff1f;border-radius:999px;padding:2px 9px;
+  text-shadow:0 1px 2px #000}
+.pot .sp u{text-decoration:none;font-size:9px;letter-spacing:.09em;text-transform:uppercase;
+  opacity:.68;font-weight:700}
+.pot .sp i{font-style:normal;letter-spacing:-.08em;font-size:12px}
+/* le rabbit hunt : des cartes clairement hors du coup */
+.c.lapin{opacity:.5;box-shadow:none;outline:1px dashed #ffffff6b;outline-offset:-2px;
+  filter:saturate(.65)}
+/* les boutons de l'entre-deux-mains */
+.cfbar{display:flex;gap:7px;width:100%}
+.cfbar:empty{display:none}
+button.cfbtn{flex:1 1 0;padding:9px 10px;font-size:13px;font-weight:600;
+  background:var(--soft);color:var(--ink);border:1px solid var(--line)}
+@media (max-width:365px){button.cfbtn{font-size:12px;padding:8px 6px}}
+/* le rappel des touches, sur grand ecran seulement */
+.touches{display:none}
+@media (min-width:900px){
+  .touches{display:block;color:var(--dim);font-size:11.5px;margin:5px 2px 0;letter-spacing:.01em}
+  .touches kbd{font:inherit;font-weight:700;color:var(--ink);background:var(--soft);
+    border:1px solid var(--line);border-radius:5px;padding:0 5px;margin:0 1px}
+}
+
 </style></head><body><div id="app">
 <h1>Hold'em <span></span><button id="bhome" onclick="accueil()" aria-label="Accueil"><i>⌂</i><u>Accueil</u></button><button onclick="openH()" aria-label="Historique"><i>◷</i><u>Historique</u></button><button onclick="openP()" aria-label="Réglages"><i>⚙</i><u>Réglages</u></button></h1>
 <div class="sub" id="sub">Jetons fictifs · blinds 10/20</div>
@@ -1511,6 +1538,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v53 — confort : pots étagés, revoir la main, rabbit hunt, clavier */
 /* v52 — croupier distant : le serveur bat les cartes, même l’hôte ne voit plus les mains */
 /* v51 — le club : code à partager, saisons mensuelles, soirées, fiches joueurs, records */
 /* v50 — accueil sur le feutre : nom en premier, code de table en direct, ta carte de joueur */
@@ -1838,6 +1866,7 @@ function startHand(){
                 p.nh=p.fold?0:2;
                 p.h=(p.fold||distant)?[]:[deck.pop(),deck.pop()]});
   CR.servi=distant?P.map((p,i)=>i).filter(i=>!P[i].fold):null;
+  lapin=null;
   dealer=nxt(dealer,live);
   const duel=P.filter(live).length===2;
   // en duel, le bouton poste la petite blinde et parle en premier avant le flop
@@ -1926,8 +1955,12 @@ function finirRue(){
 function act(p,t,to){
   if(etatFini||!P)return;              /* la main est close : plus rien n'est accepte */
   if(!p.bot&&P[cur]!==p)return;
+  /* un minuteur parti a la main d'avant : ce joueur n'est plus a la table.
+     Sans ce garde-fou, l'action tombait sur le siege -1 et la partie se figeait. */
+  const i=P.indexOf(p);
+  if(i<0)return;
   clearTimeout(actTimer);
-  const i=P.indexOf(p),need=curBet-p.bet;
+  const need=curBet-p.bet;
   if(t=='f'&&need<=0)t='c';   /* se coucher pour rien n'a aucun sens : on check */
   if(t=='f'){p.fold=true;log(p.n+' se couche');talk(i,'f',.16)}
   else if(t=='c'){const a=Math.min(need,p.chips);put(p,a);log(p.n+(a?' suit ('+fmt(a)+')':' check'));if(a)son('jeton')}
@@ -2356,11 +2389,13 @@ function end(){
     vivant:!P[mySeat].fold,coups:coups,bb:BB});
   sauver();
   render();
-  if(net()){$('ctl').innerHTML='<div class="wait">Main suivante dans un instant…</div>';pend=false;sync();
+  if(net()){pend=false;$('ctl').innerHTML=finCtlHTML('Main suivante dans un instant…');sync();
     if(isHost)setTimeout(startHand,4500)}
-  else showNew('Main suivante',startHand,'Relire cette main',()=>{openH();setTimeout(()=>{
+  else{showNew('Main suivante',startHand,'Relire cette main',()=>{openH();setTimeout(()=>{
     const d=$('rj'+handNo);if(d){d.hidden=false;analyser(handNo);
       d.scrollIntoView&&d.scrollIntoView({block:'center'})}},60)});
+    if(peutLapin())$('ctl').insertAdjacentHTML('beforeend','<div class="cfbar">'+boutonLapin()+'</div>');
+  }
 }
 /* ===================== effets ===================== */
 function nSeat(){return P?P.length:(seatPeer.length||6)}
@@ -4005,7 +4040,11 @@ function peindreBoard(){
     if(board[i]&&!ANIM.boardCache.has(i)){
       const ft=ANIM.flip.get(i);
       b+=card(board[i],!v&&i>=shownFrom,surligne(board[i])+(ft!=null?' flip':''),ft!=null?flipStyle(ft):'');
-    }else b+='<div class="c e"></div>';
+    }
+    /* rabbit hunt : la suite qu'on s'est fait montrer, bien distincte du vrai tableau */
+    else if(lapin&&i>=board.length&&lapin[i-board.length])
+      b+=card(lapin[i-board.length],false,' lapin');
+    else b+='<div class="c e"></div>';
   }
   shownFrom=board.length;
   $('board').innerHTML=b;
@@ -4028,7 +4067,8 @@ function peindrePot(){
     return;
   }
   const t=pot();
-  z.innerHTML=t?'<span class="potpile">'+pileJetons(t)+'</span><span class="potlbl">Pot</span><b>'+fmt(t)+'</b>':'';
+  z.innerHTML=t?'<span class="potpile">'+pileJetons(t)+'</span><span class="potlbl">Pot</span><b>'+fmt(t)+'</b>'
+    +etagesHTML():'';
 }
 /* ---------- le poste du croupier ---------- */
 function nbBrulees(n){return(n>=3?1:0)+(n>=4?1:0)+(n>=5?1:0)}
@@ -4326,6 +4366,11 @@ function controls(){
     +'<button class="suivre" onclick="myAct(\'c\')">'+(need?'Suivre <b>'+fmt(Math.min(need,p.chips))+'</b>':'Check')+'</button>'
     +(peut?'<button id="rb" class="p" onclick="myAct(\'r\',+$(\'sl\').value)"></button>':'')
     +'</div>';
+  /* les touches ne s'apprennent qu'une fois : on les rappelle les deux
+     premieres mains, sur grand ecran, puis on se tait */
+  if(handNo<=2)h+='<p class="touches">Au clavier : <kbd>F</kbd> se coucher'
+    +' \u00b7 <kbd>C</kbd> suivre ou checker \u00b7 <kbd>R</kbd> relancer'
+    +' \u00b7 <kbd>espace</kbd> pour la suite</p>';
   $('ctl').innerHTML=h;pend=true;sv();startClock();
   if(tchatOuvert)fermerTchat();   /* ton brouillon est conserve */
   if(U.vibr&&navigator.vibrate){try{navigator.vibrate(55)}catch(e){}}
@@ -4693,6 +4738,139 @@ function dechiffrerMain(blob,hn,i,pub){
   }).catch(()=>{});
 }
 
+/* ===================== le confort de jeu =====================
+   Rien ici ne change une regle. Ce sont les quatre choses qu'on reclame a
+   chaque partie : savoir quel pot on joue quand quelqu'un est a tapis,
+   revoir le coup qui vient de se jouer sans aller fouiller, voir ce que le
+   tableau aurait donne quand tout le monde s'est couche, et pouvoir jouer
+   au clavier quand on est devant un ordinateur. */
+
+/* ---- les pots etages ----
+   Quand les tapis sont inegaux, le pot se coupe en etages : celui qui a mis
+   200 ne peut pas gagner plus que 200 par adversaire. Le decoupage ci-dessous
+   est exactement celui que showdown() applique pour payer -- meme boucle,
+   memes bornes -- pour qu'on affiche ce qui sera reellement distribue. */
+function potsEtages(){
+  if(!P)return[];
+  const lv=P.filter(live);
+  if(lv.length<2)return[];
+  const lvls=[...new Set(lv.map(p=>p.tot))].sort((a,b)=>a-b);
+  const out=[];let prev=0;
+  lvls.forEach(l=>{
+    const amt=P.reduce((a,p)=>a+Math.min(p.tot,l)-Math.min(p.tot,prev),0);
+    const el=lv.filter(p=>p.tot>=l);
+    if(amt>0)out.push({amt:amt,pour:el.map(p=>P.indexOf(p))});
+    prev=l;
+  });
+  return out;
+}
+function etagesHTML(){
+  const ps=potsEtages();
+  if(ps.length<2)return'';          /* un seul pot : le total suffit */
+  const puce=(t,m,qui)=>'<span class="sp"><u>'+t+'</u>'+fmt(m)
+    +(qui?'<i>'+qui.map(i=>P[i]?P[i].av:'').join('')+'</i>':'')+'</span>';
+  /* a dix joueurs on peut avoir huit etages : au-dela de trois on resume,
+     sinon les puces mangent le feutre */
+  if(ps.length>3){
+    const reste=ps.slice(2).reduce((a,x)=>a+x.amt,0);
+    return'<span class="pots">'+puce('principal',ps[0].amt,ps[0].pour)
+      +puce('annexe 1',ps[1].amt,ps[1].pour)
+      +puce('+'+(ps.length-2)+' annexes',reste,null)+'</span>';
+  }
+  return'<span class="pots">'+ps.map((x,k)=>
+    puce(k?'annexe '+k:'principal',x.amt,x.pour)).join('')+'</span>';
+}
+
+/* ---- revoir la main qui vient de finir ----
+   La piste de la main est deja gardee par la relecture (v49) : il manquait
+   juste un chemin direct, depuis la table, sans passer par l'historique. */
+function revoyable(){
+  const h=HIST.filter(x=>!x.sep&&x.n===handNo&&x.rj).pop();
+  return h?h.n:null;
+}
+function boutonRevoir(){
+  const n=revoyable();
+  if(n==null||rejeu)return'';
+  return'<button class="back cfbtn" onclick="ouvrirRejeu('+n+')">↺ Revoir la main</button>';
+}
+
+/* ---- rabbit hunt ----
+   Tout le monde s'est couche et on ne saura jamais si notre couleur rentrait.
+   On demande la suite du tableau, pour soi, une fois la main close -- jamais
+   avant, sinon ce serait un moyen de lire l'avenir.
+   Avec le croupier distant, chacun peut la demander lui-meme ; avec la
+   distribution par l'hote, lui seul tient le paquet. */
+let lapin=null;
+function peutLapin(){
+  if(!P||!etatFini||lapin||rejeu)return false;
+  if(board.length>=5)return false;                 /* le tableau est deja complet */
+  if(res.some(r=>r.hn))return false;               /* il y a eu abattage : plus rien a imaginer */
+  if(crActif()&&CR.servi&&CR.secret)return true;
+  return !net()||isHost;
+}
+function boutonLapin(){
+  return peutLapin()?'<button id="b-lapin" class="back cfbtn" onclick="voirLapin()">🐰 Voir la suite</button>':'';
+}
+async function voirLapin(){
+  if(!peutLapin())return;
+  const hn=handNo,depuis=board.length;
+  if(crActif()&&CR.servi){
+    try{
+      const r=await crAppel('poker_tableau',{p_code:crCode(),p_main:hn,p_tab:1,
+        p_n:5,p_siege:crMonSiege(),p_secret:CR.secret});
+      if(handNo!==hn)return;
+      if(r&&r.ok&&Array.isArray(r.cartes)&&r.cartes.length===5)
+        lapin=r.cartes.slice(depuis).map(dec);
+    }catch(e){}
+  }else if(deck&&deck.length>=5-depuis){
+    lapin=[];for(let k=depuis;k<5;k++)lapin.push(deck.pop());
+  }
+  if(!lapin||!lapin.length)return;
+  son('carte');
+  log('🐰 Le tableau aurait donné : '+lapin.map(c=>R[c.r-2]+S[c.s]).join(' '));
+  render();
+  const b=$('b-lapin');if(b)b.remove();      /* on ne le propose plus : c'est vu */
+  if(etatFini&&!pend)majFinCtl();
+}
+/* le bas de l'ecran entre deux mains : l'attente, et ce qu'on peut faire en
+   attendant. Reconstruit au meme endroit par l'hote, le solo et les invites. */
+function finCtlHTML(txt){
+  return attente(txt)+'<div class="cfbar">'+boutonLapin()+boutonRevoir()+'</div>';
+}
+function majFinCtl(){
+  const z=$('ctl');if(!z)return;
+  const w=z.querySelector('.wait');
+  if(!w)return;
+  z.innerHTML=finCtlHTML(w.textContent);
+}
+
+/* ---- le clavier ----
+   Sur un ordinateur, viser un bouton a la souris est plus lent que la touche
+   qui tombe sous le doigt. Rien ne s'active si on ecrit, si un panneau est
+   ouvert, ou si ce n'est pas a nous. */
+function clavierOccupe(){
+  if(['intro','hv','rv','fv','iv','ov','cv'].some(k=>{const e=$(k);return e&&!e.hidden}))return true;
+  return !!(tchatOuvert||rejeu);
+}
+document.addEventListener('keydown',e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey)return;
+  const t=e.target;
+  if(t&&(/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName)||t.isContentEditable))return;
+  if(clavierOccupe())return;
+  const k=(e.key||'').toLowerCase();
+  /* espace ou entree : le bouton principal de l'attente (main suivante...) */
+  if(k===' '||k==='enter'){
+    if(!pend&&typeof nf==='function'){e.preventDefault();nf()}
+    return;
+  }
+  if(!P||phase!=='play'||!pend||spectateur||etatFini)return;
+  if(cur!==mySeat||!P[mySeat]||P[mySeat].bot)return;
+  const need=curBet-P[mySeat].bet;
+  if(k==='f'){e.preventDefault();myAct(need>0?'f':'c');return}    /* se coucher pour rien = check */
+  if(k==='c'){e.preventDefault();myAct('c');return}
+  if(k==='r'){const s=$('sl');if(s){e.preventDefault();myAct('r',+s.value)}return}
+});
+
 /* ===================== le croupier distant =====================
    Jusqu'ici c'etait le telephone de l'hote qui battait les cartes : il ne
    montrait les mains de personne, mais il les connaissait toutes. Ici le
@@ -5035,7 +5213,7 @@ function applyState(s){
   if(!isHost&&typeof s.hn==='number'){
     handNo=s.hn;            /* sinon l'invite compte 0 main jouee */
     if(s.hn<dernMain)banque=BANQUE_MAX;   /* nouvelle partie */
-    if(s.hn!==dernMain){dernMain=s.hn;eqMinMoi=null;preAct=null;preEnCours='';neufMoi((s.po||[])[mySeat]||'');finEnregistree=false;coups=[]}
+    if(s.hn!==dernMain){dernMain=s.hn;lapin=null;eqMinMoi=null;preAct=null;preEnCours='';neufMoi((s.po||[])[mySeat]||'');finEnregistree=false;coups=[]}
     if(s.fin&&!finEnregistree&&s.dl&&!spectateur){
       finEnregistree=true;
       HIST.push({n:s.hn,at:Date.now(),rj:s.rj||null,me:mesH||(s.p[mySeat][7]||[]).map(dec),bd:(s.b||[]).map(dec),
@@ -5074,7 +5252,7 @@ function applyState(s){
   if(spectateur){stopClock();pend=false;
     $('ctl').innerHTML=attente('Tu regardes la partie — tu joueras à la prochaine.');return}
   if(etatFini){stopClock();pend=false;
-    $('ctl').innerHTML=attente('Main suivante dans un instant…');return}
+    $('ctl').innerHTML=finCtlHTML('Main suivante dans un instant…');return}
   if(cur!=null&&P[cur]&&cur===mySeat&&!P[cur].bot&&!runout)controls();
   else{stopClock();pend=false;$('ctl').innerHTML=attenteTour((cur!=null&&P[cur])?'Au tour de '+P[cur].n+'…':'…')}
 }
