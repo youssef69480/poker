@@ -223,11 +223,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 #ov,#intro,#hv,#rv,#fv,#iv{position:fixed;inset:0;background:#00000073;display:flex;align-items:flex-end;justify-content:center;z-index:12}
 /* la calculette flotte au-dessus de la table : on garde la vue sur le jeu */
 #cv{position:fixed;inset:0;z-index:13;pointer-events:none;background:none}
-#intro{background:var(--bg);align-items:center;z-index:10;overflow:auto}
+#intro{background:var(--bg);align-items:center;z-index:10;overflow:auto;overscroll-behavior:contain}
 /* ====== accueil : la page est une carte posee sur le tapis ====== */
 #sc-home{--ivoire:#f7f2e6;--nuit:#30080f;--trait:#ffffff1f}
 /* le menu entier vit sur du noir, quel que soit le theme */
 #ibox{--ink:#f4efe3;--dim:#a2938c;--soft:#ffffff12;--line:#ffffff2e;--panel:#1a1211;
+  --fold:#2e2426;        /* oublie, le bouton Coucher sortait rose pale avec du texte clair */
   color:var(--ink)}   /* sans ceci, la couleur calculee sur body est heritee telle quelle */
 #sc-home .tapis{
   position:relative;isolation:isolate;   /* le decor reste dans le tapis, derriere le texte */
@@ -333,6 +334,27 @@ body.toile #ibox{margin-top:auto;margin-bottom:auto;
 #intro{background:#0a0708}
 body.toile #ibox{padding-top:0}
 #sc-home .tapis{margin-top:0}
+
+/* ====== l'entrainement est une page a lui, pas un bloc pose sur l'accueil ======
+   Centre verticalement (le defaut de #intro), le contenu REMONTE a chaque fois
+   qu'un verdict s'affiche : on lit une ligne, elle bouge. Pire, quand la main
+   est finie le bloc depasse l'ecran et `align-items:center` rogne le haut sans
+   qu'aucun scroll puisse le rattraper -- titre et Retour deviennent
+   injoignables. Ici on ancre en haut : ce qui arrive s'ajoute en dessous, et
+   rien de ce qui est deja lu ne bouge. */
+body.plein{overflow:hidden}
+body.plein #ibox{margin-top:0;margin-bottom:auto;padding-top:0;
+  padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+.tr-tete{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:10px;
+  margin:0 -20px 14px;padding:calc(11px + env(safe-area-inset-top,0px)) 14px 11px;
+  background:#0a0708ee;border-bottom:1px solid var(--line)}
+@supports (backdrop-filter:blur(2px)){.tr-tete{background:#0a0708cc;backdrop-filter:blur(10px)}}
+#ibox .tr-tete h2{flex:1;margin:0;font-size:19px;letter-spacing:.01em}
+.tr-tete .tr-sortie{flex:0 0 auto;background:var(--soft);border:1px solid var(--line);
+  color:var(--ink);border-radius:11px;padding:8px 13px;font-size:14px;font-weight:600;
+  cursor:pointer;font-family:inherit}
+.tr-tete .tr-sortie:active{background:#ffffff1f}
+.tr-tete .tr-poids{flex:0 0 auto;width:84px}   /* contrepoids : le titre reste centre */
 
 #ibox{width:100%;max-width:420px;padding:20px;text-align:center}
 #ibox h2{font-size:26px;margin:0 0 6px}
@@ -1285,6 +1307,10 @@ svg.fig{display:block;width:100%;height:100%}
 /* ======================= v57 : l'entraînement ======================= */
 /* L'exercice vit sur un bout de table, pas dans le vide : le contexte, la
    consigne, ta main et le tableau forment un seul bloc qu'on lit d'un coup. */
+/* `display:flex` ecrase l'attribut `hidden` (qui n'est qu'un display:none de la
+   feuille du navigateur) : sans la ligne suivante l'entrainement reste peint
+   SOUS l'accueil en permanence. Meme precaution que pour les voiles, plus haut. */
+#sc-train[hidden]{display:none}
 #sc-train{display:flex;flex-direction:column;min-height:0}
 #sc-train h2{margin-bottom:12px}
 #sc-train>label{display:block;text-align:left;color:var(--dim);font-size:11.5px;
@@ -1442,7 +1468,11 @@ svg.fig{display:block;width:100%;height:100%}
  </div>
 
  <div id="sc-train" hidden>
- <h2>Entraînement</h2>
+ <div class="tr-tete">
+  <button class="tr-sortie" onclick="scr('home')">‹ Retour</button>
+  <h2>Entraînement</h2>
+  <span class="tr-poids" aria-hidden="true"></span>
+ </div>
  <label>Niveau</label>
  <div class="opts" id="tr-niv" style="justify-content:center;margin-bottom:12px"></div>
  <label>Thème</label>
@@ -1455,9 +1485,6 @@ svg.fig{display:block;width:100%;height:100%}
  </div>
  <div class="modes" id="tr-btns"></div>
  <div id="tr-fb"></div>
- <div class="modes tr-retour">
-  <button class="back" onclick="scr('home')">Retour</button>
- </div>
 </div>
 
 <div id="sc-room" hidden>
@@ -1627,6 +1654,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v58 — l’entraînement est une vraie page : écran figé, rien qui dépasse sous l’accueil */
 /* v57 — entraînement : une main entière jouée et jugée coup par coup, sur un vrai feutre */
 /* v56 — niveau Pro : un bot qui te lit, mesuré au banc en poker dupliqué */
 /* v55 — ton personnage : un petit bonhomme à composer, à la place de l’emoji */
@@ -5950,7 +5978,11 @@ function quitterPartie(){
   mySeat=0;scr('home');paint();
 }
 function scr(n){['home','solo','join','room','train'].forEach(x=>$('sc-'+x).hidden=x!==n);
-  document.body.classList.toggle('toile',n==='home');voile(true);phase=n;
+  document.body.classList.toggle('toile',n==='home');
+  /* page pleine : on fige ce qu'il y a derriere et on ancre en haut */
+  document.body.classList.toggle('plein',n==='train');
+  if(n==='train')$('intro').scrollTop=0;
+  voile(true);phase=n;
   if(n==='home'){videCode();afficherReprise();peindreAccueil()}}
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='tcin'){
@@ -6324,7 +6356,7 @@ function simFin(){
       +s.vilain.map(c=>card(c)).join('')+'</div></div>';
   $('tr-fb').innerHTML='<div class="fb '+(juges.length&&bons===juges.length?'ok':'no')+'">'
     +'<span class="titre">'+(s.couche?'Main abandonnée'
-        :(gagne?'Tu gagnes le coup':'Il gagne le coup'))+'</span>'
+        :(moi===lui?'Pot partagé':(gagne?'Tu gagnes le coup':'Il gagne le coup')))+'</span>'
     +'<p>'+nomMain(moi)+' contre '+nomMain(lui)+'.'
     +(s.couche?' En te couchant tu as '+(moi>lui?'laissé filer le pot':'évité de payer')+'.':'')+'</p>'
     +(juges.length?'<p class="calc"><b>'+bons+' décision'+(bons>1?'s':'')+' sur '+juges.length
