@@ -1654,6 +1654,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v59 — revoir une main ne tue plus la partie : enCours restait bloqué, la table ne repartait jamais */
 /* v58 — l’entraînement est une vraie page : écran figé, rien qui dépasse sous l’accueil */
 /* v57 — entraînement : une main entière jouée et jugée coup par coup, sur un vrai feutre */
 /* v56 — niveau Pro : un bot qui te lit, mesuré au banc en poker dupliqué */
@@ -1958,6 +1959,13 @@ function finishGame(sansPodium){
 let enCours=false;   /* une main est distribuee et pas encore reglee : on n'en relance pas une autre par-dessus */
 function startHand(){
   if(!P||phase!=='play')return;
+  /* La relecture emprunte les variables de la table : P, board, handNo, les
+     jetons. Distribuer pendant qu'elle est ouverte posait les blindes sur les
+     tapis REMBOBINES, ecrasait le resultat de la main qu'on etait en train de
+     relire, et laissait enCours a true pour toujours -- table morte, pour tout
+     le monde, avec « Distribution… » a la place du bouton Fermer.
+     La table est la verite, la relecture n'est qu'une vue : on la referme. */
+  if(rejeu)quitterRejeu();
   if(enCours)return;   /* double clic sur « Main suivante » pendant la donne : les blindes poses seraient perdus */
   clearTimeout(actTimer);stopClock();
   nf=nf2=null;
@@ -2030,6 +2038,10 @@ function startHand(){
 }
 function step(){
   if(!P||phase!=='play')return;
+  /* la relecture a emprunte P, board, handNo et les tapis : si le jeu ecrit
+     dedans, il ecrase la main en cours de relecture ET perd la vraie partie.
+     La table prime sur la vue : on referme avant de toucher a quoi que ce soit. */
+  if(rejeu)quitterRejeu();
   /* Avec le croupier distant, deux moments sont des creux : la donne qui n'est
      pas encore arrivee, et l'abattage qui attend que chacun retourne sa main.
      Un minuteur parti plus tot relancait le jeu dans ces creux -- les bots
@@ -2069,6 +2081,10 @@ function step(){
 }
 function nextStage(){
   if(!P||phase!=='play')return;
+  /* la relecture a emprunte P, board, handNo et les tapis : si le jeu ecrit
+     dedans, il ecrase la main en cours de relecture ET perd la vraie partie.
+     La table prime sur la vue : on referme avant de toucher a quoi que ce soit. */
+  if(rejeu)quitterRejeu();
   pend=false;$('ctl').innerHTML='';P.forEach(p=>{p.bet=0;p.acted=false});curBet=0;minR=BB;stage++;
   if(stage>=4)return showdown();
   /* le croupier distant garde le paquet : on lui demande la rue, puis on finit */
@@ -2088,6 +2104,10 @@ function finirRue(){
   setTimeout(step,Math.max(runout?1700:800,dureeBoard(stage===1?3:1)));
 }
 function act(p,t,to){
+  /* la relecture a emprunte P, board, handNo et les tapis : si le jeu ecrit
+     dedans, il ecrase la main en cours de relecture ET perd la vraie partie.
+     La table prime sur la vue : on referme avant de toucher a quoi que ce soit. */
+  if(rejeu)quitterRejeu();
   if(etatFini||!P)return;              /* la main est close : plus rien n'est accepte */
   if(!p.bot&&P[cur]!==p)return;
   /* un minuteur parti a la main d'avant : ce joueur n'est plus a la table.
@@ -4719,12 +4739,13 @@ function etatCourant(){
   return{P:P,board:board,board2:board2,stage:stage,cur:cur,dealer:dealer,curBet:curBet,minR:minR,
     runout:runout,etatFini:etatFini,res:res,mainGagnante:mainGagnante,sbSeat:sbSeat,bbSeat:bbSeat,
     strSeat:strSeat,handNo:handNo,mySeat:mySeat,spectateur:spectateur,pend:pend,absents:absents,
+    enCours:enCours,   /* oublie : reste bloque a true et plus aucune main ne part */
     ritDe:ritDe,shownFrom:shownFrom,moi:moi,SB:SB,BB:BB,L:L.slice(),sub:$('sub').textContent,ctl:$('ctl').innerHTML};
 }
 function rendreEtat(o){
   P=o.P;board=o.board;board2=o.board2;stage=o.stage;cur=o.cur;dealer=o.dealer;curBet=o.curBet;
   minR=o.minR;runout=o.runout;etatFini=o.etatFini;res=o.res;mainGagnante=o.mainGagnante;
-  sbSeat=o.sbSeat;bbSeat=o.bbSeat;strSeat=o.strSeat;handNo=o.handNo;mySeat=o.mySeat;
+  sbSeat=o.sbSeat;bbSeat=o.bbSeat;strSeat=o.strSeat;handNo=o.handNo;mySeat=o.mySeat;enCours=!!o.enCours;
   spectateur=o.spectateur;pend=o.pend;absents=o.absents;ritDe=o.ritDe;shownFrom=o.shownFrom;
   moi=o.moi;SB=o.SB;BB=o.BB;L=o.L;peindreLog();$('sub').textContent=o.sub;
 }
@@ -4734,7 +4755,15 @@ function mainDuRejeu(n){
 }
 function ouvrirRejeu(n){
   const t=mainDuRejeu(n);if(!t)return;
-  if(P&&pend&&cur===mySeat&&!etatFini){log('C’est à toi — la relecture attendra.');return}
+  /* La relecture emprunte les variables de la table. Tant que la main est
+     vivante -- en cours de distribution, ou en attente d'un joueur -- ce qui
+     continue de tourner (la donne qui arrive, le bot qui reflechit) ecrit dans
+     l'etat rembobine. On ne la laisse donc s'ouvrir qu'au repos. */
+  if(P&&phase==='play'&&!etatFini){
+    log(pend&&cur===mySeat?'C’est à toi — la relecture attendra.'
+        :'La main est en cours — tu pourras la revoir à la fin.');
+    return;
+  }
   if(rejeu)return allerRejeu(0);
   $('hv').hidden=true;
   rejeu={t:t,n:n,i:-1,avant:etatCourant(),lecture:false,minuteur:null};
@@ -4744,7 +4773,7 @@ function ouvrirRejeu(n){
 function fermerRejeu(){
   if(!rejeu)return;
   clearTimeout(rejeu.minuteur);
-  const a=rejeu.avant;rejeu=null;
+  const a=rejeu.avant,suite=rejeu.dernier;rejeu=null;
   document.body.classList.remove('rejeu-actif');
   rendreEtat(a);
   ANIM.hn=-1;ANIM.recu=null;ANIM.finCle='';
@@ -4752,6 +4781,17 @@ function fermerRejeu(){
   if(P&&pend&&cur===mySeat&&!etatFini)controls();
   else $('ctl').innerHTML=a.ctl;      /* les boutons d'avant reprennent leur place */
   sousTitre();
+  /* et on rattrape ce que la table a fait pendant qu'on relisait */
+  if(suite)applyState(suite);
+}
+/* La table reprend la main sur la relecture. Appele par tout ce qui fait avancer
+   la partie : la donne suivante, le tour de parole, une action, un minuteur
+   reste de la main d'avant. On ne le dit qu'une fois, et seulement si on etait
+   vraiment en train de regarder. */
+function quitterRejeu(){
+  if(!rejeu)return;
+  fermerRejeu();
+  log('La table reprend — relecture fermée.');
 }
 /* on reconstruit l'etat au coup k en rejouant depuis le debut : court et sans surprise */
 function etatAu(t,k){
@@ -5808,7 +5848,12 @@ function applyState(s){
   lastHeard=Date.now();
   /* la table continue pendant qu'on relit : des que c'est a moi, on rend la main */
   if(rejeu){const k=(s.sp||[]).indexOf(myPeer);
-    if(k>=0&&s.c===k&&!s.fin&&!s.ro&&s.p[k]&&!(s.p[k][6]&1))fermerRejeu();else return}
+    /* on garde le dernier etat recu : sans ca, tout ce que la table a fait
+       pendant la relecture est jete, et en sortant on reste fige sur la main
+       d'avant jusqu'au prochain envoi de l'hote -- qui peut ne jamais venir
+       si plus personne ne joue. */
+    if(k>=0&&s.c===k&&!s.fin&&!s.ro&&s.p[k]&&!(s.p[k][6]&1))fermerRejeu();
+    else{rejeu.dernier=s;return}}
   if(typeof s.hk==='string'&&s.hk)hotePub=s.hk;
   /* mes deux cartes arrivent chiffrees : je suis le seul a pouvoir les ouvrir.
      On ne touche pas a ce qu'on a recu, on garde le clair de son cote. */
