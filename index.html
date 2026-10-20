@@ -356,6 +356,40 @@ body.plein #ibox{margin-top:0;margin-bottom:auto;padding-top:0;
 .tr-tete .tr-sortie:active{background:#ffffff1f}
 .tr-tete .tr-poids{flex:0 0 auto;width:84px}   /* contrepoids : le titre reste centre */
 
+/* ---- la main du jour ---- */
+/* Elle doit se voir, mais « Jouer contre les bots » reste LE bouton dore de
+   l'accueil : deux blocs pleins se disputeraient l'oeil. Fond sombre, accent
+   dore -- une banniere de rituel, pas un second appel a l'action. */
+.ac-jour{position:relative;z-index:1;display:flex;align-items:center;gap:12px;width:100%;
+  text-align:left;padding:12px 15px;margin:0 0 10px;border-radius:15px;cursor:pointer;
+  font-family:inherit;color:#f6efe0;border:1px solid #e3b95c4d;
+  background:linear-gradient(135deg,#2a1f14,#1b1410);
+  box-shadow:inset 3px 0 0 var(--gold)}
+.ac-jour:active{transform:translateY(1px)}
+.ac-jour .jr-i{flex:0 0 auto;display:grid;place-items:center;width:30px;height:30px;
+  border-radius:50%;background:#e3b95c22;color:var(--gold);font-size:15px}
+.ac-jour .jr-t{flex:1;min-width:0}
+.ac-jour .jr-t b{display:block;font-size:15.5px;font-weight:700;line-height:1.2}
+.ac-jour .jr-t small{display:block;font-size:12px;line-height:1.3;margin-top:1px;color:#f6efe0a8}
+.ac-jour .jr-f{flex:0 0 auto;font-size:17px;color:var(--gold);opacity:.8}
+.ac-jour .jr-s{flex:0 0 auto;font-weight:800;font-size:15px;color:var(--gold)}
+/* deja jouee : on la calme, elle a fait son travail */
+.ac-jour.faite{background:#ffffff0d;border-color:var(--line);box-shadow:inset 3px 0 0 #1d7a4c}
+.ac-jour.faite .jr-i{background:#1d7a4c;color:#fff}
+.ac-jour.faite .jr-t small{color:var(--dim)}
+/* le classement du club, au bas de la main du jour */
+.mdj-club{margin:10px 0 2px;text-align:left}
+.mdj-t{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.mdj-l{list-style:none;margin:0;padding:0;counter-reset:r}
+.mdj-l li{counter-increment:r;display:flex;align-items:center;gap:9px;padding:7px 10px;
+  border-radius:11px;background:var(--soft);margin-bottom:5px;font-size:14px}
+.mdj-l li::before{content:counter(r);flex:0 0 auto;width:17px;color:var(--dim);font-size:12px}
+.mdj-l li.moi{background:#e3b95c24;outline:1px solid #e3b95c5c}
+.mdj-l .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mdj-l .av{flex:0 0 auto;display:grid;place-items:center;width:24px;height:24px}
+.mdj-seul{color:var(--dim);font-size:13px;margin:4px 0 0}
+/* dans la main du jour, le choix du niveau et du theme n'a pas lieu d'etre */
+body.mdj #sc-train>label,body.mdj #tr-niv,body.mdj #tr-theme{display:none}
 #ibox{width:100%;max-width:420px;padding:20px;text-align:center}
 #ibox h2{font-size:26px;margin:0 0 6px}
 #ibox p{color:var(--dim);font-size:14px;margin:0 0 18px}
@@ -1418,6 +1452,7 @@ svg.fig{display:block;width:100%;height:100%}
      </div>
     </div>
 
+    <div id="ac-jour"></div>
     <div class="ac-pills">
      <button class="p1" onclick="openTrain()">🎯 S’entraîner</button>
      <button onclick="openH();setTimeout(()=>tab('w'),0)">Club</button>
@@ -1654,6 +1689,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v60 — la main du jour : une seule main, la même pour tout le club, qui change à minuit */
 /* v59 — revoir une main ne tue plus la partie : enCours restait bloqué, la table ne repartait jamais */
 /* v58 — l’entraînement est une vraie page : écran figé, rien qui dépasse sous l’accueil */
 /* v57 — entraînement : une main entière jouée et jugée coup par coup, sur un vrai feutre */
@@ -1827,6 +1863,7 @@ let sauveT=null;
 function aGarder(n){
   return{v:1,m43:1,u:U,g:G,lv:lvAll,fill:botFill,cj:cpteActif()?{c:CPTE.code,i:CPTE.id,a:CPTE.alias.slice(0,20)}:null,
          tr:trScore,trs:trStats,trn:trNiv,trt:trTheme,pl:NSEAT,
+         mdj:MDJ,
          cb:CLUB,su:SU,cpt:CPT,hist:HIST.slice(-(n||60)).map((h,k,l)=>(h&&h.rj&&k<l.length-(n?6:14))?Object.assign({},h,{rj:null}):h),wins:WINS.slice(-(n||60)),pa:PARTIES.slice(-(n?40:200))};
 }
 function ecrire(){
@@ -1853,6 +1890,7 @@ function charger(){
   if(PLACES.indexOf(d.pl)>=0)NSEAT=d.pl;
   if(d.tr&&typeof d.tr.total==='number')trScore=d.tr;
   if(d.trs&&typeof d.trs==='object')trStats=d.trs;
+  if(d.mdj&&typeof d.mdj==='object')MDJ=Object.assign(MDJ,d.mdj);
   if(typeof d.trn==='number'&&NIVS[d.trn])trNiv=d.trn;
   if(typeof d.trt==='number'&&THEMES[d.trt])trTheme=d.trt;
   if(Array.isArray(d.hist))HIST=d.hist.filter(h=>h&&typeof h==='object');
@@ -3173,6 +3211,7 @@ function rejoindreAccueil(){
 function peindreAccueil(){
   if(!$('ac-carte'))return;
   majCode();
+  peindreJour();
   /* le classement, s'il y en a un ; sinon les chiffres de tes parties */
   const l=(typeof calculerElo==='function')?calculerElo():[];
   const rang=l.findIndex(x=>x.id===JOUEUR),moi=rang>=0?l[rang]:null;
@@ -6117,9 +6156,32 @@ function setTheme(i){
   if(b&&b.scrollIntoView)try{b.scrollIntoView({block:'nearest',inline:'center'})}catch(e){}
 }
 function majSel(){
+  /* la main du jour est imposee : ni niveau ni theme a choisir */
+  const jour=trMode==='jour';
+  document.body.classList.toggle('mdj',jour);
+  const t=document.querySelector('.tr-tete h2');
+  if(t)t.textContent=jour?'Main du jour':'Entraînement';
+  const b=document.querySelector('.tr-tete .tr-sortie');
+  if(b)b.setAttribute('onclick',jour?'quitterMDJ()':"scr('home')");
+  if(jour)return;
   $('tr-niv').innerHTML=NIVS.map((n,i)=>'<button aria-pressed="'+(trNiv===i)+'" onclick="setNiv('+i+')">'+n+'</button>').join('');
   $('tr-theme').innerHTML=THEMES.map((n,i)=>'<button aria-pressed="'+(trTheme===i)+'" onclick="setTheme('+i+')">'+n+'</button>').join('');
 }
+/* ===================== le hasard, rendu reproductible =====================
+   Par defaut c'est Math.random. La main du jour le remplace le temps de
+   fabriquer la main et de faire parler l'adversaire, pour que tout le club
+   tombe sur exactement la meme chose. Tout le reste de l'appli n'y touche pas. */
+let alea=Math.random;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;
+  let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;
+  return((t^t>>>14)>>>0)/4294967296}}
+function hachaine(t){let h=2166136261>>>0;
+  for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}
+  return h>>>0}
+/* on remet TOUJOURS l'ancien hasard, meme si f() jette : sans le finally,
+   une exception laisserait toute l'appli sur un hasard fige. */
+function avecGraine(g,f){const av=alea;alea=mulberry32(g>>>0);
+  try{return f()}finally{alea=av}}
 function pioche(mortes){
   const d=[];for(let c=0;c<4;c++)for(let r=2;r<=14;r++)
     if(!mortes.some(m=>m.r===r&&m.s===c))d.push({r:r,s:c});
@@ -6128,7 +6190,7 @@ function pioche(mortes){
 function tirerDansRange(set,mortes){
   const d=pioche(mortes);
   for(let k=0;k<8000;k++){
-    const i=Math.random()*d.length|0,j=Math.random()*d.length|0;
+    const i=alea()*d.length|0,j=alea()*d.length|0;
     if(i===j)continue;
     const h=[d[i],d[j]];
     if(set.has(hcode(h)))return h;
@@ -6147,14 +6209,14 @@ function equiteSurBoard(main,set,brd,essais){
   for(let t=0;t<essais;t++){
     let i=0,j=0,ok=false;
     for(let k=0;k<300&&!ok;k++){
-      i=Math.random()*L|0;j=Math.random()*L|0;
+      i=alea()*L|0;j=alea()*L|0;
       if(i!==j&&set.has(hcode([libre[i],libre[j]])))ok=true;
     }
     if(!ok)break;
     pris.length=0;pris.push(i,j);
     const b=brd.slice();
     while(b.length<5){
-      const k=Math.random()*L|0;
+      const k=alea()*L|0;
       if(pris.indexOf(k)>=0)continue;
       pris.push(k);b.push(libre[k]);
     }
@@ -6213,7 +6275,7 @@ const SIM_ORDRE=['SB','BB','UTG','HJ','CO','BTN'];   /* qui parle en premier apr
 function mainDansRange(set,mortes){
   const d=pioche(mortes||[]);
   for(let k=0;k<500;k++){
-    const i=Math.random()*d.length|0,j=Math.random()*d.length|0;
+    const i=alea()*d.length|0,j=alea()*d.length|0;
     if(i===j)continue;
     const h=[d[i],d[j]];
     if(set&&set.has(hcode(h)))return h;
@@ -6222,20 +6284,30 @@ function mainDansRange(set,mortes){
 }
 function simCartes(n,mortes){
   const d=pioche(mortes||[]),out=[];
-  for(let k=0;k<n;k++)out.push(d.splice(Math.random()*d.length|0,1)[0]);
+  for(let k=0;k<n;k++)out.push(d.splice(alea()*d.length|0,1)[0]);
   return out;
+}
+/* Les cartes a venir : au hasard a l'entrainement, mais PIOCHEES DANS UN PLAN
+   pose d'avance pour la main du jour. Sans ce plan, le tableau dependrait de
+   l'ordre des tirages, donc de ta facon de jouer -- deux potes n'auraient pas
+   le meme river et la comparaison ne voudrait plus rien dire. */
+function simTirer(n){
+  const s=SIM;
+  if(s&&s.plan){const pris=s.plan.slice(s.board.length,s.board.length+n);
+    if(pris.length===n)return pris}
+  return simCartes(n,simMortes());
 }
 function simMortes(){
   return SIM?SIM.h.concat(SIM.vilain,SIM.board):[];
 }
 /* ---- le decor ---- */
 function qMain(nv){
-  const taille=nv===0?6:[6,9][Math.random()*2|0];
-  const prof=nv===0?40:[25,40,60][Math.random()*3|0];
+  const taille=nv===0?6:[6,9][alea()*2|0];
+  const prof=nv===0?40:[25,40,60][alea()*3|0];
   const BBc=20,SBc=10;
   const posL=POSTAB[taille].concat('BB');          /* POSTAB s'arrete avant la grosse blinde */
-  const iMoi=1+(Math.random()*(posL.length-1)|0);  /* jamais premier de parole : quelqu'un ouvre devant */
-  const pos=posL[iMoi],vpos=posL[Math.random()*iMoi|0];
+  const iMoi=1+(alea()*(posL.length-1)|0);  /* jamais premier de parole : quelqu'un ouvre devant */
+  const pos=posL[iMoi],vpos=posL[alea()*iMoi|0];
   const ouvBB=taille===9?3:2.5;
   const ouv=Math.round(ouvBB*BBc/10)*10;
   const h=mainTiree();
@@ -6249,6 +6321,156 @@ function qMain(nv){
   simPeindre('Il ouvre à '+(ouv/BBc)+' BB depuis '+vpos+'. À toi.');
   simBoutonsPreflop();
   finQuestion();
+}
+/* ===================== la main du jour =====================
+   Une seule main, la meme pour tout le club, qui change a minuit. On la joue en
+   une minute et demie : prefop, flop, turn, river, chaque decision jugee par le
+   MEME juge que l'historique des parties. Puis on voit comment les copains
+   l'ont jouee -- c'est la comparaison qui donne envie de revenir, pas un badge.
+
+   Deux contraintes, et tout le reste en decoule :
+   - la main doit etre identique pour tout le monde : elle est fabriquee sous
+     une graine tiree de la seule date, et le tableau est pose d'avance ;
+   - une seule tentative par jour, sinon le score ne veut rien dire. */
+let MDJ={cle:'',score:null,sur:0,fait:false,hist:{}};
+let trMode='libre';   /* 'jour' = la main du jour, une seule tentative */
+function jourCle(d){
+  const x=d||new Date(),p=n=>(n<10?'0':'')+n;
+  /* date LOCALE : la journee commence a minuit chez toi, pas a Greenwich */
+  return x.getFullYear()+'-'+p(x.getMonth()+1)+'-'+p(x.getDate());
+}
+function jourJoli(cle){
+  const [a,m,j]=(cle||jourCle()).split('-').map(Number);
+  return new Date(a,m-1,j).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+}
+function mdjAJour(){
+  const c=jourCle();
+  if(MDJ.cle!==c){MDJ.cle=c;MDJ.score=null;MDJ.sur=0;MDJ.fait=false}
+  return MDJ;
+}
+function mdjFaite(){return mdjAJour().fait}
+/* la main du jour, fabriquee de bout en bout sous la graine du jour */
+/* ---- enregistrer, puis se comparer ----
+   Le score local est la verite pour TOI : il est pose et sauve avant toute
+   tentative reseau. Supabase ne sert qu'a voir les autres ; s'il n'est pas
+   branche, ou s'il tombe, la main du jour reste parfaitement jouable. */
+function mdjEnregistrer(bons,sur){
+  const m=mdjAJour();
+  if(m.fait)return;                       /* deja compte : une seule tentative */
+  m.fait=true;m.score=bons;m.sur=sur;
+  m.hist[m.cle]={b:bons,s:sur};
+  const cles=Object.keys(m.hist).sort();
+  while(cles.length>60)delete m.hist[cles.shift()];   /* deux mois suffisent */
+  sauver();
+  mdjPartager();
+}
+function mdjNom(){return clean(U.name,24)||'Joueur'}
+function mdjRpc(fn,args){
+  const c=window.RPC_RESEAU||window.CROUPIER_RESEAU;
+  if(!c||!c.rpc)return Promise.reject(new Error('aucun serveur'));
+  return c.rpc(fn,args);
+}
+/* le club auquel on se compare : celui du club s'il existe, sinon rien */
+function mdjClub(){return(CLUB&&CLUB.code)?String(CLUB.code).toUpperCase():''}
+async function mdjPartager(){
+  const z=$('mdj-club');
+  const m=mdjAJour();
+  if(!mdjClub()){
+    if(z)z.innerHTML=mdjSeulHTML();
+    return;
+  }
+  try{
+    await mdjRpc('poker_jour_ecrire',{p_club:mdjClub(),p_jour:m.cle,
+      p_id:JOUEUR,p_nom:mdjNom(),p_av:clean(U.av,12)||'🙂',
+      p_bons:m.score,p_sur:m.sur});
+    const l=await mdjRpc('poker_jour_lire',{p_club:mdjClub(),p_jour:m.cle});
+    if(z)z.innerHTML=mdjClubHTML(l||[]);
+  }catch(e){
+    /* pas de serveur, pas de reseau, SQL pas encore colle : on ne casse rien */
+    if(z)z.innerHTML=mdjSeulHTML();
+  }
+}
+function mdjSeulHTML(){
+  const m=mdjAJour();
+  return'<div class="mdj-t">Ton résultat</div>'
+    +'<p class="mdj-seul"><b>'+m.score+' sur '+m.sur+'</b>'
+    +(mdjClub()?' · le classement du club arrive quand le réseau répond.'
+               :' · rejoins un club pour te comparer à tes potes.')+'</p>';
+}
+function mdjClubHTML(l){
+  const m=mdjAJour();
+  const moi=JOUEUR;
+  const rangs=l.slice().sort((a,b)=>(b.bons-a.bons)||(a.nom||'').localeCompare(b.nom||''));
+  if(!rangs.length)return mdjSeulHTML();
+  const fait=rangs.filter(x=>idDe(x.id)===moi).length;
+  return'<div class="mdj-t">Le club aujourd’hui</div>'
+    +'<ol class="mdj-l">'+rangs.map(x=>
+      '<li'+(idDe(x.id)===moi?' class="moi"':'')+'><span class="av">'+avHtml(clean(x.av,12)||'🙂')+'</span>'
+      +'<span class="n">'+clean(x.nom,24)+'</span>'
+      +'<b>'+x.bons+'/'+x.sur+'</b></li>').join('')+'</ol>'
+    +(fait&&rangs.length===1?'<p class="mdj-seul">Tu es le premier aujourd’hui. À eux de jouer.</p>':'');
+}
+/* deja jouee : on remontre le resultat plutot que de laisser rejouer */
+function mdjBilan(){
+  const m=mdjAJour();
+  $('tr-ctx').innerHTML='';
+  $('tr-cards').innerHTML='';
+  $('tr-plus').innerHTML='';
+  $('tr-btns').style.display='none';
+  $('tr-cons').textContent=jourJoli(m.cle);
+  $('tr-fb').innerHTML='<div class="fb ok"><span class="titre">Main du jour déjà jouée</span>'
+    +'<p><b>'+m.score+' décision'+(m.score>1?'s':'')+' sur '+m.sur+'</b> conforme'
+    +(m.score>1?'s':'')+' à ce que disent les chiffres.</p>'
+    +'<p class="calc">La prochaine tombe à minuit.</p></div>'
+    +'<div id="mdj-club" class="mdj-club">…</div>'
+    +'<button class="anbtn p" onclick="quitterMDJ()">Retour</button>';
+  mdjRelire();
+}
+async function mdjRelire(){
+  const z=$('mdj-club'),m=mdjAJour();
+  if(!mdjClub()){if(z)z.innerHTML=mdjSeulHTML();return}
+  try{const l=await mdjRpc('poker_jour_lire',{p_club:mdjClub(),p_jour:m.cle});
+    if(z)z.innerHTML=mdjClubHTML(l||[]);}
+  catch(e){if(z)z.innerHTML=mdjSeulHTML()}
+}
+/* La carte de la main du jour, en haut de l'accueil : c'est elle qui doit
+   donner la raison d'ouvrir l'appli, donc elle passe avant le reste. */
+function peindreJour(){
+  const z=$('ac-jour');if(!z)return;
+  const m=mdjAJour();
+  if(m.fait){
+    const part=m.sur?Math.round(m.score/m.sur*100):0;
+    z.innerHTML='<button class="ac-jour faite" onclick="ouvrirMDJ()">'
+      +'<span class="jr-i" aria-hidden="true">✓</span>'
+      +'<span class="jr-t"><b>Main du jour jouée</b>'
+      +'<small>'+m.score+' sur '+m.sur+' · la prochaine à minuit</small></span>'
+      +'<span class="jr-s" aria-hidden="true">'+part+'%</span></button>';
+  }else{
+    z.innerHTML='<button class="ac-jour" onclick="ouvrirMDJ()">'
+      +'<span class="jr-i" aria-hidden="true">★</span>'
+      +'<span class="jr-t"><b>Main du jour</b>'
+      +'<small>La même pour tout le club. Une minute.</small></span>'
+      +'<span class="jr-f" aria-hidden="true">→</span></button>';
+  }
+}
+function ouvrirMDJ(){
+  mdjAJour();
+  trMode='jour';
+  scr('train');majSel();
+  if(MDJ.fait)return mdjBilan();    /* deja jouee aujourd'hui : on remontre le resultat */
+  qMainDuJour();
+}
+function quitterMDJ(){trMode='libre';scr('home')}
+function qMainDuJour(){
+  const cle=jourCle(),g=hachaine('mdj|'+cle);
+  avecGraine(g,()=>{
+    qMain(1);                       /* meme fabrique que l'entrainement */
+    /* le tableau complet est tire TOUT DE SUITE : ainsi le river est le meme
+       pour tous, quel que soit le chemin pris pour y arriver */
+    SIM.plan=simCartes(5,SIM.h.concat(SIM.vilain));
+  });
+  SIM.jour=cle;
+  trQ.th=8;
 }
 function simRueNom(){return['Préflop','Flop','Turn','River'][SIM.stage]||''}
 function simPeindre(consigne){
@@ -6302,10 +6524,23 @@ function simAfficher(j,suite){
     +'<button class="anbtn p" onclick="'+suite+'">'+(s.fini?'Main suivante':'Suite')+'</button>';
 }
 /* ---- ce que fait l'adversaire ---- */
+/* L'adversaire doit jouer pareil chez tout le monde. On ne peut pas se contenter
+   d'un flux de hasard commun : dès que deux joueurs ne font pas les memes choix,
+   les flux divergent. On tire donc la graine de la SITUATION (le jour, la rue),
+   pas de l'historique : qui arrive au turn y trouve le meme adversaire. */
+function graineRue(tag){
+  const s=SIM;
+  return hachaine((s&&s.jour?s.jour:'libre')+'|'+tag+'|'+(s?s.stage:0));
+}
 function simIlJoue(){
   const s=SIM;
+  if(s.jour)return avecGraine(graineRue('mise'),()=>simIlJoueVrai());
+  return simIlJoueVrai();
+}
+function simIlJoueVrai(){
+  const s=SIM;
   const eq=equiteSurBoard(s.vilain,RFI.CO,s.board,600);
-  const r=Math.random();
+  const r=alea();
   if(eq>.58||(r<.3&&eq>.3)){
     const m=Math.max(s.BBc,Math.round(s.pot*.6/10)*10);
     s.aLui=s.aMoi+m;s.pot+=m;
@@ -6314,6 +6549,11 @@ function simIlJoue(){
   return 'Il checke.';
 }
 function simIlRepond(mise){
+  const s=SIM;
+  if(s.jour)return avecGraine(graineRue('repond'),()=>simIlRepondVrai(mise));
+  return simIlRepondVrai(mise);
+}
+function simIlRepondVrai(mise){
   const s=SIM;
   const aPayer=mise;
   const cote=aPayer/(s.pot+aPayer);
@@ -6373,7 +6613,7 @@ function simSuite(){
   /* on avance d'une rue */
   if(s.stage>=3)return simFin();
   s.stage++;
-  s.board=s.board.concat(simCartes(s.stage===1?3:1,simMortes()));
+  s.board=s.board.concat(simTirer(s.stage===1?3:1));
   s.aMoi=0;s.aLui=0;
   const dit=simMoiApres()?simIlJoue():'';
   simPeindre(dit?dit+' À toi.':'À toi de parler.');
@@ -6383,7 +6623,7 @@ function simSuite(){
 function simFin(){
   const s=SIM;
   s.fini=true;
-  while(s.board.length<5)s.board=s.board.concat(simCartes(1,simMortes()));
+  while(s.board.length<5)s.board=s.board.concat(simTirer(1));
   const moi=best(s.h.concat(s.board)),lui=best(s.vilain.concat(s.board));
   const gagne=s.couche?false:(moi>lui);
   const juges=s.verdicts.filter(x=>x.juge);
@@ -6407,11 +6647,20 @@ function simFin(){
     +(juges.length?'<p class="calc"><b>'+bons+' décision'+(bons>1?'s':'')+' sur '+juges.length
       +'</b> conforme'+(bons>1?'s':'')+' à ce que disent les chiffres.</p>':'')
     +'</div>'
-    +'<button class="anbtn p" onclick="question()">Une autre main</button>';
+    +(trMode==='jour'
+      ?'<div id="mdj-club" class="mdj-club">Résultat enregistré…</div>'
+        +'<button class="anbtn p" onclick="quitterMDJ()">Retour</button>'
+      :'<button class="anbtn p" onclick="question()">Une autre main</button>');
   $('tr-btns').style.display='none';
+  if(trMode==='jour')mdjEnregistrer(bons,juges.length);
 }
 
 function finQuestion(){
+  if(trMode==='jour'){
+    $('tr-fb').innerHTML='<p class="score">'+jourJoli(MDJ.cle)
+      +'<br>La même main pour tout le club. Une seule tentative.</p>';
+    return;
+  }
   const s=statTheme(trQ.th);
   $('tr-fb').innerHTML='<p class="score">'+(s.total
     ?THEMES[trQ.th]+' : '+s.bon+' sur '+s.total+' · série de '+s.serie
@@ -6421,7 +6670,7 @@ function finQuestion(){
 }
 function mainTiree(mortes){
   const d=pioche(mortes||[]),h=[];
-  for(let k=0;k<2;k++)h.push(d.splice(Math.random()*d.length|0,1)[0]);
+  for(let k=0;k<2;k++)h.push(d.splice(alea()*d.length|0,1)[0]);
   return h;
 }
 function ligneCartes(titre,cartes){
