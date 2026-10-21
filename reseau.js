@@ -60,6 +60,26 @@
         var r = await cl.from("poker_parties").select("donnees").order("cree", { ascending: false }).limit(400);
         if (r.error) throw r.error;
         return (r.data || []).map(function (x) { return x.donnees; });
+      },
+      /* ---- le club comme fiche partagee (voir supabase-club.sql) ----
+         Sans ca, un club n'existe que dans le telephone de celui qui l'a cree :
+         celui qui saisit le code tombe sur une coquille vide, et un code faux
+         donne exactement la meme chose. */
+      poserClub: async function (c) {
+        var cl = obtenirClient();
+        if (!cl) throw { code: "bibliotheque reseau absente" };
+        var r = await cl.rpc("poker_club_poser", {
+          p_id: c.id, p_nom: c.n, p_membres: c.membres || []
+        });
+        if (r.error) throw r.error;
+        return (r.data && r.data[0]) || null;
+      },
+      lireClub: async function (id) {
+        var cl = obtenirClient();
+        if (!cl) throw { code: "bibliotheque reseau absente" };
+        var r = await cl.rpc("poker_club_lire", { p_id: id });
+        if (r.error) throw r.error;
+        return (r.data && r.data[0]) || null;
       }
     };
 

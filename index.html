@@ -388,6 +388,14 @@ body.plein #ibox{margin-top:0;margin-bottom:auto;padding-top:0;
 .mdj-l .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mdj-l .av{flex:0 0 auto;display:grid;place-items:center;width:24px;height:24px}
 .mdj-seul{color:var(--dim);font-size:13px;margin:4px 0 0}
+/* les membres du club, avant toute soiree */
+.cb-mb{display:flex;flex-wrap:wrap;gap:7px;margin:4px 0 2px}
+.cb-mbr{display:flex;align-items:center;gap:7px;padding:6px 11px 6px 7px;border-radius:999px;
+  background:var(--soft);border:1px solid var(--line);font-size:13.5px}
+.cb-mbr.moi{background:#e3b95c24;border-color:#e3b95c5c}
+.cb-mbr .av{display:grid;place-items:center;width:22px;height:22px}
+.cb-mbr .n{white-space:nowrap}
+.cb-seul{font-style:normal;color:#e78d84}
 /* dans la main du jour, le choix du niveau et du theme n'a pas lieu d'etre */
 body.mdj #sc-train>label,body.mdj #tr-niv,body.mdj #tr-theme{display:none}
 #ibox{width:100%;max-width:420px;padding:20px;text-align:center}
@@ -1689,6 +1697,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v61 — le club existe vraiment : rejoindre par code retrouve son nom et ses membres */
 /* v60 — la main du jour : une seule main, la même pour tout le club, qui change à minuit */
 /* v59 — revoir une main ne tue plus la partie : enCours restait bloqué, la table ne repartait jamais */
 /* v58 — l’entraînement est une vraie page : écran figé, rien qui dépasse sous l’accueil */
@@ -1864,6 +1873,7 @@ function aGarder(n){
   return{v:1,m43:1,u:U,g:G,lv:lvAll,fill:botFill,cj:cpteActif()?{c:CPTE.code,i:CPTE.id,a:CPTE.alias.slice(0,20)}:null,
          tr:trScore,trs:trStats,trn:trNiv,trt:trTheme,pl:NSEAT,
          mdj:MDJ,
+         mb:MEMBRES,
          cb:CLUB,su:SU,cpt:CPT,hist:HIST.slice(-(n||60)).map((h,k,l)=>(h&&h.rj&&k<l.length-(n?6:14))?Object.assign({},h,{rj:null}):h),wins:WINS.slice(-(n||60)),pa:PARTIES.slice(-(n?40:200))};
 }
 function ecrire(){
@@ -1904,6 +1914,7 @@ function charger(){
   }
   if(d.cb&&typeof d.cb==='object'&&typeof d.cb.id==='string'&&/^[a-z0-9]{4,6}$/.test(d.cb.id))
     CLUB={id:d.cb.id,n:clean(d.cb.n,24)||('Club '+d.cb.id.toUpperCase())};
+    if(Array.isArray(d.mb))MEMBRES=d.mb;
   if(d.su&&typeof d.su==='object')SUCCES.forEach(x=>{if(typeof d.su[x[0]]==='number')SU[x[0]]=d.su[x[0]]});
   if(d.cpt&&typeof d.cpt==='object')Object.keys(CPT).forEach(k=>{if(typeof d.cpt[k]==='number'&&d.cpt[k]>=0)CPT[k]=Math.floor(d.cpt[k])});
 }
@@ -3678,8 +3689,44 @@ function stockageCommun(){
   if(db)return{                                                       /* le lien Claude */
     ajouter:r=>db.collection('parties').add(r),
     lister:async()=>{const q=await db.collection('parties').orderBy('at','desc').limit(400).get();
-      return q.docs.map(d=>d.data())}};
+      return q.docs.map(d=>d.data())},
+    /* un club est une fiche a part : il doit exister des sa creation, sans
+       attendre qu'une soiree ait ete jouee */
+    poserClub:async c=>{await db.collection('clubs').doc(c.id).set(c)},
+    lireClub:async id=>{const d=await db.collection('clubs').doc(id).get();
+      return d&&d.exists?d.data():null}};
   return null;
+}
+/* ---- le club comme fiche partagee ----
+   Avant, creer un club n'ecrivait que dans SON propre telephone : le nom et les
+   membres etaient devines apres coup a partir des parties terminees. Tant que
+   personne n'avait fini une soiree, celui qui saisissait le code tombait sur une
+   coquille vide appelee « Club XXXXX ». Et un code faux donnait la meme chose,
+   sans jamais prevenir. Le club est maintenant pose explicitement. */
+function clubStock(){
+  const st=stockageCommun();
+  return(st&&st.poserClub&&st.lireClub)?st:null;
+}
+function moiMembre(){
+  return{id:JOUEUR,n:clean(U.name,24)||'Joueur',av:clean(U.av,12)||'🙂',at:Date.now()};
+}
+function fusionnerMembres(l,m){
+  const out=(l||[]).filter(x=>x&&x.id&&idDe(x.id)!==idDe(m.id));
+  out.push(m);
+  return out.sort((a,b)=>(a.at||0)-(b.at||0)).slice(0,40);
+}
+async function poserClub(c){
+  const st=clubStock();if(!st)return null;
+  /* le serveur fusionne les membres et refuse les renommages : c'est SA
+     reponse qui fait foi, pas ce que nous croyions savoir */
+  try{const r=await st.poserClub(c);
+    if(r&&r.id){CLUB={id:r.id,n:clean(r.n,24)||CLUB.n};MEMBRES=r.membres||c.membres||[];sauver()}
+    return r||c;
+  }catch(e){return null}
+}
+async function lireClub(id){
+  const st=clubStock();if(!st)return null;
+  try{return await st.lireClub(id)}catch(e){return null}
 }
 function partieValide(r){
   return!!r&&typeof r.at==='number'&&Array.isArray(r.joueurs)&&r.joueurs.length>=2&&r.joueurs.length<=10
@@ -3780,6 +3827,8 @@ let STAT=null;
    joueur se recalculent a la volee depuis les parties enregistrees -- rien n'est
    fige, donc on peut regarder n'importe quel mois sans rien avoir stocke de plus. */
 let CLUB=null;                 /* {id,n} : mon club, garde sur cet appareil */
+let MEMBRES=[];                /* qui est dans le club, des l'adhesion */
+let clubPartage=false;         /* le club a-t-il bien une fiche partagee ? */
 let cbOnglet='s';              /* s saison · p soirees · j joueurs */
 let cbFiche=null;              /* l'identifiant du joueur dont on regarde la fiche */
 let cbMois=null;               /* le mois affiche, null = celui en cours */
@@ -3864,23 +3913,53 @@ function recordsClub(mois){
   return out;
 }
 /* ---- création et adhésion ---- */
-function creerClub(){
+async function creerClub(){
   const n=clean(($('cb-nom')||{}).value||'',24).trim();
   if(!n){const e=$('cb-err');if(e){e.textContent='Donne un nom à ton club.';e.hidden=false}return}
-  CLUB={id:codeClub(),n:n};sauver();cbOnglet='s';peindreClub();
+  CLUB={id:codeClub(),n:n};MEMBRES=[moiMembre()];sauver();cbOnglet='s';peindreClub();
+  /* on le publie pour que le code serve vraiment a quelque chose */
+  const pose=await poserClub({id:CLUB.id,n:n,at:Date.now(),membres:MEMBRES});
+  clubPartage=!!pose;peindreClub();
 }
-function rejoindreClub(){
+async function rejoindreClub(){
   const c=String((($('cb-code')||{}).value||'')).toLowerCase().replace(/[^a-z0-9]/g,'');
-  const e=$('cb-err');
-  if(c.length<4){if(e){e.textContent='Le code fait 5 caractères.';e.hidden=false}return}
+  /* on relit l'element au moment de s'en servir : peindreClub() reconstruit
+     l'entete pendant la recherche, et une reference prise avant pointerait sur
+     un noeud detache -- le message ne s'afficherait jamais. */
+  const dire=t=>{const e=$('cb-err');if(e){e.textContent=t;e.hidden=false}};
+  if(c.length<4)return dire('Le code fait 5 caractères.');
+  const b=$('cb-rej');if(b){b.disabled=true;b.textContent='…'}
+  const rendre=()=>{const x=$('cb-rej');if(x){x.disabled=false;x.textContent='Rejoindre'}};
+  /* 1. le club existe-t-il vraiment ? */
+  const fiche=await lireClub(c);
+  if(fiche&&fiche.id===c){
+    CLUB={id:c,n:clean(fiche.n,24)||('Club '+c.toUpperCase())};
+    MEMBRES=fusionnerMembres(fiche.membres,moiMembre());
+    clubPartage=true;
+    sauver();cbOnglet='s';peindreClub();
+    /* 2. on s'inscrit : les autres doivent nous voir arriver */
+    await poserClub({id:c,n:CLUB.n,at:fiche.at||Date.now(),membres:MEMBRES});
+    chargerClassement();rendre();return;
+  }
+  /* pas de fiche : soit le code est faux, soit ce club est d'avant cette
+     version et n'existe que dans les parties deja partagees */
+  await chargerClassement();
   const g=PARTIES.filter(x=>x.cb&&x.cb.id===c).pop();
-  CLUB={id:c,n:(g&&g.cb&&clean(g.cb.n,24))||('Club '+c.toUpperCase())};
-  sauver();cbOnglet='s';peindreClub();
-  chargerClassement();
+  if(g&&g.cb){
+    CLUB={id:c,n:clean(g.cb.n,24)||('Club '+c.toUpperCase())};
+    MEMBRES=[moiMembre()];clubPartage=!!clubStock();
+    sauver();cbOnglet='s';peindreClub();
+    /* on lui donne enfin une fiche, pour les suivants */
+    await poserClub({id:c,n:CLUB.n,at:Date.now(),membres:MEMBRES});
+    rendre();return;
+  }
+  rendre();
+  dire(clubStock()?'Aucun club avec ce code. Vérifie auprès de celui qui te l’a donné.'
+                 :'Impossible de vérifier le code : pas de connexion au serveur du club.');
 }
 function quitterClub(){
   if(!cbQuitArme){cbQuitArme=setTimeout(()=>{cbQuitArme=null;peindreClub()},4000);peindreClub();return}
-  clearTimeout(cbQuitArme);cbQuitArme=null;CLUB=null;sauver();peindreClub();
+  clearTimeout(cbQuitArme);cbQuitArme=null;CLUB=null;MEMBRES=[];clubPartage=false;sauver();peindreClub();
 }
 let cbQuitArme=null;
 async function partagerClub(){
@@ -3896,7 +3975,13 @@ function clubDesParties(){
   PARTIES.forEach(g=>{if(g.cb&&g.cb.id&&g.joueurs.some(x=>estMoi(x.id)))vus[g.cb.id]=clean(g.cb.n,24)||g.cb.id});
   return Object.keys(vus).map(id=>({id:id,n:vus[id]}));
 }
-function adopterClub(id,n){CLUB={id:id,n:n};sauver();peindreClub()}
+async function adopterClub(id,n){
+  CLUB={id:id,n:n};MEMBRES=[moiMembre()];sauver();peindreClub();
+  const f=await lireClub(id);
+  MEMBRES=fusionnerMembres(f&&f.membres,moiMembre());
+  clubPartage=!!await poserClub({id:id,n:n,at:(f&&f.at)||Date.now(),membres:MEMBRES});
+  sauver();peindreClub();
+}
 /* ---- l'écran ---- */
 function ongletClub(t){cbOnglet=t;cbFiche=null;peindreClub()}
 function voirFiche(id){cbFiche=id;peindreClub()}
@@ -3927,11 +4012,12 @@ function teteClub(){
       +'<button class="p" onclick="creerClub()">Créer</button></div>'
       +'<div class="cb-ou">ou</div>'
       +'<div class="cb-form"><input id="cb-code" maxlength="5" placeholder="Code reçu" autocomplete="off" aria-label="Code du club">'
-      +'<button onclick="rejoindreClub()">Rejoindre</button></div>'
+      +'<button id="cb-rej" onclick="rejoindreClub()">Rejoindre</button></div>'
       +'<p class="note" id="cb-err" hidden></p></div>';
   }
   return'<div class="cb-tete"><div class="cb-id"><b>'+CLUB.n+'</b>'
-    +'<span>code <u>'+CLUB.id.toUpperCase()+'</u></span></div>'
+    +'<span>code <u>'+CLUB.id.toUpperCase()+'</u>'
+    +(clubStock()&&!clubPartage?' · <i class="cb-seul">hors ligne</i>':'')+'</span></div>'
     +'<button id="cb-part" class="petit" onclick="partagerClub()">'+(navigator.share?'Inviter':'Copier le code')+'</button>'
     +'<button class="petit'+(cbQuitArme?' p':'')+'" onclick="quitterClub()">'+(cbQuitArme?'Confirmer':'Quitter')+'</button></div>';
 }
@@ -3943,6 +4029,20 @@ function barreMois(){
     +'<button aria-pressed="'+(cbMois==='*')+'" onclick="voirMois(\'*\')">Tout</button></div>';
 }
 function moisAffiche(){return(cbMois==='*')?null:(cbMois||saisonCourante())}
+/* Tant qu'aucune soiree n'a ete jouee il n'y a pas de classement -- mais il y a
+   deja des gens dans le club. Les montrer, c'est la difference entre « j'ai bien
+   rejoint, ils sont la » et une page vide qui donne l'impression que ca a rate. */
+function membresHTML(){
+  const l=(MEMBRES||[]).filter(x=>x&&x.id);
+  if(!l.length)return'<p class="hr">Rien pour cette saison. La première soirée l’ouvrira.</p>';
+  return'<div class="cb-mb">'
+    +l.map(x=>'<div class="cb-mbr'+(idDe(x.id)===JOUEUR?' moi':'')+'">'
+      +'<span class="av">'+avHtml(clean(x.av,12)||'🙂')+'</span>'
+      +'<span class="n">'+clean(x.n,24)+(idDe(x.id)===JOUEUR?' <span class="ct">toi</span>':'')+'</span>'
+      +'</div>').join('')+'</div>'
+    +'<p class="hr">'+(l.length>1?l.length+' membres. ':'')
+    +'La première soirée ouvrira le classement.</p>';
+}
 function sectionSaison(){
   const m=moisAffiche(),l=calculerElo(m);
   const prec=calculerElo(moisPrec(saisonCourante()));
@@ -3957,7 +4057,7 @@ function sectionSaison(){
       +nomMois(moisPrec(saisonCourante())).replace(/ \d{4}$/,'')+'</small><b>'+champ.n+'</b></span>'
       +'<span class="cb-elo">'+champ.elo+'</span></div>':'')
     +(l.length?l.slice(0,20).map((x,k)=>ligneClassement(x,k)).join('')
-      :'<p class="hr">Rien pour cette saison. La première soirée l’ouvrira.</p>')
+      :membresHTML())
     +(rec.length?'<div class="gtitre">Les records</div>'
       +'<div class="cb-recs">'+rec.map(r=>'<div class="cb-rec"><span class="ic">'+r.ic+'</span>'
         +'<span class="tx"><b>'+r.t+'</b><span>'+r.v+'</span></span>'
