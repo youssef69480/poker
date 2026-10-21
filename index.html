@@ -1721,6 +1721,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v63 — le club se répare tout seul, et la main du jour rouvre quand le barème change */
 /* v62 — main du jour en direct : mise libre, et une note sur 10 par écart à la ligne d’un robot */
 /* v61 — le club existe vraiment : rejoindre par code retrouve son nom et ses membres */
 /* v60 — la main du jour : une seule main, la même pour tout le club, qui change à minuit */
@@ -4060,7 +4061,8 @@ async function rejoindreClub(){
 }
 function quitterClub(){
   if(!cbQuitArme){cbQuitArme=setTimeout(()=>{cbQuitArme=null;peindreClub()},4000);peindreClub();return}
-  clearTimeout(cbQuitArme);cbQuitArme=null;CLUB=null;MEMBRES=[];clubPartage=false;sauver();peindreClub();
+  clearTimeout(cbQuitArme);cbQuitArme=null;CLUB=null;MEMBRES=[];clubPartage=false;
+  cbRafraichi='';sauver();peindreClub();
 }
 let cbQuitArme=null;
 async function partagerClub(){
@@ -4087,8 +4089,44 @@ async function adopterClub(id,n){
 function ongletClub(t){cbOnglet=t;cbFiche=null;peindreClub()}
 function voirFiche(id){cbFiche=id;peindreClub()}
 function voirMois(m){cbMois=m||null;peindreClub()}
+/* ---- se reparer tout seul ----
+   Un club rejoint avec une version precedente n'a jamais ete pose : son nom
+   est le repli « Club XXXXX » et celui qui l'a rejoint n'est inscrit nulle
+   part. Corriger l'adhesion ne suffit donc pas -- ceux qui ont deja rejoint
+   resteraient coinces pour toujours. On relit la fiche a l'ouverture de
+   l'ecran : on remet le vrai nom, et on s'inscrit si on manque. */
+function nomDeRepli(c){
+  return!!c&&c.n===('Club '+String(c.id||'').toUpperCase());
+}
+let cbRafraichi='';
+async function rafraichirClub(force){
+  if(!CLUB||!clubStock())return;
+  if(!force&&cbRafraichi===CLUB.id)return;
+  cbRafraichi=CLUB.id;
+  const f=await lireClub(CLUB.id);
+  if(f&&f.id===CLUB.id){
+    const dedans=(f.membres||[]).some(x=>idDe(x.id)===JOUEUR);
+    CLUB={id:f.id,n:clean(f.n,24)||CLUB.n};
+    MEMBRES=fusionnerMembres(f.membres,moiMembre());
+    clubPartage=true;sauver();peindreClub();
+    if(!dedans)await poserClub({id:CLUB.id,n:CLUB.n,at:f.at,membres:MEMBRES});
+    return;
+  }
+  /* pas de fiche : ce club date d'avant. On la pose -- mais JAMAIS sous un nom
+     de repli, qui serait alors fige pour tout le club, y compris son createur. */
+  if(nomDeRepli(CLUB)){
+    const g=PARTIES.filter(x=>x.cb&&x.cb.id===CLUB.id&&x.cb.n).pop();
+    const vrai=g&&g.cb?clean(g.cb.n,24):'';
+    if(vrai&&vrai!==('Club '+CLUB.id.toUpperCase()))CLUB.n=vrai;
+  }
+  if(nomDeRepli(CLUB)){clubPartage=false;peindreClub();return}
+  MEMBRES=fusionnerMembres(MEMBRES,moiMembre());
+  clubPartage=!!await poserClub({id:CLUB.id,n:CLUB.n,at:Date.now(),membres:MEMBRES});
+  sauver();peindreClub();
+}
 function peindreClub(){
   const z=$('cb-corps');if(!z)return;
+  rafraichirClub();   /* une seule fois par club : le garde est dans la fonction */
   $('cb-tete').innerHTML=teteClub();
   const ong=$('cb-onglets');
   if(ong){ong.hidden=!CLUB&&!partiesClub().length;
@@ -6533,7 +6571,7 @@ function qMain(nv){
    - la main doit etre identique pour tout le monde : elle est fabriquee sous
      une graine tiree de la seule date, et le tableau est pose d'avance ;
    - une seule tentative par jour, sinon le score ne veut rien dire. */
-let MDJ={cle:'',score:null,sur:0,fait:false,hist:{}};
+let MDJ={cle:'',score:null,sur:0,fait:false,hist:{},v:0};
 let trMode='libre';   /* 'jour' = la main du jour, une seule tentative */
 function jourCle(d){
   const x=d||new Date(),p=n=>(n<10?'0':'')+n;
@@ -6544,8 +6582,13 @@ function jourJoli(cle){
   const [a,m,j]=(cle||jourCle()).split('-').map(Number);
   return new Date(a,m-1,j).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
 }
+/* Le bareme de la note porte un numero. Quand il change, un resultat
+   enregistre sous l'ancien ne veut plus rien dire : il ne doit ni compter, ni
+   bloquer la journee en cours. La main du jour se rouvre alors une fois. */
+const MDJ_FORMAT=2;   /* 2 = note sur 10, par ecart a la ligne du robot */
 function mdjAJour(){
   const c=jourCle();
+  if(MDJ.v!==MDJ_FORMAT){MDJ.v=MDJ_FORMAT;MDJ.fait=false;MDJ.score=null;MDJ.sur=0}
   if(MDJ.cle!==c){MDJ.cle=c;MDJ.score=null;MDJ.sur=0;MDJ.fait=false}
   return MDJ;
 }

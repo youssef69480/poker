@@ -92,4 +92,6 @@ $$;
 
 grant execute on function poker_club_poser(text, text, jsonb) to anon, authenticated;
 grant execute on function poker_club_lire(text) to anon, authenticated;
-revoke execute on function poker_club_membres(jsonb) from anon, authenticated;
+-- Postgres accorde l'execution a PUBLIC par defaut : revoquer pour anon seul
+-- ne revoque rien du tout. C'est bien a PUBLIC qu'il faut retirer le droit.
+revoke execute on function poker_club_membres(jsonb) from public, anon, authenticated;

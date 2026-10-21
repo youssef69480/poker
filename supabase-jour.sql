@@ -90,4 +90,7 @@ $$;
 
 grant execute on function poker_jour_ecrire(text, date, text, text, text, int, int) to anon, authenticated;
 grant execute on function poker_jour_lire(text, date) to anon, authenticated;
-revoke execute on function poker_jour_menage() from anon, authenticated;
+-- Postgres accorde l'execution a PUBLIC par defaut : revoquer pour anon seul
+-- ne revoque rien. Cette fonction fait un DELETE en security definer :
+-- elle doit etre hors de portee des clients.
+revoke execute on function poker_jour_menage() from public, anon, authenticated;
