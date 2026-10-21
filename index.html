@@ -1721,6 +1721,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v64 — la main du jour est choisie pour être intéressante, plus tirée au hasard */
 /* v63 — le club se répare tout seul, et la main du jour rouvre quand le barème change */
 /* v62 — main du jour en direct : mise libre, et une note sur 10 par écart à la ligne d’un robot */
 /* v61 — le club existe vraiment : rejoindre par code retrouve son nom et ses membres */
@@ -6540,7 +6541,7 @@ function simMortes(){
   return SIM?SIM.h.concat(SIM.vilain,SIM.board):[];
 }
 /* ---- le decor ---- */
-function qMain(nv){
+function qMain(nv,muet){
   const taille=nv===0?6:[6,9][alea()*2|0];
   const prof=nv===0?40:[25,40,60][alea()*3|0];
   const BBc=20,SBc=10;
@@ -6557,6 +6558,7 @@ function qMain(nv){
        board:[],stage:0,pot:pot,ouv:ouv,aMoi:dejaMoi,aLui:ouv,
        tapis:prof*BBc,verdicts:[],fini:false,attente:'choix'};
   trQ={th:8,h:h,code:hcode(h),pos:pos,vpos:vpos,taille:taille,prof:prof};
+  if(muet)return;        /* fabrication en lot : on ne peint qu'a la fin */
   simPeindre('Il ouvre à '+(ouv/BBc)+' BB depuis '+vpos+'. À toi.');
   simBoutonsPreflop();
   finQuestion();
@@ -6584,8 +6586,11 @@ function jourJoli(cle){
 }
 /* Le bareme de la note porte un numero. Quand il change, un resultat
    enregistre sous l'ancien ne veut plus rien dire : il ne doit ni compter, ni
-   bloquer la journee en cours. La main du jour se rouvre alors une fois. */
-const MDJ_FORMAT=2;   /* 2 = note sur 10, par ecart a la ligne du robot */
+   bloquer la journee en cours. La main du jour se rouvre alors une fois.
+   Le numero change aussi quand la MAIN elle-meme change de fabrication : sans
+   ca, celui qui a deja joue garderait l'ancienne main et n'aurait plus la meme
+   que ses copains -- toute la promesse de la main du jour tombe. */
+const MDJ_FORMAT=3;   /* 3 = mains choisies pour leur interet (la main du jour change) */
 function mdjAJour(){
   const c=jourCle();
   if(MDJ.v!==MDJ_FORMAT){MDJ.v=MDJ_FORMAT;MDJ.fait=false;MDJ.score=null;MDJ.sur=0}
@@ -6706,16 +6711,91 @@ function ouvrirMDJ(){
   qMainDuJour();
 }
 function quitterMDJ(){simStop();trMode='libre';scr('home')}
+/* ---- choisir la main du jour, au lieu de la subir ----
+   Tiree au hasard, la main du jour etait le plus souvent injouable : 4-2
+   depareille, on se couche, il ne s'est rien passe, et la note tombe sur une
+   seule decision. On tire donc PLUSIEURS mains candidates sous la graine du
+   jour et on garde la plus interessante. Tout reste deterministe : meme jour,
+   meme tirage, meme choix -- donc toujours la meme main pour tout le club.
+
+   « Interessante » se mesure, ca ne se decrete pas. Trois ingredients :
+   - on peut jouer le coup : la main continue face a l'ouverture, sinon il n'y
+     a qu'une decision et elle est evidente ;
+   - c'est disputé au flop : une equite proche de 50/50 laisse un vrai choix,
+     5 % ou 95 % n'en laissent aucun ;
+   - ca bouge : le turn et la river changent la donne. Une main decidee au flop
+     et qui ne bouge plus n'apprend rien.
+   Un renversement (devant au flop, derriere a la river, ou l'inverse) vaut un
+   bonus : c'est la main dont on reparle. */
+/* Equite contre une main connue, par echantillonnage. Enumerer les 990
+   deroules d'un flop coute 1,1 s pour dix candidates -- or on ne cherche pas
+   un chiffre exact, seulement a les CLASSER. Deterministe sous la graine. */
+function eqEchantillon(h,vilain,brd,n){
+  const reste=5-brd.length;
+  if(reste<=0){const a=best(h.concat(brd)),b=best(vilain.concat(brd));
+    return a>b?1:(a<b?0:.5)}
+  const libre=pioche(h.concat(vilain,brd)),L=libre.length;
+  let pts=0;
+  for(let t=0;t<n;t++){
+    const b=brd.slice(),pris=[];
+    let garde=0;
+    while(b.length<5&&garde++<60){
+      const k=alea()*L|0;
+      if(pris.indexOf(k)>=0)continue;
+      pris.push(k);b.push(libre[k]);
+    }
+    if(b.length<5)return .5;
+    const x=best(h.concat(b)),y=best(vilain.concat(b));
+    pts+=x>y?1:(x<y?0:.5);
+  }
+  return pts/n;
+}
+function interetMain(h,vilain,plan){
+  const eqA=eqEchantillon(h,vilain,plan.slice(0,3),160);
+  const eqT=eqEchantillon(h,vilain,plan.slice(0,4),46);
+  const eqR=eqEchantillon(h,vilain,plan.slice(0,5),1);
+  const dispute=1-Math.min(1,Math.abs(eqA-.5)*2);
+  const mouvement=Math.min(1,(Math.abs(eqT-eqA)+Math.abs(eqR-eqT))*2);
+  const renverse=((eqA>.5)!==(eqR>.5))?1:0;
+  return{note:.45*dispute+.35*mouvement+.20*renverse,eqA:eqA,eqT:eqT,eqR:eqR};
+}
+/* la main continue-t-elle face a une ouverture ? */
+function jouableDe(pos,code){
+  const a=DEF[pos]||DEF.BB,b=RFI[pos]||RFI.CO;
+  return a.has(code)||b.has(code);
+}
+const MDJ_CANDIDATES=40;   /* combien on en tire au plus */
+const MDJ_EVALUEES=10;     /* combien on en evalue : l'equite coute cher */
 function qMainDuJour(){
   const cle=jourCle(),g=hachaine('mdj|'+cle);
   avecGraine(g,()=>{
-    qMain(1);                       /* meme fabrique que l'entrainement */
-    /* le tableau complet est tire TOUT DE SUITE : ainsi le river est le meme
-       pour tous, quel que soit le chemin pris pour y arriver */
-    SIM.plan=simCartes(5,SIM.h.concat(SIM.vilain));
+    /* 1. on fabrique les candidates SANS rien peindre, et on ne garde que
+          celles qui se jouent : le test est gratuit, l'equite ne l'est pas. */
+    const retenues=[];
+    for(let k=0;k<MDJ_CANDIDATES&&retenues.length<MDJ_EVALUEES;k++){
+      qMain(1,true);
+      const plan=simCartes(5,SIM.h.concat(SIM.vilain));
+      if(!jouableDe(SIM.pos,hcode(SIM.h)))continue;
+      retenues.push({etat:SIM,plan:plan,trQ:Object.assign({},trQ)});
+    }
+    /* 2. on ne calcule l'interet que sur celles-la */
+    let meilleur=null;
+    retenues.forEach(c=>{
+      const i=interetMain(c.etat.h,c.etat.vilain,c.plan);
+      if(!meilleur||i.note>meilleur.i.note)meilleur={etat:c.etat,plan:c.plan,i:i,trQ:c.trQ};
+    });
+    /* aucune candidate jouable : on garde la derniere plutot que rien */
+    if(!meilleur)meilleur={etat:SIM,plan:simCartes(5,SIM.h.concat(SIM.vilain)),
+      i:{note:0},trQ:Object.assign({},trQ)};
+    SIM=meilleur.etat;SIM.plan=meilleur.plan;SIM.interet=meilleur.i;
+    trQ=meilleur.trQ;
   });
   SIM.jour=cle;
   trQ.th=8;
+  /* qMain a peint la derniere candidate : on repeint celle qu'on a retenue */
+  simPeindre('Il ouvre à '+(SIM.ouv/SIM.BBc)+' BB depuis '+SIM.vpos+'. À toi.');
+  simBoutons();
+  finQuestion();
 }
 function simRueNom(){return['Préflop','Flop','Turn','River'][SIM.stage]||''}
 function simPeindre(consigne){
