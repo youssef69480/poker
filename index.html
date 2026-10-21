@@ -388,6 +388,28 @@ body.plein #ibox{margin-top:0;margin-bottom:auto;padding-top:0;
 .mdj-l .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mdj-l .av{flex:0 0 auto;display:grid;place-items:center;width:24px;height:24px}
 .mdj-seul{color:var(--dim);font-size:13px;margin:4px 0 0}
+/* la ligne qui raconte le coup en cours, pendant que la main se deroule */
+.sim-dit{margin:10px 0 0;text-align:center;font-size:14.5px;color:var(--ink);
+  min-height:1.3em;line-height:1.35}
+/* le detail coup par coup, a la fin */
+.recap{display:flex;flex-direction:column;gap:6px;margin:2px 0 12px;text-align:left}
+.rc{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;border-radius:12px;
+  background:var(--soft);border:1px solid var(--line);font-size:13px;line-height:1.4}
+.rc.ok{border-color:#6ec38d4d}.rc.no{border-color:#e78d844d}
+.rc-r{flex:0 0 52px;color:var(--dim);font-size:11.5px;text-transform:uppercase;
+  letter-spacing:.05em;padding-top:2px}
+.rc-t{flex:1;min-width:0;color:var(--dim)}
+.rc-t b{color:var(--ink)}.rc-t em{font-style:normal}
+.rc-n{flex:0 0 auto;font-weight:800;font-size:15px}
+.rc.ok .rc-n{color:#6ec38d}.rc.no .rc-n{color:#e78d84}
+/* la note de la main, sur 10 */
+.note10{display:flex;align-items:baseline;justify-content:center;gap:7px;margin:0 0 10px;
+  padding:13px 0 11px;border-radius:15px;background:var(--soft);border:1px solid var(--line)}
+.note10 b{font-size:38px;font-weight:800;line-height:1;font-family:Fraunces,Georgia,serif}
+.note10 span{font-size:13px;color:var(--dim)}
+.note10.n0 b,.note10.n1 b,.note10.n2 b,.note10.n3 b{color:#e78d84}
+.note10.n4 b,.note10.n5 b,.note10.n6 b{color:#e3b95c}
+.note10.n7 b,.note10.n8 b,.note10.n9 b,.note10.n10 b{color:#6ec38d}
 /* les membres du club, avant toute soiree */
 .cb-mb{display:flex;flex-wrap:wrap;gap:7px;margin:4px 0 2px}
 .cb-mbr{display:flex;align-items:center;gap:7px;padding:6px 11px 6px 7px;border-radius:999px;
@@ -802,15 +824,17 @@ body.mdj #sc-train>label,body.mdj #tr-niv,body.mdj #tr-theme{display:none}
   box-shadow:0 2px 4px #0009}
 [data-crou="0"] #croupier{display:none}
 
-/* ---- les controles de mise ---- */
-#ctl .dosage{width:100%;display:flex;flex-direction:column;gap:7px}
-#ctl .pastilles{display:flex;gap:6px}
-#ctl .pastilles button{flex:1;padding:7px 0;font-size:13px;font-weight:600;border-radius:999px;
+/* ---- les controles de mise ----
+   Le meme habillage sert a la table et a la main du jour : on dose sa mise
+   exactement pareil des deux cotes, pas de second jeu de boutons a apprendre. */
+:is(#ctl,#tr-btns) .dosage{width:100%;display:flex;flex-direction:column;gap:7px}
+:is(#ctl,#tr-btns) .pastilles{display:flex;gap:6px}
+:is(#ctl,#tr-btns) .pastilles button{flex:1;padding:7px 0;font-size:13px;font-weight:600;border-radius:999px;
   background:var(--soft);color:var(--ink);border:1px solid var(--line)}
-#ctl .pastilles .tapis{color:#ef9d93;border-color:#d2453a73}
-#ctl .pastilles .tapis.on{background:#d2453a;color:#fff;border-color:#d2453a}
-#ctl .glisse{display:flex;align-items:center;gap:9px}
-#ctl .glisse .pm{flex:0 0 34px;height:34px;padding:0;border-radius:50%;background:var(--soft);color:var(--ink);
+:is(#ctl,#tr-btns) .pastilles .tapis{color:#ef9d93;border-color:#d2453a73}
+:is(#ctl,#tr-btns) .pastilles .tapis.on{background:#d2453a;color:#fff;border-color:#d2453a}
+:is(#ctl,#tr-btns) .glisse{display:flex;align-items:center;gap:9px}
+:is(#ctl,#tr-btns) .glisse .pm{flex:0 0 34px;height:34px;padding:0;border-radius:50%;background:var(--soft);color:var(--ink);
   font-size:19px;font-weight:600;line-height:1;border:1px solid var(--line)}
 #sl{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:6px;border-radius:3px;margin:0;outline:none;
   background:linear-gradient(90deg,var(--gold) var(--p,0%),#8f897d4d var(--p,0%))}
@@ -821,15 +845,15 @@ body.mdj #sc-train>label,body.mdj #tr-niv,body.mdj #tr-theme{display:none}
   box-shadow:0 2px 7px #000000b3}
 #sl::-moz-range-track{height:6px;background:transparent}
 #sl:focus-visible::-webkit-slider-thumb{outline:3px solid var(--gold);outline-offset:2px}
-#ctl .actions{display:flex;gap:8px;width:100%}
-#ctl .actions button{flex:1;padding:14px 6px;border-radius:13px;font-size:15px;font-weight:700;line-height:1.15}
-#ctl .actions button b{font-weight:800}
-#ctl .actions button{white-space:nowrap}
-#ctl .actions .ct{display:none}
-@media (max-width:420px){#ctl .actions .lg{display:none}#ctl .actions .ct{display:inline}#ctl .actions button{font-size:14.5px;padding:14px 4px}}
-#ctl .actions .suivre{background:var(--btn);color:var(--btnink)}
-#ctl .actions .f{flex:.85;background:transparent;color:var(--dim);border:1.5px solid var(--line);font-weight:600}
-#ctl .actions .p{flex:1.35;background:linear-gradient(176deg,#f0cd79,var(--gold));color:#2a1d05;
+:is(#ctl,#tr-btns) .actions{display:flex;gap:8px;width:100%}
+:is(#ctl,#tr-btns) .actions button{flex:1;padding:14px 6px;border-radius:13px;font-size:15px;font-weight:700;line-height:1.15}
+:is(#ctl,#tr-btns) .actions button b{font-weight:800}
+:is(#ctl,#tr-btns) .actions button{white-space:nowrap}
+:is(#ctl,#tr-btns) .actions .ct{display:none}
+@media (max-width:420px){:is(#ctl,#tr-btns) .actions .lg{display:none}:is(#ctl,#tr-btns) .actions .ct{display:inline}:is(#ctl,#tr-btns) .actions button{font-size:14.5px;padding:14px 4px}}
+:is(#ctl,#tr-btns) .actions .suivre{background:var(--btn);color:var(--btnink)}
+:is(#ctl,#tr-btns) .actions .f{flex:.85;background:transparent;color:var(--dim);border:1.5px solid var(--line);font-weight:600}
+:is(#ctl,#tr-btns) .actions .p{flex:1.35;background:linear-gradient(176deg,#f0cd79,var(--gold));color:#2a1d05;
   box-shadow:0 6px 16px -8px #8a6a1f99}
 
 /* ---- les reactions, rangees derriere un bouton ---- */
@@ -1697,6 +1721,7 @@ S’il reste au moins deux joueurs, on montre les cartes. La meilleure main de 5
 <script src="config.js"></script>
 <script src="reseau.js"></script>
 <script>
+/* v62 — main du jour en direct : mise libre, et une note sur 10 par écart à la ligne d’un robot */
 /* v61 — le club existe vraiment : rejoindre par code retrouve son nom et ses membres */
 /* v60 — la main du jour : une seule main, la même pour tout le club, qui change à minuit */
 /* v59 — revoir une main ne tue plus la partie : enCours restait bloqué, la table ne repartait jamais */
@@ -3452,19 +3477,94 @@ function verdictRange(c){
 /* Le juge d'un coup, a l'unite. Extrait de l'analyse d'historique pour que
    l'entrainement rende EXACTEMENT le meme verdict : un seul jugement dans
    l'appli, pas deux qui finiraient par diverger. */
+/* ===================== noter un coup, de 0 a 1 =====================
+   Un robot joue la main « parfaitement », et on compare : plus ton coup s'eloigne
+   du sien, plus tu perds. Deux precautions sans lesquelles la note serait fausse.
+
+   1. Le robot de reference ne voit PAS les cartes de l'adversaire. Il joue
+      contre sa range -- ce qu'un joueur assis la peut deduire. Un robot
+      omniscient aurait une ligne injouable, et te punirait de ne pas etre devin.
+   2. Faire coucher l'adversaire est une REUSSITE, et ca prime sur l'ecart de
+      taille : si ta mise passe, peu importe qu'elle ne soit pas celle du robot.
+      Sauf quand tu avais la meilleure main -- la, tu l'as fait fuir au lieu de
+      te faire payer, et c'est de la valeur perdue.
+
+   Ce que ca n'est pas : un solveur. Le robot raisonne en equite contre une
+   range et en cote du pot, pas en strategie d'equilibre. */
+
+/* la ligne du robot, pour la situation presentee */
+function coupReference(c,eqR){
+  const aPayer=c.a>0?c.a:0;
+  if(aPayer>0){
+    const cote=aPayer/(c.p+aPayer);
+    if(eqR>=cote+.25)return{t:'r',to:c.a+Math.round(c.p*.7/10)*10};
+    if(eqR>=cote)return{t:'c'};
+    return{t:'f'};
+  }
+  if(eqR>=.62)return{t:'r',to:Math.max(10,Math.round(c.p*.65/10)*10)};
+  return{t:'c'};
+}
+/* ce que coute de ne pas avoir choisi la meme ACTION que lui */
+const ECART_ACTION={
+  'f>c':.35,   /* il passait, tu as paye */
+  'f>r':.30,   /* il passait, tu as mise : bluff -- la regle du fold peut te sauver */
+  'c>f':.25,   /* il payait, tu as passe */
+  'c>r':.55,   /* il payait, tu as relance : agressif, souvent defendable */
+  'r>c':.50,   /* il relancait, tu t'es contente de suivre : initiative perdue */
+  'r>f':.10    /* il relancait, tu as passe : le pire */
+};
+function noteDistance(c,ref){
+  if(c.t===ref.t){
+    if(c.t!=='r')return 1;
+    /* meme action : seul l'ecart de taille compte, rapporte au pot.
+       Un pot d'ecart fait tomber la note tres bas, un quart la laisse haute. */
+    const ecart=Math.abs((c.to||0)-(ref.to||0))/Math.max(1,c.p);
+    return Math.max(.1,1-ecart*.9);
+  }
+  return ECART_ACTION[ref.t+'>'+c.t]!==undefined?ECART_ACTION[ref.t+'>'+c.t]:.4;
+}
+function noterCoupQ(c,eq,eqR){
+  return noteDistance(c,coupReference(c,(typeof eqR==='number')?eqR:eq));
+}
+/* Il s'est couche sur ce coup. On repasse la note : reussite, sauf si on avait
+   la meilleure main -- auquel cas on a fait fuir un client. */
+function ajusterFold(j,eqReelle){
+  if(!j||typeof j.note!=='number')return j;
+  if(eqReelle>=.70){
+    j.note=Math.min(j.note,.4);
+    j.foldTxt='Il se couche — mais tu avais la meilleure main : '
+      +'c’est de la valeur perdue, pas une réussite.';
+  }else{
+    j.note=Math.max(j.note,.9);
+    j.foldTxt='Il se couche : ton coup est passé.';
+  }
+  return j;
+}
 function jugerCoup(c,me,adv){
   const bd=(c.b||[]).map(dec);
   let eq,exact=false;
   if(adv&&adv.length){const r=equiteContreMains(me,adv,bd);eq=r.eq;exact=r.exact}
   else eq=equiteSurBoard(me,RFI.CO,bd,1200);
-  const pc=(eq*100).toFixed(0);
+  let pc=(eq*100).toFixed(0);
+  /* L'equite du ROBOT DE REFERENCE : contre la range de l'adversaire, jamais
+     contre ses cartes. Un robot qui verrait son jeu aurait une ligne injouable
+     et te punirait de ne pas etre devin. L'equite reelle (eq) ne sert qu'a
+     expliquer le coup et a reperer la valeur perdue, apres coup. */
+  const eqR=(adv&&adv.length)?equiteSurBoard(me,RFI[c.op]||RFI.CO,bd,600):eq;
   const vr=c.s===0?verdictRange(c):null;
-  if(vr)return{juge:true,juste:vr.juste,eq:eq,pc:pc,exact:exact,txt:vr.txt,
+  if(vr)return{juge:true,juste:vr.juste,note:vr.juste?1:0,eq:eq,pc:pc,exact:exact,txt:vr.txt,
     chiffres:(c.a>0?'Tu mets '+fmt(c.a)+' dans un pot de '+fmt(c.p)+' \u00b7 ':'')
       +'\u00e9quit\u00e9 '+pc+' %.'};
   let ligne='',verdict='',juge=false,juste=false;
   if(c.a>0){
-    const cote=c.a/(c.p+c.a),cp=(cote*100).toFixed(0);
+    const cote=c.a/(c.p+c.a);
+    /* Arrondis a l'entier, deux valeurs proches s'affichent pareil : on lisait
+       « il te faut 27 %, tu en as 27 % » suivi de « ca coutait plus que ca ne
+       rapportait ». La phrase se contredisait toute seule. On descend d'un cran
+       de precision uniquement quand c'est serre. */
+    const serre=Math.round(cote*100)===Math.round(eq*100);
+    const cp=(cote*100).toFixed(serre?1:0);
+    if(serre)pc=(eq*100).toFixed(1);
     const rentable=eq>=cote;
     ligne='On te demande <b>'+fmt(c.a)+'</b> dans un pot de <b>'+fmt(c.p)
       +'</b> : il te faut '+cp+' % pour que payer rapporte, et tu en as <b>'+pc+' %</b>.';
@@ -3493,7 +3593,8 @@ function jugerCoup(c,me,adv){
                      +'il y avait de la valeur \u00e0 prendre.</em>'
                     :'<em class="neutre">Tu as check\u00e9.</em>';
   }
-  return{juge:juge,juste:juste,eq:eq,pc:pc,exact:exact,txt:ligne+' '+verdict,chiffres:''};
+  return{juge:juge,juste:juste,note:noterCoupQ(c,eq,eqR),
+    eq:eq,eqR:eqR,pc:pc,exact:exact,txt:ligne+' '+verdict,chiffres:''};
 }
 function texteAnalyse(h){
   const adv=(h.adv||[]).map(a=>a.h).filter(x=>x&&x.length===2);
@@ -6493,7 +6594,7 @@ async function mdjPartager(){
 function mdjSeulHTML(){
   const m=mdjAJour();
   return'<div class="mdj-t">Ton résultat</div>'
-    +'<p class="mdj-seul"><b>'+m.score+' sur '+m.sur+'</b>'
+    +'<p class="mdj-seul"><b>'+m.score+'/10</b>'
     +(mdjClub()?' · le classement du club arrive quand le réseau répond.'
                :' · rejoins un club pour te comparer à tes potes.')+'</p>';
 }
@@ -6507,7 +6608,7 @@ function mdjClubHTML(l){
     +'<ol class="mdj-l">'+rangs.map(x=>
       '<li'+(idDe(x.id)===moi?' class="moi"':'')+'><span class="av">'+avHtml(clean(x.av,12)||'🙂')+'</span>'
       +'<span class="n">'+clean(x.nom,24)+'</span>'
-      +'<b>'+x.bons+'/'+x.sur+'</b></li>').join('')+'</ol>'
+      +'<b>'+x.bons+'/10</b></li>').join('')+'</ol>'
     +(fait&&rangs.length===1?'<p class="mdj-seul">Tu es le premier aujourd’hui. À eux de jouer.</p>':'');
 }
 /* deja jouee : on remontre le resultat plutot que de laisser rejouer */
@@ -6518,9 +6619,11 @@ function mdjBilan(){
   $('tr-plus').innerHTML='';
   $('tr-btns').style.display='none';
   $('tr-cons').textContent=jourJoli(m.cle);
-  $('tr-fb').innerHTML='<div class="fb ok"><span class="titre">Main du jour déjà jouée</span>'
-    +'<p><b>'+m.score+' décision'+(m.score>1?'s':'')+' sur '+m.sur+'</b> conforme'
-    +(m.score>1?'s':'')+' à ce que disent les chiffres.</p>'
+  $('tr-fb').innerHTML='<div class="note10 n'+Math.min(10,Math.max(0,m.score))+'">'
+      +'<b>'+m.score+'</b><span>sur 10</span></div>'
+    +'<div class="fb '+(m.score>=7?'ok':m.score>=4?'':'no')+'">'
+    +'<span class="titre">Main du jour déjà jouée</span>'
+    +'<p>'+motNote(m.score)+'.</p>'
     +'<p class="calc">La prochaine tombe à minuit.</p></div>'
     +'<div id="mdj-club" class="mdj-club">…</div>'
     +'<button class="anbtn p" onclick="quitterMDJ()">Retour</button>';
@@ -6539,12 +6642,11 @@ function peindreJour(){
   const z=$('ac-jour');if(!z)return;
   const m=mdjAJour();
   if(m.fait){
-    const part=m.sur?Math.round(m.score/m.sur*100):0;
     z.innerHTML='<button class="ac-jour faite" onclick="ouvrirMDJ()">'
       +'<span class="jr-i" aria-hidden="true">✓</span>'
       +'<span class="jr-t"><b>Main du jour jouée</b>'
-      +'<small>'+m.score+' sur '+m.sur+' · la prochaine à minuit</small></span>'
-      +'<span class="jr-s" aria-hidden="true">'+part+'%</span></button>';
+      +'<small>'+motNote(m.score)+' · la prochaine à minuit</small></span>'
+      +'<span class="jr-s" aria-hidden="true">'+m.score+'/10</span></button>';
   }else{
     z.innerHTML='<button class="ac-jour" onclick="ouvrirMDJ()">'
       +'<span class="jr-i" aria-hidden="true">★</span>'
@@ -6560,7 +6662,7 @@ function ouvrirMDJ(){
   if(MDJ.fait)return mdjBilan();    /* deja jouee aujourd'hui : on remontre le resultat */
   qMainDuJour();
 }
-function quitterMDJ(){trMode='libre';scr('home')}
+function quitterMDJ(){simStop();trMode='libre';scr('home')}
 function qMainDuJour(){
   const cle=jourCle(),g=hachaine('mdj|'+cle);
   avecGraine(g,()=>{
@@ -6587,19 +6689,57 @@ function simPeindre(consigne){
     :'';
   $('tr-cons').textContent=consigne;
 }
-function simBoutonsPreflop(){
-  const s=SIM,aPayer=s.aLui-s.aMoi;
-  boutonsL([{t:'Relancer',v:'r',c:'p'},
-            {t:'Suivre '+fmt(aPayer),v:'c'},
-            {t:'Coucher',v:'f',c:'f'}]);
+/* ---- la main se joue librement : c'est toi qui choisis le montant ----
+   Trois boutons figes ne demandaient qu'une chose : relancer ou pas. Or au
+   poker la TAILLE est la moitie de la decision. On reprend donc exactement le
+   doseur de la table -- memes pastilles, meme glissiere -- et le juge note
+   aussi le montant, sinon la note sur 10 ne voudrait rien dire. */
+function simMise(){const e=$('sl');return e?+e.value:0}
+function simQ(f){
+  const e=$('sl');if(!e)return;
+  const s=SIM;
+  e.value=f?Math.min(+e.max,Math.max(+e.min,s.aLui+Math.round(s.pot*f/10)*10)):e.max;
+  simSv();
 }
-function simBoutonsRue(){
-  const s=SIM,aPayer=s.aLui-s.aMoi;
-  if(aPayer>0)boutonsL([{t:'Relancer',v:'r',c:'p'},
-                        {t:'Suivre '+fmt(aPayer),v:'c'},
-                        {t:'Coucher',v:'f',c:'f'}]);
-  else boutonsL([{t:'Miser',v:'r',c:'p'},{t:'Checker',v:'c'}]);
+function simPas(d){const e=$('sl');if(!e)return;
+  e.value=Math.min(+e.max,Math.max(+e.min,+e.value+d*SIM.BBc));simSv()}
+function simSv(){
+  const e=$('sl');if(!e)return;
+  const v=+e.value,mn=+e.min,mx=+e.max;
+  e.style.setProperty('--p',(mx>mn?(v-mn)/(mx-mn)*100:100)+'%');
+  const b=$('rb');
+  if(b)b.innerHTML=v>=mx?'Tapis <b>'+fmt(v)+'</b>'
+    :(SIM.aLui>SIM.aMoi?'Relancer à ':'Miser ')+'<b>'+fmt(v)+'</b>';
+  document.querySelectorAll('#tr-btns .pastilles .tapis')
+    .forEach(x=>x.classList.toggle('on',v>=mx));
 }
+function simBoutons(){
+  const s=SIM;s.enCours=false;
+  const aPayer=Math.max(0,s.aLui-s.aMoi);
+  const max=s.aMoi+s.tapis;                       /* notre tapis, en « monter a » */
+  const mise=Math.max(s.BBc,Math.round(s.pot*.5/10)*10);
+  const min=Math.min(Math.max(s.aLui+Math.max(s.BBc,s.aLui-s.aMoi),s.aLui+s.BBc),max);
+  const peut=max>s.aLui;                          /* de quoi relancer ? */
+  let h='';
+  if(peut)h+='<div class="dosage"><div class="pastilles">'
+    +'<button onclick="simQ(.5)">½ pot</button><button onclick="simQ(.75)">¾ pot</button>'
+    +'<button onclick="simQ(1)">Pot</button><button class="tapis" onclick="simQ(0)">Tapis</button>'
+    +'</div><div class="glisse">'
+    +'<button class="pm" onclick="simPas(-1)" aria-label="Miser moins">−</button>'
+    +'<input id="sl" type="range" min="'+min+'" max="'+max+'" step="10" value="'
+      +Math.min(max,Math.max(min,s.aLui+mise))+'" oninput="simSv()" aria-label="Montant">'
+    +'<button class="pm" onclick="simPas(1)" aria-label="Miser plus">+</button></div></div>';
+  h+='<div class="actions">'
+    +(aPayer>0?'<button class="f" onclick="simRepondre(\'f\')">Coucher</button>':'')
+    +'<button class="suivre" onclick="simRepondre(\'c\')">'
+      +(aPayer>0?'Suivre <b>'+fmt(aPayer)+'</b>':'Checker')+'</button>'
+    +(peut?'<button id="rb" class="p" onclick="simRepondre(\'r\',simMise())"></button>':'')
+    +'</div>';
+  const z=$('tr-btns');z.innerHTML=h;z.classList.remove('nb');z.style.display='';
+  simSv();
+}
+function simBoutonsPreflop(){simBoutons()}
+function simBoutonsRue(){simBoutons()}
 /* ---- le coup, mis en forme pour le juge de l'historique ---- */
 function simCoup(t,to){
   const s=SIM;
@@ -6611,17 +6751,24 @@ function simJuger(t,to){
   const s=SIM;
   const c=simCoup(t,to);
   const j=jugerCoup(c,s.h,[s.vilain]);
+  j.rue=s.stage;
   s.verdicts.push(j);
   return j;
 }
-function simAfficher(j,suite){
-  const s=SIM;
-  $('tr-fb').innerHTML='<div class="fb '+(j.juge?(j.juste?'ok':'no'):'')+'">'
-    +'<span class="titre">'+simRueNom()+'</span>'
-    +'<p>'+j.txt+'</p>'
-    +(j.chiffres?'<p class="calc">'+j.chiffres+'</p>':'')
-    +'</div>'
-    +'<button class="anbtn p" onclick="'+suite+'">'+(s.fini?'Main suivante':'Suite')+'</button>';
+/* ---- le deroule, en direct ----
+   Avant, un verdict s'interposait apres CHAQUE decision, avec un bouton
+   « Suite » : on ne jouait pas une main, on repondait a un questionnaire. La
+   main se deroule maintenant d'un trait, comme en face d'un vrai joueur, et
+   tout le jugement arrive a la fin. */
+let simT=null;
+function simApres(fn,ms){
+  clearTimeout(simT);
+  simT=setTimeout(()=>{simT=null;if(SIM)fn()},ms==null?850:ms);
+}
+function simStop(){clearTimeout(simT);simT=null}
+/* la petite ligne qui raconte ce qui vient de se passer */
+function simDire(txt){
+  $('tr-fb').innerHTML=txt?'<p class="sim-dit">'+txt+'</p>':'';
 }
 /* ---- ce que fait l'adversaire ---- */
 /* L'adversaire doit jouer pareil chez tout le monde. On ne peut pas se contenter
@@ -6663,36 +6810,52 @@ function simIlRepondVrai(mise){
   return 'Il suit.';
 }
 /* ---- l'enchainement ---- */
-function simRepondre(v){
+function simRepondre(v,montant){
   const s=SIM;
-  if(!s||s.fini)return;
+  if(!s||s.fini||s.enCours)return;
+  /* Les boutons de mise appellent cette fonction DIRECTEMENT, sans passer par
+     repondre() qui masquait la barre. Sans ce verrou, la barre reste a l'ecran
+     apres la decision et on peut rejouer le meme coup. */
+  s.enCours=true;
+  $('tr-btns').style.display='none';
   if(v==='f'){
-    const j=simJuger('f',0);
+    simJuger('f',0);
     s.fini=true;s.gagnant='lui';s.couche=true;
-    simAfficher(j,'simSuite()');
+    simDire('Tu te couches.');
+    simApres(simFin,650);
     return;
   }
   if(v==='c'){
     const aPayer=Math.max(0,s.aLui-s.aMoi);
     const j=simJuger('c',0);
-    if(aPayer>0){s.pot+=aPayer;s.aMoi=s.aLui;simAfficher(j,'simSuite()');return}
+    if(aPayer>0){s.pot+=aPayer;s.aMoi=s.aLui;s.tapis=Math.max(0,s.tapis-aPayer);
+      simDire('Tu suis '+fmt(aPayer)+'.');simApres(simSuite);return}
     /* j'ai checke en premier : c'est a lui de parler, et s'il mise la rue
        n'est pas finie -- il me reste une decision a prendre */
     if(!simMoiApres()){
       const dit=simIlJoue();
-      if(s.aLui>s.aMoi){s.ilVientDeMiser=dit;simAfficher(j,'simFaceMise()');return}
+      if(s.aLui>s.aMoi){s.ilVientDeMiser=dit;simDire('Tu checkes. '+dit);
+        simApres(simFaceMise);return}
       s.ilVientDeMiser=dit;
+      simDire('Tu checkes. '+dit);simApres(simSuite);return;
     }
-    simAfficher(j,'simSuite()');
+    simDire('Tu checkes.');simApres(simSuite);
     return;
   }
-  /* relance ou mise */
-  const base=Math.max(s.BBc*2,Math.round(s.pot*.65/10)*10);
-  const to=s.aLui+base;
+  /* relance ou mise : le montant vient du doseur, pas d'une formule */
+  const parDefaut=s.aLui+Math.max(s.BBc*2,Math.round(s.pot*.65/10)*10);
+  const plafond=s.aMoi+s.tapis;
+  const to=Math.min(plafond,Math.max(s.aLui+s.BBc,montant||parDefaut));
   const j=simJuger('r',to);
-  s.pot+=to-s.aMoi;s.aMoi=to;
+  const mis=to-s.aMoi;
+  const etaitAPayer=s.aLui>s.aMoi;
+  s.pot+=mis;s.aMoi=to;s.tapis=Math.max(0,s.tapis-mis);
+  const moi=(etaitAPayer?'Tu relances à ':'Tu mises ')+fmt(to)+'.';
   s.reponse=simIlRepond(to-s.aLui);
-  simAfficher(j,'simSuite()');
+  /* il s'est couche sur CE coup : c'est une reussite, sauf valeur perdue */
+  if(s.fini&&s.gagnant==='moi')ajusterFold(j,j.eq);
+  simDire(moi+' '+s.reponse);
+  simApres(s.fini?simFin:simSuite);
 }
 /* il a mise apres mon check : on reste sur la meme rue */
 function simFaceMise(){
@@ -6700,7 +6863,7 @@ function simFaceMise(){
   if(!s||s.fini)return;
   simPeindre((s.ilVientDeMiser||'Il mise.')+' À toi.');
   simBoutonsRue();
-  $('tr-fb').innerHTML='';
+  simDire('');
 }
 function simMoiApres(){
   return SIM_ORDRE.indexOf(SIM.pos)>SIM_ORDRE.indexOf(SIM.vpos);
@@ -6718,7 +6881,35 @@ function simSuite(){
   const dit=simMoiApres()?simIlJoue():'';
   simPeindre(dit?dit+' À toi.':'À toi de parler.');
   simBoutonsRue();
-  $('tr-fb').innerHTML='';
+  simDire('');
+}
+/* La note de la main : la moyenne des decisions, ramenee sur 10. On ne compte
+   que les coups notes -- se coucher d'entree ne donne qu'une seule decision, et
+   la note le dit au lieu de faire croire a une evaluation complete. */
+/* Puisque plus rien ne s'affiche pendant la main, c'est ici qu'on rend des
+   comptes : chaque decision, sa note, et ce qui la justifie. */
+function recapHTML(verdicts){
+  const l=(verdicts||[]).filter(x=>x&&typeof x.note==='number');
+  if(!l.length)return'';
+  const RUE=['Préflop','Flop','Turn','River'];
+  return'<div class="mdj-t">Tes décisions</div><div class="recap">'
+    +l.map(x=>{
+      const n=Math.round(x.note*10);
+      return'<div class="rc'+(n>=7?' ok':n>=4?'':' no')+'">'
+        +'<span class="rc-r">'+(RUE[x.rue]||'')+'</span>'
+        +'<span class="rc-t">'+(x.foldTxt||x.txt||'')+'</span>'
+        +'<b class="rc-n">'+n+'</b></div>';
+    }).join('')+'</div>';
+}
+function noteMain(verdicts){
+  const l=(verdicts||[]).filter(x=>x&&typeof x.note==='number');
+  if(!l.length)return null;
+  const m=l.reduce((a,x)=>a+x.note,0)/l.length;
+  return{sur10:Math.round(m*10),n:l.length,moy:m};
+}
+function motNote(n){
+  return n>=9?'Très bien joué':n>=7?'Bien joué':n>=5?'Correct'
+    :n>=3?'Des fuites':'À revoir';
 }
 function simFin(){
   const s=SIM;
@@ -6728,6 +6919,8 @@ function simFin(){
   const gagne=s.couche?false:(moi>lui);
   const juges=s.verdicts.filter(x=>x.juge);
   const bons=juges.filter(x=>x.juste).length;
+  const nm=noteMain(s.verdicts);
+  s.note=nm;
   const st=statTheme(8);
   st.total++;if(juges.length&&bons===juges.length){st.bon++;st.serie++;if(st.serie>st.record)st.record=st.serie}
   else st.serie=0;
@@ -6739,20 +6932,24 @@ function simFin(){
       +s.board.map(c=>card(c)).join('')+'</div></div>'
     +'<div class="lig"><span class="lbl">Son jeu ('+s.vpos+')</span><div class="cards">'
       +s.vilain.map(c=>card(c)).join('')+'</div></div>';
-  $('tr-fb').innerHTML='<div class="fb '+(juges.length&&bons===juges.length?'ok':'no')+'">'
+  $('tr-fb').innerHTML=(nm?'<div class="note10 n'+Math.min(10,Math.max(0,nm.sur10))+'">'
+      +'<b>'+nm.sur10+'</b><span>sur 10</span></div>':'')
+    +'<div class="fb '+(nm?(nm.sur10>=7?'ok':nm.sur10>=4?'':'no')
+        :(juges.length&&bons===juges.length?'ok':'no'))+'">'
     +'<span class="titre">'+(s.couche?'Main abandonnée'
         :(moi===lui?'Pot partagé':(gagne?'Tu gagnes le coup':'Il gagne le coup')))+'</span>'
     +'<p>'+nomMain(moi)+' contre '+nomMain(lui)+'.'
     +(s.couche?' En te couchant tu as '+(moi>lui?'laissé filer le pot':'évité de payer')+'.':'')+'</p>'
-    +(juges.length?'<p class="calc"><b>'+bons+' décision'+(bons>1?'s':'')+' sur '+juges.length
-      +'</b> conforme'+(bons>1?'s':'')+' à ce que disent les chiffres.</p>':'')
+    +(nm?'<p class="calc"><b>'+motNote(nm.sur10)+'</b> · '+nm.n+' décision'
+      +(nm.n>1?'s':'')+' notée'+(nm.n>1?'s':'')+'.</p>':'')
     +'</div>'
+    +recapHTML(s.verdicts)
     +(trMode==='jour'
       ?'<div id="mdj-club" class="mdj-club">Résultat enregistré…</div>'
         +'<button class="anbtn p" onclick="quitterMDJ()">Retour</button>'
       :'<button class="anbtn p" onclick="question()">Une autre main</button>');
   $('tr-btns').style.display='none';
-  if(trMode==='jour')mdjEnregistrer(bons,juges.length);
+  if(trMode==='jour')mdjEnregistrer(nm?nm.sur10:0,10);
 }
 
 function finQuestion(){
